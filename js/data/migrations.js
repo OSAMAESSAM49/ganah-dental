@@ -7,6 +7,7 @@
  */
 
 import { seedCatalog } from './seed-catalog.js';
+import { inferChartEffect } from '../core/chart-conditions.js';
 
 /** @type {import('./idb.js').Migration[]} */
 export const MIGRATIONS = [
@@ -48,6 +49,26 @@ export const MIGRATIONS = [
       db.createObjectStore('procedureCategories', { keyPath: 'id' });
       db.createObjectStore('procedures', { keyPath: 'id' }).createIndex('categoryId', 'categoryId');
       seedCatalog((store, record) => tx.objectStore(store).put(record));
+    },
+  },
+  {
+    version: 4,
+    description: 'Dental chart events, treatment plans and items; chartEffect on procedures',
+    up(db, tx) {
+      db.createObjectStore('toothEvents', { keyPath: 'id' }).createIndex('patientId', 'patientId');
+      db.createObjectStore('treatmentPlans', { keyPath: 'id' }).createIndex('patientId', 'patientId');
+      const items = db.createObjectStore('treatmentItems', { keyPath: 'id' });
+      items.createIndex('patientId', 'patientId');
+      items.createIndex('planId', 'planId');
+      items.createIndex('procedureId', 'procedureId');
+      items.createIndex('status', 'status');
+      // Backfill: what each existing procedure does to the chart when completed.
+      tx.objectStore('procedures').openCursor().onsuccess = (e) => {
+        const cursor = /** @type {IDBCursorWithValue} */ (/** @type {IDBRequest} */ (e.target).result);
+        if (!cursor) return;
+        if (cursor.value.chartEffect === undefined) cursor.update({ ...cursor.value, chartEffect: inferChartEffect(cursor.value.name) });
+        cursor.continue();
+      };
     },
   },
 ];

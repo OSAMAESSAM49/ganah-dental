@@ -16,7 +16,8 @@ let adapter = null;
  * Registry of repositories. Feature phases add entries here.
  * @type {{ meta: KeyValueRepository, settings: KeyValueRepository,
  *          users: Repository, roles: Repository, audit: Repository, patients: Repository,
- *          media: Repository, procedureCategories: Repository, procedures: Repository }}
+ *          media: Repository, procedureCategories: Repository, procedures: Repository,
+ *          toothEvents: Repository, treatmentPlans: Repository, treatmentItems: Repository }}
  */
 export const repos = /** @type {any} */ ({});
 
@@ -35,6 +36,9 @@ export async function initData({ name = DB_NAME, ...handlers } = {}) {
   repos.media = new Repository(adapter, 'media');
   repos.procedureCategories = new Repository(adapter, 'procedureCategories');
   repos.procedures = new Repository(adapter, 'procedures');
+  repos.toothEvents = new Repository(adapter, 'toothEvents');
+  repos.treatmentPlans = new Repository(adapter, 'treatmentPlans');
+  repos.treatmentItems = new Repository(adapter, 'treatmentItems');
   return adapter;
 }
 

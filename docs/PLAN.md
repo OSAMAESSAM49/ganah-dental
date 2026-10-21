@@ -37,7 +37,7 @@ Approved on 2026-10-21. This file records decisions so later phases stay consist
 1. ✅ Skeleton: design system, right-to-left shell, router, storage and migrations, PWA, dev server, tests.
 2. ✅ Accounts: setup wizard, login (PBKDF2, 310k iterations) with password or PIN, recovery code, roles, the permission matrix with per-user overrides, idle auto-lock, user switching, audit log.
 3. ✅ Patients and medical history, photos & X-rays (stored as Blobs, before/after compare), the procedures catalog (seeded, prices start at 0), global search, and basic backup and restore.
-4. Dental chart (FDI, SVG) and treatment plans (Kanban, plan options, quote).
+4. ✅ Dental chart (FDI, SVG, surfaces, history) and treatment plans (Kanban with pointer drag & drop, list, options, quote, done-hooks).
 5. Appointments: calendar views, chairs and doctors, conflict checks, arrival flow, WhatsApp reminders.
 6. Billing: invoices, discounts, installments, ledger, receipts on A4 and 80mm paper, daily cash closing.
 7. Inventory and material recipes with automatic deduction, expenses, lab cases.
@@ -60,3 +60,12 @@ Approved on 2026-10-21. This file records decisions so later phases stay consist
 - Each media record holds two Blobs: `blob` (≤2000px JPEG) and `thumb` (≤360px). Views must release object URLs with `urlPool().revokeAll()`.
 - The backup format is `{ app, format: 1, schemaVersion, stores }`, with Blobs written as `{ __blob: mime, data: base64 }`. Data transforms for old backups go in `BACKUP_UPGRADES`.
 - `isProcedureUsed` checks `treatmentItems` once phase 4 creates that store. It needs a `procedureId` index.
+
+## Phase 4 notes
+- The chart is event-sourced: `toothEvents { tooth, type add|remove|clear, condition, surfaces, at, voided, source, treatmentItemId }`. `foldChart(events, until)` in `js/core/chart-conditions.js` builds the chart for any date. Events are voided, never deleted, so they are not copied into the audit log.
+- Rules applied while building the chart: a filling or temporary filling replaces caries on the same surfaces; "missing" clears the tooth (a bridge stays); "implant" removes missing, extract, caries, fillings and root canal.
+- Each procedure has a `chartEffect` (a condition key or `''`). Migration v4 inferred it for existing procedures by name, and the procedure dialog lets the clinic change it.
+- Plan statuses are active, proposal, rejected and completed. Only items in an active or completed plan can be started or finished. `choosePlan` rejects the other plans that have not started.
+- Items: per-tooth procedures become one item per tooth. Money is `itemMath` (piasters, discount by amount or percent, capped at the price). `total` is stored but always recomputed.
+- **Extension point:** `registerDoneHandler({ key, describe, onDone, onUndone })` in `js/services/treatment.js`. The chart handler is built in. Phase 7 adds stock deduction (showing materials in `describe`), and phase 8 adds follow-ups.
+- Drag and drop uses pointer events (mouse, touch and pen), with buttons as the keyboard and accessibility path.

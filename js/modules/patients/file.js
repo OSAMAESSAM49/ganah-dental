@@ -20,8 +20,8 @@ import { patientAvatar } from './list.js';
 const TABS = [
   { key: 'overview', label: 'نظرة عامة', icon: 'user-round', load: () => import('./tab-overview.js') },
   { key: 'medical', label: 'التاريخ الطبي', icon: 'heart-pulse', load: () => import('./tab-medical.js') },
-  { key: 'chart', label: 'خريطة الأسنان', icon: 'tooth', phase: 4, module: 'chart' },
-  { key: 'plan', label: 'خطة العلاج', icon: 'list-checks', phase: 4, module: 'treatment' },
+  { key: 'chart', label: 'خريطة الأسنان', icon: 'tooth', module: 'chart', load: () => import('./tab-chart.js') },
+  { key: 'plan', label: 'خطة العلاج', icon: 'list-checks', module: 'treatment', load: () => import('./tab-plan.js') },
   { key: 'visits', label: 'الزيارات', icon: 'calendar-days', phase: 5, module: 'appointments' },
   { key: 'payments', label: 'المدفوعات', icon: 'receipt', phase: 6, module: 'billing' },
   { key: 'photos', label: 'الصور والأشعة', icon: 'image', load: () => import('./tab-photos.js') },

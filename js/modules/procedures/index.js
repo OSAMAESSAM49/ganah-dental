@@ -2,6 +2,7 @@
 import { html, ico, render, on, formData, showFieldErrors } from '../../core/dom.js';
 import { formatMoney, toPiasters, piastersToInput, digits, arabicCount } from '../../core/format.js';
 import { normalizeDigits, normalizeArabic } from '../../core/text.js';
+import { CONDITIONS, CONDITION } from '../../core/chart-conditions.js';
 import { validate, required } from '../../core/validate.js';
 import { can } from '../../core/permissions.js';
 import { openModal, confirmDialog } from '../../components/modal.js';
@@ -86,6 +87,7 @@ export default {
                         <span class="proc-flags">
                           ${p.perTooth ? html`<span class="badge">${ico('tooth', { size: 13 })} لكل سن</span>` : ''}
                           ${p.needsLab ? html`<span class="badge badge--info">${ico('flask-conical', { size: 13 })} معمل</span>` : ''}
+                          ${CONDITION[p.chartEffect] ? html`<span class="badge"><span class="cond-dot" style="background:${CONDITION[p.chartEffect].color}"></span> ${CONDITION[p.chartEffect].short}</span>` : ''}
                           ${p.active ? '' : html`<span class="badge badge--danger">موقوف</span>`}
                         </span></span></td>
                       <td data-label="السعر" class="num">${p.price ? html`<strong>${formatMoney(p.price)}</strong>` : html`<span class="badge badge--warning">بدون سعر</span>`}</td>
@@ -189,6 +191,7 @@ async function procedureDialog(proc, catalog) {
           <label class="check"><input type="checkbox" name="perTooth" ${proc?.perTooth ? 'checked' : ''}> السعر لكل سن</label>
           <label class="check"><input type="checkbox" name="needsLab" ${proc?.needsLab ? 'checked' : ''}> يحتاج معمل تركيبات</label>
         </div>
+        ${selectField({ name: 'chartEffect', label: 'أثره على خريطة الأسنان عند الانتهاء', value: proc?.chartEffect ?? '', placeholder: 'لا يغيّر الخريطة', hint: 'مثال: الحشو يُسجّل «حشو» على السن والأسطح المختارة', options: CONDITIONS.filter((c) => !['caries', 'fractured', 'extract'].includes(c.key)).map((c) => ({ value: c.key, label: c.label })) })}
         ${textareaField({ name: 'notes', label: 'ملاحظات', value: proc?.notes ?? '', rows: 2 })}
         <p class="subtle text-sm">${ico('info', { size: 14 })} المواد المستهلكة وتعليمات ما بعد الإجراء ومواعيد المتابعة تُضاف في مراحل لاحقة.</p>
       </form>`,

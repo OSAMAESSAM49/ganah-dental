@@ -12,6 +12,8 @@ export const ENTITY_LABELS = {
   stockMovements: 'حركة مخزون',
   appointments: 'موعد',
   treatmentItems: 'بند علاج',
+  treatmentPlans: 'خطة علاج',
+  toothEvents: 'خريطة الأسنان',
   expenses: 'مصروف',
   procedures: 'إجراء',
   procedureCategories: 'تصنيف إجراءات',
@@ -88,6 +90,37 @@ export const FIELD_LABELS = {
   tag: 'قبل/بعد',
   takenAt: 'تاريخ التصوير',
   kind: 'النوع',
+  chartEffect: 'أثره على الخريطة',
+  status: 'الحالة',
+  teeth: 'الأسنان',
+  surfaces: 'الأسطح',
+  unitPrice: 'سعر الوحدة',
+  qty: 'الكمية',
+  discountType: 'نوع الخصم',
+  discountValue: 'قيمة الخصم',
+  total: 'الإجمالي',
+  sessionsPlanned: 'الجلسات المخططة',
+  sessionsDone: 'الجلسات المنفذة',
+  procedureName: 'الإجراء',
+  planId: 'الخطة',
+  condition: 'الحالة',
+  tooth: 'السن',
+  voided: 'ملغي',
+  statusHistory: 'سجل الحالة',
+};
+
+export const TREATMENT_STATUS = {
+  planned: { label: 'مخطط', tone: 'primary' },
+  in_progress: { label: 'جاري', tone: 'warning' },
+  done: { label: 'تم', tone: 'success' },
+  cancelled: { label: 'ملغي', tone: '' },
+};
+
+export const PLAN_STATUS = {
+  active: { label: 'معتمدة', tone: 'success' },
+  proposal: { label: 'عرض بديل', tone: 'info' },
+  rejected: { label: 'لم يُختر', tone: '' },
+  completed: { label: 'مكتملة', tone: 'primary' },
 };
 
 export const GENDER_LABELS = { male: 'ذكر', female: 'أنثى' };

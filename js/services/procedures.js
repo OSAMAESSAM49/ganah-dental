@@ -4,6 +4,7 @@
  * Procedures used by treatment plans cannot be deleted — only deactivated (phase 4+).
  */
 import { getAdapter, repos } from '../data/index.js';
+import { CONDITION, inferChartEffect } from '../core/chart-conditions.js';
 
 const byOrder = (a, b) => (a.order ?? 0) - (b.order ?? 0) || a.name.localeCompare(b.name, 'ar');
 
@@ -74,6 +75,7 @@ function cleanProcedure(input) {
     perTooth: !!input.perTooth,
     needsLab: !!input.needsLab,
     notes: String(input.notes ?? '').trim(),
+    chartEffect: input.chartEffect === undefined ? inferChartEffect(input.name) : (CONDITION[input.chartEffect] ? input.chartEffect : ''),
   };
 }
 

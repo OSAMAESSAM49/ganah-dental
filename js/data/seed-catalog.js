@@ -5,6 +5,8 @@
  *
  * Fields: name, minutes (estimated duration), sessions, perTooth, lab (needs a dental lab).
  */
+import { inferChartEffect } from '../core/chart-conditions.js';
+
 export const SEED_CATEGORIES = [
   { id: 'endo', name: 'علاج الجذور', icon: 'tooth', items: [
     { name: 'حشو عصب (أمامي)', minutes: 45, sessions: 1, perTooth: true },
@@ -75,6 +77,7 @@ export function seedCatalog(put) {
         instructionTemplateId: null, // phase 8
         followUpSchedule: [],        // phase 8
         recipe: [],                  // phase 7
+        chartEffect: inferChartEffect(p.name),
         ...meta,
       });
     });
