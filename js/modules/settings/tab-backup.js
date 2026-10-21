@@ -1,4 +1,7 @@
-/** Backup (download a JSON file) and restore (replace all data from a file, Admin only). */
+/**
+ * Backup (download a .zip with data + images), restore (replace all data, Admin only),
+ * merge-import from another device (Admin only), and demo data.
+ */
 import { html, ico, render, on } from '../../core/dom.js';
 import { formatDateTime, formatBytes, digits, arabicCount } from '../../core/format.js';
 import { can, isAdmin } from '../../core/permissions.js';
@@ -6,10 +9,13 @@ import { navigate } from '../../core/router.js';
 import { getSettings, updateSettings } from '../../data/settings.js';
 import { openModal, confirmDialog } from '../../components/modal.js';
 import { toast, toastSuccess, toastError } from '../../components/toast.js';
-import { exportBackup, readBackupFile, restoreBackup, backupStatus } from '../../services/backup.js';
+import { ENTITY_LABELS } from '../../core/labels.js';
+import { exportBackup, readBackupFile, restoreBackup, prepareMerge, applyMerge, backupStatus } from '../../services/backup.js';
 import { logout } from '../../services/auth.js';
+import { demoStatus, createDemoData, removeDemoData } from '../../services/demo.js';
 
 const DAYS = { one: 'يوم', two: 'يومين', few: 'أيام', many: 'يومًا' };
+const ACCEPT = '.zip,.json,application/zip,application/json';
 
 export async function renderTab({ body, signal }) {
   const canBackup = can('settings', 'edit');
@@ -17,6 +23,7 @@ export async function renderTab({ body, signal }) {
 
   const draw = async () => {
     const s = await backupStatus();
+    const demo = admin ? await demoStatus() : null;
     const { usage, quota } = (await navigator.storage?.estimate?.()) ?? {};
     const persisted = (await navigator.storage?.persisted?.()) ?? false;
     render(body, html`
@@ -27,7 +34,7 @@ export async function renderTab({ body, signal }) {
             <p class="card__subtitle">${s.lastAt ? html`آخر نسخة: ${formatDateTime(s.lastAt)} (${s.days === 0 ? 'اليوم' : `منذ ${arabicCount(s.days, DAYS)}`})` : 'لم تؤخذ أي نسخة احتياطية بعد.'}</p>
           </div></div>
           <div class="card__body stack">
-            <p>ملف واحد فيه كل بيانات البرنامج: المرضى، والصور، والمستخدمين، والإعدادات. احفظه خارج هذا الجهاز (فلاشة، أو Google Drive، أو بريدك).</p>
+            <p>ملف مضغوط واحد (.zip) فيه كل بيانات البرنامج: المرضى، والصور والأشعة، والحسابات، والمستخدمين، والإعدادات. احفظه خارج هذا الجهاز (فلاشة، أو Google Drive، أو بريدك).</p>
             ${s.due && s.lastAt ? html`<p class="bold">${ico('triangle-alert', { size: 18 })} مرّ أكثر من ${arabicCount(s.limit, DAYS)} على آخر نسخة.</p>` : ''}
             ${canBackup
               ? html`<button type="button" class="btn ${s.due ? 'btn--accent' : 'btn--primary'}" data-export style="align-self:flex-start">${ico('download')} تنزيل النسخة الآن</button>`
@@ -51,20 +58,48 @@ export async function renderTab({ body, signal }) {
               </label>` : ''}
           </div>
         </aside>
-        <section class="card span-12">
+        <section class="card span-6">
+          <div class="card__header"><div class="card__heading">
+            <h2 class="card__title">${ico('refresh-cw', { size: 20 })} دمج بيانات جهاز آخر</h2>
+            <p class="card__subtitle">يضيف بيانات نسخة من جهاز آخر إلى بيانات هذا الجهاز</p>
+          </div></div>
+          <div class="card__body stack">
+            ${admin ? html`
+              <p class="text-sm">مثال: جهاز الاستقبال وجهاز الطبيب. خذ نسخة من الجهاز الآخر ثم ادمجها هنا. السجل الموجود على الجهازين يبقى منه الأحدث تعديلًا، والسجلات الجديدة تُضاف، ورقم الملف أو الفاتورة المكرر يُعطى رقمًا جديدًا. حسابات المستخدمين وإعدادات هذا الجهاز لا تتغير.</p>
+              <label class="btn" style="align-self:flex-start">${ico('upload')} اختيار نسخة للدمج
+                <input type="file" accept="${ACCEPT}" id="merge-file" class="visually-hidden">
+              </label>`
+              : html`<p class="muted">الدمج متاح لمدير النظام فقط.</p>`}
+          </div>
+        </section>
+        <section class="card span-6">
           <div class="card__header"><div class="card__heading">
             <h2 class="card__title">${ico('upload', { size: 20 })} استرجاع نسخة احتياطية</h2>
             <p class="card__subtitle">يستبدل كل البيانات الحالية على هذا الجهاز ببيانات الملف</p>
           </div></div>
           <div class="card__body stack">
             ${admin ? html`
-              <div class="alert alert--warning">${ico('triangle-alert')}<div class="alert__content"><div class="alert__body">الاسترجاع يمسح كل ما على هذا الجهاز الآن ويضع مكانه محتوى الملف. سيتم تنزيل نسخة من البيانات الحالية تلقائيًا قبل الاسترجاع للأمان. دمج بيانات جهازين يأتي في مرحلة لاحقة.</div></div></div>
-              <label class="btn" style="align-self:flex-start">${ico('upload')} اختيار ملف النسخة (.json)
-                <input type="file" accept="application/json,.json" id="restore-file" class="visually-hidden">
+              <div class="alert alert--warning">${ico('triangle-alert')}<div class="alert__content"><div class="alert__body">الاسترجاع يمسح كل ما على هذا الجهاز الآن ويضع مكانه محتوى الملف. يُنزَّل قبله نسخة من البيانات الحالية للأمان.</div></div></div>
+              <label class="btn" style="align-self:flex-start">${ico('upload')} اختيار ملف النسخة (.zip أو .json)
+                <input type="file" accept="${ACCEPT}" id="restore-file" class="visually-hidden">
               </label>`
               : html`<p class="muted">الاسترجاع متاح لمدير النظام فقط.</p>`}
           </div>
         </section>
+        ${admin ? html`<section class="card span-12">
+          <div class="card__header"><div class="card__heading">
+            <h2 class="card__title">${ico('sparkles', { size: 20 })} بيانات تجريبية</h2>
+            <p class="card__subtitle">لتجربة البرنامج وتدريب الفريق قبل إدخال المرضى الحقيقيين</p>
+          </div></div>
+          <div class="card__body stack">
+            ${demo.patients ? html`
+              <p>يوجد الآن ${digits(demo.patients)} مريض تجريبي (عليهم شارة «بيانات تجريبية»). حذفها يزيل كل ما يخصهم: المواعيد والخطط والفواتير والمدفوعات والمتابعات والروشتات، ومصروفات وخامات التجربة، ويعيد ترقيم الملفات والفواتير ليبدأ بعد آخر رقم حقيقي.</p>
+              <button type="button" class="btn btn--danger" data-demo-remove style="align-self:flex-start">${ico('trash-2')} حذف البيانات التجريبية</button>`
+              : html`
+              <p>يضيف ٣٦ مريضًا وهميًا بمواعيد وخطط علاج وفواتير ومدفوعات ومصروفات ومتابعات على مدار الأشهر الستة الماضية، لترى الصفحة الرئيسية والتقارير وهي ممتلئة. كل ما يُضاف يحمل علامة «تجريبي» ويمكن حذفه بالكامل بضغطة.</p>
+              <button type="button" class="btn" data-demo-add style="align-self:flex-start">${ico('sparkles')} إضافة بيانات تجريبية</button>`}
+          </div>
+        </section>` : ''}
       </div>`);
   };
 
@@ -81,6 +116,22 @@ export async function renderTab({ body, signal }) {
     }
   }, { signal });
 
+  on(body, 'click', '[data-demo-add]', async (_, btn) => {
+    if (!(await confirmDialog({ title: 'إضافة بيانات تجريبية؟', message: 'ستظهر في كل الصفحات والتقارير مع شارة «بيانات تجريبية». احذفها قبل البدء بالعمل الحقيقي.', confirmLabel: 'إضافة' }))) return;
+    btn.setAttribute('aria-busy', 'true');
+    const busy = toast('جارٍ إنشاء البيانات التجريبية…', { duration: 0 });
+    try { const n = await createDemoData(); toastSuccess(`تمت إضافة ${digits(n)} مريض تجريبي`); } catch (err) { console.error(err); toastError(err.message); }
+    busy();
+    await draw();
+  }, { signal });
+
+  on(body, 'click', '[data-demo-remove]', async (_, btn) => {
+    if (!(await confirmDialog({ title: 'حذف كل البيانات التجريبية؟', message: 'لن تتأثر بيانات المرضى الحقيقيين.', confirmLabel: 'حذف', danger: true }))) return;
+    btn.setAttribute('aria-busy', 'true');
+    try { await removeDemoData(); toastSuccess('تم حذف البيانات التجريبية'); } catch (err) { console.error(err); toastError(err.message); }
+    await draw();
+  }, { signal });
+
   body.addEventListener('change', async (e) => {
     const t = /** @type {HTMLInputElement} */ (e.target);
     if (t.id === 'remind-days') {
@@ -88,42 +139,47 @@ export async function renderTab({ body, signal }) {
       toastSuccess('تم حفظ موعد التذكير');
       return;
     }
-    if (t.id !== 'restore-file') return;
+    if (t.id !== 'restore-file' && t.id !== 'merge-file') return;
     const file = t.files?.[0];
     t.value = '';
     if (!file) return;
     let parsed;
     try { parsed = await readBackupFile(file); } catch (err) { toastError(err.message); return; }
-    await confirmRestore(parsed, file);
+    if (t.id === 'restore-file') await confirmRestore(parsed, file);
+    else if (await confirmMerge(parsed, file)) await draw();
   }, { signal });
 
   await draw();
 }
 
-async function confirmRestore({ backup, preview }, file) {
-  const c = preview.counts;
+const previewList = (preview, file) => html`
+  <dl class="dl">
+    <dt>الملف</dt><dd class="ltr">${file.name} <span class="muted">(${formatBytes(file.size)})</span></dd>
+    <dt>العيادة</dt><dd>${preview.clinic || '—'}</dd>
+    <dt>تاريخ النسخة</dt><dd>${formatDateTime(preview.exportedAt)}${preview.exportedBy ? html` · ${preview.exportedBy}` : ''}</dd>
+    <dt>المرضى</dt><dd>${digits(preview.counts.patients)}</dd>
+    <dt>المواعيد</dt><dd>${digits(preview.counts.appointments)}</dd>
+    <dt>الفواتير</dt><dd>${digits(preview.counts.invoices)}</dd>
+    <dt>الصور والأشعة</dt><dd>${digits(preview.counts.media)}</dd>
+    <dt>المستخدمون</dt><dd>${digits(preview.counts.users)}</dd>
+  </dl>`;
+
+async function confirmRestore(parsed, file) {
+  const { preview } = parsed;
+  let safety = true;
   const go = await openModal({
     title: 'مراجعة النسخة قبل الاسترجاع',
     icon: 'database',
     size: 'lg',
     body: html`
       <div class="stack">
-        <dl class="dl">
-          <dt>الملف</dt><dd class="ltr">${file.name}</dd>
-          <dt>العيادة</dt><dd>${preview.clinic || '—'}</dd>
-          <dt>تاريخ النسخة</dt><dd>${formatDateTime(preview.exportedAt)}${preview.exportedBy ? html` · ${preview.exportedBy}` : ''}</dd>
-          <dt>المرضى</dt><dd>${digits(c.patients)}</dd>
-          <dt>الصور والأشعة</dt><dd>${digits(c.media)}</dd>
-          <dt>المستخدمون</dt><dd>${digits(c.users)}</dd>
-          <dt>الإجراءات</dt><dd>${digits(c.procedures)}</dd>
-          <dt>سجل العمليات</dt><dd>${digits(c.auditLog)}</dd>
-        </dl>
+        ${previewList(preview, file)}
         ${preview.older ? html`<div class="alert">${ico('info')}<div class="alert__content"><div class="alert__body">النسخة من إصدار أقدم من البرنامج، وسيتم تحديثها تلقائيًا أثناء الاسترجاع.</div></div></div>` : ''}
         <label class="check"><input type="checkbox" id="safety" checked> نزّل نسخة من البيانات الحالية قبل الاسترجاع (موصى به)</label>
       </div>`,
     actions: [{ label: 'متابعة', value: 'next', variant: 'danger' }, { label: 'إلغاء', value: null }],
     beforeClose(v, d) {
-      if (v === 'next') confirmRestore.safety = /** @type {HTMLInputElement} */ (d.querySelector('#safety')).checked;
+      if (v === 'next') safety = /** @type {HTMLInputElement} */ (d.querySelector('#safety')).checked;
       return true;
     },
   });
@@ -138,8 +194,8 @@ async function confirmRestore({ backup, preview }, file) {
 
   const busy = toast('جارٍ الاسترجاع… لا تغلق الصفحة', { duration: 0 });
   try {
-    if (confirmRestore.safety) await exportBackup();
-    await restoreBackup(backup);
+    if (safety) await exportBackup();
+    await restoreBackup(parsed);
     busy();
     await logout('logout').catch(() => {});
     toastSuccess('تم الاسترجاع بنجاح. سجّل الدخول.');
@@ -147,7 +203,48 @@ async function confirmRestore({ backup, preview }, file) {
   } catch (err) {
     busy();
     console.error(err);
-    toastError('فشل الاسترجاع ولم يتغير شيء في بياناتك.');
+    toastError(err.message?.startsWith('الملف') ? err.message : 'فشل الاسترجاع ولم يتغير شيء في بياناتك.');
   }
 }
-confirmRestore.safety = true;
+
+/** @returns {Promise<boolean>} merged */
+async function confirmMerge(parsed, file) {
+  let prepared;
+  try { prepared = await prepareMerge(parsed); } catch (err) { toastError(err.message); return false; }
+  const rows = Object.entries(prepared.plan.summary).filter(([, s]) => s.added || s.updated || s.renumbered)
+    .sort(([, a], [, b]) => (b.added + b.updated) - (a.added + a.updated));
+  let safety = true;
+  const go = await openModal({
+    title: 'مراجعة الدمج',
+    icon: 'refresh-cw',
+    size: 'lg',
+    body: html`
+      <div class="stack">
+        ${previewList(parsed.preview, file)}
+        ${rows.length ? html`<div class="table-wrap"><table class="table">
+          <thead><tr><th>البيانات</th><th class="num">جديد</th><th class="num">تحديث</th><th class="num">رقم جديد</th></tr></thead>
+          <tbody>${rows.map(([store, s]) => html`<tr><td>${ENTITY_LABELS[store] ?? store}</td><td class="num">${digits(s.added)}</td><td class="num">${digits(s.updated)}</td><td class="num">${s.renumbered ? digits(s.renumbered) : '—'}</td></tr>`)}</tbody>
+        </table></div>` : html`<p class="muted">لا يوجد في النسخة شيء جديد أو أحدث مما على هذا الجهاز.</p>`}
+        <label class="check"><input type="checkbox" id="safety" checked> نزّل نسخة من البيانات الحالية قبل الدمج (موصى به)</label>
+      </div>`,
+    actions: rows.length ? [{ label: 'دمج الآن', value: 'go', variant: 'primary' }, { label: 'إلغاء', value: null }] : [{ label: 'إغلاق', value: null }],
+    beforeClose(v, d) {
+      if (v === 'go') safety = /** @type {HTMLInputElement} */ (d.querySelector('#safety')).checked;
+      return true;
+    },
+  });
+  if (go !== 'go') return false;
+  const busy = toast('جارٍ الدمج… لا تغلق الصفحة', { duration: 0 });
+  try {
+    if (safety) await exportBackup();
+    await applyMerge(prepared);
+    busy();
+    toastSuccess('تم دمج البيانات');
+    return true;
+  } catch (err) {
+    busy();
+    console.error(err);
+    toastError('فشل الدمج ولم يتغير شيء في بياناتك.');
+    return false;
+  }
+}

@@ -1,4 +1,4 @@
-/** Settings: backup & restore, clinic info, appearance & digits. More tabs arrive in phase 10. */
+/** Settings: clinic info, schedule & chairs, appearance & digits, backup / restore / merge / demo data. */
 import { html, ico, render } from '../../core/dom.js';
 import { href } from '../../core/router.js';
 

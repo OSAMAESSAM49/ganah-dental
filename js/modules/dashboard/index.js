@@ -12,14 +12,12 @@ import { can } from '../../core/permissions.js';
 import { currentUser } from '../../core/session.js';
 import { newPatientsThisMonth } from '../../services/patients.js';
 import { backupStatus } from '../../services/backup.js';
-import { followUpCounts } from '../../services/followups.js';
-import { outstandingBalances, allInstallments } from '../../services/billing.js';
-import { inventoryAlerts } from '../../services/inventory.js';
-import { overdueLabCases } from '../../services/labs.js';
+import { outstandingBalances } from '../../services/billing.js';
+import { collectAlerts } from '../../services/alerts.js';
 import { dashboardKpis, change } from '../../services/reports.js';
 import { mountChart, wireCharts } from '../../components/chart.js';
 import { allPatients } from '../../services/patients.js';
-import { todaysAppointments, setAppointmentStatus, tomorrowsReminders, NEXT_STEPS } from '../../services/appointments.js';
+import { todaysAppointments, setAppointmentStatus, NEXT_STEPS } from '../../services/appointments.js';
 import { openAppointmentForm } from '../appointments/appt-form.js';
 import { openAppointmentDetails } from '../appointments/appt-details.js';
 import { APPT_STATUS } from '../../core/labels.js';
@@ -68,35 +66,6 @@ const alertItem = ({ icon, tone, title, sub, link }) => html`
   <a class="dash-alert" href="${link}"><span class="dash-alert__icon dash-alert__icon--${tone}">${ico(icon, { size: 20 })}</span>
     <span class="dash-alert__text"><strong>${title}</strong><span class="muted text-sm">${sub}</span></span></a>`;
 
-/** Everything that needs attention now, most urgent first. */
-async function collectAlerts(backup) {
-  const out = [];
-  if (backup?.due) out.push({ icon: 'database', tone: 'warning', title: 'حان وقت النسخ الاحتياطي', sub: backup.lastAt ? `آخر نسخة منذ ${digits(backup.days)} يوم` : 'لم تؤخذ أي نسخة بعد', link: '#/settings?tab=backup' });
-  if (can('followups')) {
-    const fu = await followUpCounts();
-    if (fu.overdue) out.push({ icon: 'bell', tone: 'danger', title: `${digits(fu.overdue)} متابعة متأخرة`, sub: 'اتصالات وفحوص بعد العلاج', link: '#/followups?filter=overdue' });
-    if (fu.today) out.push({ icon: 'bell', tone: 'info', title: `${digits(fu.today)} متابعة اليوم`, sub: 'رسالة واتساب جاهزة لكل مريض', link: '#/followups?filter=today' });
-  }
-  if (can('billing')) {
-    const overdue = (await allInstallments()).filter((i) => i.status === 'overdue');
-    if (overdue.length) out.push({ icon: 'wallet', tone: 'danger', title: `${digits(overdue.length)} قسط متأخر`, sub: formatMoney(overdue.reduce((n, i) => n + i.remainingOnInstallment, 0)), link: '#/billing?tab=installments' });
-  }
-  if (can('appointments')) {
-    const pending = (await tomorrowsReminders()).filter((a) => !a.reminderSentAt);
-    if (pending.length) out.push({ icon: 'message-circle', tone: 'info', title: `${digits(pending.length)} تذكير لمواعيد الغد`, sub: 'لم تُرسل بعد', link: '#/appointments' });
-  }
-  if (can('labs')) {
-    const late = await overdueLabCases();
-    if (late.length) out.push({ icon: 'flask-conical', tone: 'warning', title: `${digits(late.length)} حالة معمل متأخرة`, sub: late.slice(0, 2).map((c) => c.patientName).join('، '), link: '#/labs?filter=overdue' });
-  }
-  if (can('inventory')) {
-    const inv = await inventoryAlerts();
-    if (inv.expired.length) out.push({ icon: 'triangle-alert', tone: 'danger', title: `${digits(inv.expired.length)} تشغيلة منتهية الصلاحية`, sub: 'استبعدها من الاستخدام', link: '#/inventory?tab=alerts' });
-    if (inv.low.length) out.push({ icon: 'package', tone: 'warning', title: `${digits(inv.low.length)} صنف يحتاج شراء`, sub: inv.low.slice(0, 2).map((i) => i.name).join('، '), link: '#/inventory?tab=shopping' });
-    if (inv.expiring.length) out.push({ icon: 'clock', tone: 'warning', title: `${digits(inv.expiring.length)} تشغيلة تنتهي قريبًا`, sub: 'خلال 60 يومًا', link: '#/inventory?tab=alerts' });
-  }
-  return out;
-}
 
 const kpi = ({ icon, tone = '', label, value, meta }) => html`
   <article class="card span-3">

@@ -8,7 +8,7 @@ import { repoHooks } from '../data/repository.js';
 import { currentUser } from '../core/session.js';
 import { META_FIELDS, SECRET_FIELDS } from '../core/labels.js';
 
-/** Stores whose changes are audited. Later phases add patients, payments, inventory… */
+/** Stores whose changes are audited (add new stores here). */
 export const AUDITED_STORES = new Set([
   'users', 'roles', 'settings',
   'patients', 'payments', 'invoices', 'inventoryItems',

@@ -13,7 +13,7 @@ export const DB_NAME = 'ganah-dental';
 let adapter = null;
 
 /**
- * Registry of repositories. Feature phases add entries here.
+ * Registry of repositories (one per store).
  * @type {{ meta: KeyValueRepository, settings: KeyValueRepository,
  *          users: Repository, roles: Repository, audit: Repository, patients: Repository,
  *          media: Repository, procedureCategories: Repository, procedures: Repository,

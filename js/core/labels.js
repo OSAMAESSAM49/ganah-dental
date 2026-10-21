@@ -27,6 +27,9 @@ export const ENTITY_LABELS = {
   prescriptions: 'روشتة',
   media: 'صورة / أشعة',
   backup: 'النسخ الاحتياطي',
+  stockBatches: 'تشغيلة مخزون',
+  auditLog: 'سجل العمليات',
+  demo: 'بيانات تجريبية',
 };
 
 export const AUDIT_ACTION_LABELS = {
@@ -45,6 +48,9 @@ export const AUDIT_ACTION_LABELS = {
   setup: 'إعداد أول مرة',
   backup_export: 'تنزيل نسخة احتياطية',
   backup_restore: 'استرجاع نسخة احتياطية',
+  backup_merge: 'دمج نسخة من جهاز آخر',
+  demo_create: 'إضافة بيانات تجريبية',
+  demo_remove: 'حذف البيانات التجريبية',
 };
 
 export const AUDIT_ACTION_TONES = {
@@ -52,7 +58,7 @@ export const AUDIT_ACTION_TONES = {
   login: '', logout: '', login_failed: 'warning', lock: '',
   password_reset: 'warning', password_change: 'info', recovery_used: 'danger',
   recovery_regenerated: 'warning', setup: 'primary',
-  backup_export: 'success', backup_restore: 'danger',
+  backup_export: 'success', backup_restore: 'danger', backup_merge: 'warning', demo_create: 'info', demo_remove: 'warning',
 };
 
 export const FIELD_LABELS = {

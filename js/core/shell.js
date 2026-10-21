@@ -21,6 +21,7 @@ import { logout } from '../services/auth.js';
 import { openChangePasswordDialog, openPinDialog } from '../modules/account/dialogs.js';
 import { attachPatientSearch } from '../components/patient-search.js';
 import { backupStatus } from '../services/backup.js';
+import { collectAlerts } from '../services/alerts.js';
 
 /** @type {HTMLElement} */
 let app;
@@ -78,6 +79,27 @@ function drawNav() {
   const search = app.querySelector('.topbar__search');
   if (search) search.hidden = !can('patients', 'view');
   drawBackupCard();
+  scheduleBell();
+}
+
+/* ---------- Top-bar bell: the same alerts as the dashboard panel ---------- */
+
+let alerts = [];
+let bellTimer = 0;
+async function drawBell() {
+  const btn = app.querySelector('[data-action="notifications"]');
+  if (!btn) return;
+  try { alerts = getSession() ? await collectAlerts() : []; } catch (err) { console.error(err); alerts = []; }
+  render(btn, html`${ico('bell', { size: 20 })}${alerts.length ? html`<span class="icon-btn__badge"></span>` : ''}`);
+  btn.setAttribute('aria-label', alerts.length ? `التنبيهات (${alerts.length})` : 'التنبيهات');
+}
+const scheduleBell = () => { clearTimeout(bellTimer); bellTimer = setTimeout(drawBell, 600); };
+
+function openBell(anchor) {
+  openMenu(anchor, {
+    header: html`<div class="menu__header"><div class="menu__header-text"><strong>يحتاج انتباهك</strong><small>${alerts.length ? `${alerts.length} تنبيه` : 'لا شيء عاجل الآن'}</small></div></div>`,
+    items: alerts.map((a) => ({ label: `${a.title} — ${a.sub}`, icon: a.icon, onSelect: () => navigate(a.link.replace(/^#/, '')) })),
+  });
 }
 
 /** Sidebar card: when the last backup was taken (only for users who can make backups). */
@@ -160,7 +182,7 @@ export function mountShell(root) {
         <div class="topbar__spacer"></div>
         <div class="topbar__actions">
           <button type="button" class="icon-btn" data-action="theme" aria-live="polite">${themeButton()}</button>
-          <button type="button" class="icon-btn" data-action="notifications" aria-label="التنبيهات">
+          <button type="button" class="icon-btn" data-action="notifications" aria-label="التنبيهات" aria-haspopup="menu">
             ${ico('bell', { size: 20 })}
           </button>
           <button type="button" class="user-chip" data-action="user-menu" aria-label="حساب المستخدم" aria-haspopup="menu"></button>
@@ -199,14 +221,14 @@ export function mountShell(root) {
         toast(`المظهر: ${THEME_LABELS[t]}`, { duration: 1800 });
         break;
       }
-      case 'notifications': toast('التنبيهات (نقص المخزون، المتابعات، الأقساط) ستظهر هنا في المرحلة ٩.'); break;
+      case 'notifications': openBell(el); break;
       case 'user-menu': openUserMenu(el); break;
     }
   });
   app.addEventListener('keydown', (e) => { if (e.key === 'Escape' && app.dataset.drawer === 'open') closeDrawer(); });
-  onEvent('route:changed', closeDrawer);
+  onEvent('route:changed', () => { closeDrawer(); scheduleBell(); });
   onEvent('auth:changed', () => drawNav());
-  onEvent('data:changed', ({ store, id }) => { if (store === 'meta' && id === 'lastBackupAt') drawBackupCard(); });
+  onEvent('data:changed', ({ store, id }) => { if (store === 'meta' && id === 'lastBackupAt') drawBackupCard(); if (store !== 'auditLog') scheduleBell(); });
   onEvent('settings:changed', ({ key }) => { if (key === 'clinic') drawBrand(); });
 
   return /** @type {HTMLElement} */ (app.querySelector('#main'));

@@ -43,7 +43,7 @@ Approved on 2026-10-21. This file records decisions so later phases stay consist
 7. ✅ Inventory (batches with expiry and cost, FEFO, movements, adjustments, alerts, shopping list), material recipes with editable deduction on done and return on undo, material cost and margin per procedure, expenses (categories, receipts, recurring monthly), lab cases with cost → expense sync.
 8. ✅ Follow-ups, WhatsApp templates, prescriptions.
 9. ✅ Dashboard KPIs, charts and alerts; reports; Excel and PDF export.
-10. Full backup with images, merge import, demo data, polish, Arabic README and role guides.
+10. ✅ Full backup with images, merge import, demo data, polish, Arabic README and role guides.
 
 ## Phase 2 notes
 - The session lives in `sessionStorage`. A reload keeps you signed in; closing the tab signs you out; an idle tab asks for login again.
@@ -109,3 +109,17 @@ Approved on 2026-10-21. This file records decisions so later phases stay consist
 - Charts: `js/components/chart.js` draws SVG columns (no library) at the container's measured width (`mountChart`, redrawn by a ResizeObserver) so text never scales. RTL: the first period is on the right. One y-axis only. Series colours `--chart-1/--chart-2` (css/reports.css) were checked with the dataviz palette validator for light and dark surfaces. Hover tooltips come from `wireCharts`.
 - Export: `js/components/export.js` takes one column spec (`{ header, key, type: money|date|number|percent|text, value? }`) for the on-screen table, Excel (`exportExcel`, ExcelJS loaded on demand from /vendor, RTL sheets, frozen header, totals row) and PDF (`printReport` → print stylesheet → "Save as PDF").
 - The dashboard compares this month with the same days of last month (`dashboardKpis`) and lists alerts gathered from each module the user can view.
+
+## Phase 10 notes
+- Backup format 2 is a .zip (fflate, vendored as an ES module): `backup.json` plus the original image bytes under `files/`. In the JSON a Blob is `{ __file, __blob: mime }`. Format-1 .json backups (base64 Blobs) are still read. Images are stored without compression (level 0), and the JSON is deflated.
+- Merge import (`planMerge` is pure and tested, `prepareMerge`/`applyMerge` do the I/O):
+  - Records are matched by id and the newest `updatedAt` (or `createdAt` / `at`) wins.
+  - `meta` and `settings` are never merged. Users and roles are only added, never overwritten, and a username clash skips the incoming user.
+  - A new record whose file, invoice, receipt or prescription number is already taken gets the next number. Counters end at the highest number seen.
+  - After writing: batch quantities are rebuilt from movements (batch qty = Σ movements with that batchId), item caches are recomputed, and invoice statuses are refreshed.
+  - Hard-deleted records on one device can come back from the other; soft deletes merge like any update.
+- Demo data (`services/demo.js`): 36 fictional patients over six months, built through the real services (so handlers, numbering and audit run) and then back-dated with direct adapter writes.
+  - Everything hangs off a demo patient (`isDemo`) or carries `isDemo` itself (stock batches and movements, expenses).
+  - `removeDemoData` hard-deletes it all, including the related audit entries, recomputes stock, and resets the counters to the last real number.
+- The alerts list (`services/alerts.js`) feeds both the dashboard panel and the top-bar bell (red dot plus a menu). The bell refreshes on route and data changes, debounced.
+- The "coming soon" placeholder module and the `phase` flags were removed now that every screen exists.

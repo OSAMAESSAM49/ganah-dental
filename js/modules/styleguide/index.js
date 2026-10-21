@@ -1,6 +1,6 @@
 /**
  * Living style guide: every component in every state, plus the theme and digit settings.
- * Used to review the design system; later phases add their components here.
+ * Used to review the design system and its components.
  */
 import { html, ico, on, render, formData, showFieldErrors } from '../../core/dom.js';
 import { formatMoney, formatDate, formatTime, formatAge, formatPercent, digits, setDigitStyle, getDigitStyle, toPiasters } from '../../core/format.js';

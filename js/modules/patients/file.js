@@ -1,6 +1,6 @@
 /**
  * Patient file: header (photo, name, file no, age, contact), critical medical banner, and
- * tabs. Tabs from later phases show where they are coming.
+ * tabs (each tab is its own module, loaded on demand).
  */
 import { html, ico, render, on } from '../../core/dom.js';
 import { digits, formatAge } from '../../core/format.js';
@@ -122,12 +122,8 @@ export default {
 
     const body = el.querySelector('#pf-body');
     let cleanup = null;
-    if (tab.load) {
-      const mod = await tab.load();
-      cleanup = await mod.renderTab({ ...ctx, body, patient: () => patient });
-    } else {
-      render(body, html`<div class="card">${emptyState({ icon: tab.icon, title: `${tab.label} — المرحلة ${digits(tab.phase)}`, hint: 'هذا القسم ضمن خطة البناء وسيظهر هنا عند اكتمال مرحلته.' })}</div>`);
-    }
+    const mod = await tab.load();
+    cleanup = await mod.renderTab({ ...ctx, body, patient: () => patient });
     return () => { off(); if (typeof cleanup === 'function') cleanup(); };
   },
 };

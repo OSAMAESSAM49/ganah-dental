@@ -6,6 +6,7 @@ All of these are stored in this folder so the app works offline, without any CDN
 |---|---|---|
 | IBM Plex Sans Arabic (fallback font) | `vendor/fonts/ibm-plex-sans-arabic/` | SIL Open Font License 1.1 (`OFL.txt`) |
 | Lucide icons (SVG paths) | `js/core/icons.js` | ISC, Copyright (c) Lucide Contributors |
+| fflate 0.8.2 (zip for backups) | `vendor/fflate/fflate.js` | MIT, Copyright (c) 2023 Arjun Barrett (`vendor/fflate/LICENSE`) |
 | ExcelJS 4.4.0 (Excel export, loaded only when exporting) | `vendor/exceljs/exceljs.min.js` | MIT, Copyright (c) 2014-2019 Guyon Roche (`vendor/exceljs/LICENSE`) |
 
 ## Thmanyah font (not included on purpose)

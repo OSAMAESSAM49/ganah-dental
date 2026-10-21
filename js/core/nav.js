@@ -1,10 +1,9 @@
 /**
  * Navigation and route table. `module` is the permission key used by the permission
- * matrix (phase 2); items the user cannot view are hidden from menus, not just blocked.
- * `phase` marks screens that are not built yet (they render a "coming soon" view).
+ * matrix; items the user cannot view are hidden from menus, not just blocked.
  */
 
-/** @typedef {{ path: string, label: string, icon: string, module: string, phase?: number }} NavItem */
+/** @typedef {{ path: string, label: string, icon: string, module: string }} NavItem */
 
 /** @type {{ title?: string, items: NavItem[] }[]} */
 export const NAV_GROUPS = [
@@ -49,8 +48,6 @@ export const BOTTOM_NAV = ['/', '/appointments', '/patients', '/followups'];
 
 export const NAV_ITEMS = NAV_GROUPS.flatMap((g) => g.items);
 
-const comingSoon = () => import('../modules/coming-soon/index.js');
-
 /**
  * Route definitions for the router.
  * meta.public: reachable without signing in · meta.layout 'bare': no sidebar/top bar.
@@ -76,9 +73,6 @@ export const ROUTES = [
   { path: '/users', title: 'المستخدمون والصلاحيات', load: () => import('../modules/users/index.js'), permission: ['users', 'view'] },
   { path: '/audit', title: 'سجل العمليات', load: () => import('../modules/audit/index.js'), permission: ['audit', 'view'] },
   { path: '/styleguide', title: 'دليل التصميم', load: () => import('../modules/styleguide/index.js'), permission: ['settings', 'view'] },
-  ...NAV_ITEMS.filter((i) => i.phase).map((i) => ({
-    path: i.path, title: i.label, load: comingSoon, permission: [i.module, 'view'], meta: { phase: i.phase, icon: i.icon },
-  })),
 ];
 
 export const NOT_FOUND_ROUTE = { path: '*', title: 'الصفحة غير موجودة', load: () => import('../modules/not-found/index.js') };

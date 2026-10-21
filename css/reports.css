@@ -31,13 +31,13 @@
 .chart-box { min-block-size: 240px; }
 
 .period-bar { display: flex; flex-wrap: wrap; align-items: end; gap: var(--sp-3); margin-block-end: var(--sp-4); }
-.period-bar .field { margin: 0; inline-size: min(200px, 100%); }
+.period-bar .field { margin: 0; flex: 1 1 140px; max-inline-size: 220px; }
 .chips a.chip { text-decoration: none; }
 .chips a.chip:not([aria-pressed="true"]) { color: inherit; }
 .period-bar .chips { flex: 1 1 100%; }
 .report-actions { display: flex; gap: var(--sp-2); margin-inline-start: auto; }
 
-.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--sp-3); margin-block-end: var(--sp-4); }
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--sp-3); margin-block-end: var(--sp-4); }
 .stat { padding: var(--sp-4) var(--sp-5); border-radius: var(--radius-lg); background: var(--c-surface); display: flex; flex-direction: column; gap: var(--sp-1); }
 .stat__label { color: var(--c-text-muted); font-size: var(--fs-sm); }
 .stat__value { font-size: var(--fs-xl); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; }
