@@ -5,6 +5,7 @@
  */
 import { getAdapter, repos } from '../data/index.js';
 import { CONDITION, inferChartEffect } from '../core/chart-conditions.js';
+import { FOLLOWUP_TYPES } from '../core/labels.js';
 
 const byOrder = (a, b) => (a.order ?? 0) - (b.order ?? 0) || a.name.localeCompare(b.name, 'ar');
 
@@ -79,6 +80,11 @@ function cleanProcedure(input) {
       .filter((r) => r?.itemId && Number(r.qty) > 0)
       .map((r) => ({ itemId: r.itemId, qty: Math.round(Number(r.qty) * 1000) / 1000, per: r.per === 'session' ? 'session' : 'completion' })),
     chartEffect: input.chartEffect === undefined ? inferChartEffect(input.name) : (CONDITION[input.chartEffect] ? input.chartEffect : ''),
+    instructionTemplateId: input.instructionTemplateId || null,
+    followUpSchedule: (Array.isArray(input.followUpSchedule) ? input.followUpSchedule : [])
+      .filter((s) => FOLLOWUP_TYPES[s?.type] && Number.isFinite(Number(s.offsetDays)))
+      .map((s) => ({ offsetDays: int(s.offsetDays, 0, 730, 1), type: s.type, note: String(s.note ?? '').trim() }))
+      .sort((a, b) => a.offsetDays - b.offsetDays),
   };
 }
 
@@ -90,7 +96,7 @@ export async function createProcedure(input) {
   const siblings = await repos.procedures.findBy('categoryId', data.categoryId);
   if (siblings.some((p) => p.name === data.name)) throw new CatalogError('يوجد إجراء بنفس الاسم في هذا التصنيف');
   const order = Math.max(-1, ...siblings.map((p) => p.order ?? 0)) + 1;
-  return repos.procedures.create({ ...data, active: true, order, instructionTemplateId: null, followUpSchedule: [], recipe: [] });
+  return repos.procedures.create({ ...data, active: true, order });
 }
 
 export async function updateProcedure(id, input) {

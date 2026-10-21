@@ -8,7 +8,7 @@ import { formatDateTime } from '../core/format.js';
 
 /**
  * @param {import('../core/dom.js').SafeHTML} body
- * @param {{ size?: 'a4'|'80mm', title?: string, header?: boolean }} [opts]
+ * @param {{ size?: 'a4'|'a5'|'80mm', title?: string, header?: boolean }} [opts]
  */
 export function printHTML(body, { size = 'a4', title, header = true } = {}) {
   const root = document.getElementById('print-root');

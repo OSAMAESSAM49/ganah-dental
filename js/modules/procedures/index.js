@@ -4,6 +4,8 @@ import { formatMoney, toPiasters, piastersToInput, digits, arabicCount } from '.
 import { normalizeDigits, normalizeArabic } from '../../core/text.js';
 import { CONDITIONS, CONDITION } from '../../core/chart-conditions.js';
 import { listItems, recipeCost, unitLabel } from '../../services/inventory.js';
+import { listTemplates, describeSchedule } from '../../services/followups.js';
+import { FOLLOWUP_TYPES } from '../../core/labels.js';
 import { formatNumber } from '../../core/format.js';
 import { validate, required } from '../../core/validate.js';
 import { can } from '../../core/permissions.js';
@@ -182,6 +184,22 @@ async function askName(title, value) {
 async function procedureDialog(proc, catalog, items = []) {
   const isNew = !proc;
   let recipe = (proc?.recipe ?? []).map((r) => ({ ...r }));
+  const schedule = (proc?.followUpSchedule ?? []).map((s) => ({ ...s }));
+  const templates = await listTemplates({ includeInactive: true });
+  const scheduleMarkup = () => html`
+    <div class="stack-sm">
+      <span class="field__label">${ico('bell', { size: 18 })} المتابعة بعد الانتهاء (تُضاف تلقائيًا لقائمة المتابعات)</span>
+      ${schedule.map((s, i) => html`<div class="row" style="gap: var(--sp-2)">
+        <select class="select" data-s-type="${i}" style="inline-size: auto" aria-label="نوع المتابعة">${Object.entries(FOLLOWUP_TYPES).map(([k, t]) => html`<option value="${k}" ${k === s.type ? 'selected' : ''}>${t.label}</option>`)}</select>
+        <span class="muted text-sm">بعد</span>
+        <input class="input input--ltr" data-s-days="${i}" value="${s.offsetDays}" inputmode="numeric" style="inline-size: 72px" aria-label="عدد الأيام">
+        <span class="muted text-sm">يوم</span>
+        <input class="input" data-s-note="${i}" value="${s.note ?? ''}" placeholder="ملاحظة" style="flex: 1 1 140px" aria-label="ملاحظة">
+        <button type="button" class="btn btn--ghost btn--icon btn--sm" data-s-rm="${i}" aria-label="حذف">${ico('x', { size: 16 })}</button>
+      </div>`)}
+      <div class="row row--between"><button type="button" class="btn btn--sm" data-s-add>${ico('plus', { size: 16 })} متابعة</button>
+        ${schedule.length ? html`<span class="muted text-sm">${describeSchedule(schedule)}</span>` : html`<span class="subtle text-sm">بدون متابعة</span>`}</div>
+    </div>`;
   const byId = new Map(items.map((i) => [i.id, i]));
   const recipeMarkup = () => html`
     <div class="stack-sm">
@@ -218,27 +236,36 @@ async function procedureDialog(proc, catalog, items = []) {
         ${selectField({ name: 'chartEffect', label: 'أثره على خريطة الأسنان عند الانتهاء', value: proc?.chartEffect ?? '', placeholder: 'لا يغيّر الخريطة', hint: 'مثال: الحشو يُسجّل «حشو» على السن والأسطح المختارة', options: CONDITIONS.filter((c) => !['caries', 'fractured', 'extract'].includes(c.key)).map((c) => ({ value: c.key, label: c.label })) })}
         ${textareaField({ name: 'notes', label: 'ملاحظات', value: proc?.notes ?? '', rows: 2 })}
         ${items.length || recipe.length ? html`<div id="recipe-box">${recipeMarkup()}</div>` : ''}
-        <p class="subtle text-sm">${ico('info', { size: 14 })} تعليمات ما بعد الإجراء ومواعيد المتابعة تُضاف في المرحلة ٨.</p>
+        ${selectField({ name: 'instructionTemplateId', label: 'تعليمات ما بعد الإجراء', value: proc?.instructionTemplateId ?? '', placeholder: 'بدون تعليمات', hint: 'يُعرض إرسالها للمريض على واتساب بعد «تم». تُعدّل من المتابعات ← التعليمات والرسائل', options: templates.map((t) => ({ value: t.id, label: t.active === false ? `${t.name} (موقوف)` : t.name })) })}
+        <div id="schedule-box">${scheduleMarkup()}</div>
       </form>`,
     actions: [{ label: isNew ? 'إضافة' : 'حفظ', value: 'save', variant: 'primary' }, { label: 'إلغاء', value: null }],
     onOpen(d, close) {
       const f = d.querySelector('form');
       const box = () => d.querySelector('#recipe-box');
       const redraw = () => { if (box()) render(box(), recipeMarkup()); };
+      const redrawSchedule = () => render(d.querySelector('#schedule-box'), scheduleMarkup());
       f.addEventListener('change', (e) => {
         const t = /** @type {HTMLInputElement} */ (e.target);
         if (t.dataset.rItem !== undefined) { recipe[Number(t.dataset.rItem)].itemId = t.value; redraw(); }
         if (t.dataset.rPer !== undefined) recipe[Number(t.dataset.rPer)].per = t.value;
+        if (t.dataset.sType !== undefined) { schedule[Number(t.dataset.sType)].type = t.value; redrawSchedule(); }
+        if (t.dataset.sDays !== undefined) redrawSchedule();
       });
       f.addEventListener('input', (e) => {
         const t = /** @type {HTMLInputElement} */ (e.target);
         if (t.dataset.rQty !== undefined) recipe[Number(t.dataset.rQty)].qty = Number(normalizeDigits(t.value).replace(',', '.'));
+        if (t.dataset.sDays !== undefined) schedule[Number(t.dataset.sDays)].offsetDays = Math.max(0, Math.round(Number(normalizeDigits(t.value)) || 0));
+        if (t.dataset.sNote !== undefined) schedule[Number(t.dataset.sNote)].note = t.value;
       });
       f.addEventListener('click', (e) => {
         const t = /** @type {HTMLElement} */ (e.target);
         if (t.closest('[data-r-add]')) { recipe.push({ itemId: '', qty: 1, per: 'completion' }); redraw(); }
         const rm = t.closest('[data-r-rm]');
         if (rm) { recipe.splice(Number(rm.dataset.rRm), 1); redraw(); }
+        if (t.closest('[data-s-add]')) { schedule.push({ offsetDays: schedule.length ? 7 : 1, type: schedule.length ? 'check' : 'call', note: '' }); redrawSchedule(); }
+        const srm = t.closest('[data-s-rm]');
+        if (srm) { schedule.splice(Number(srm.dataset.sRm), 1); redrawSchedule(); }
       });
       f.addEventListener('submit', (e) => { e.preventDefault(); close('save'); });
       f.querySelector(isNew ? '[name=name]' : '[name=price]').focus();
@@ -264,6 +291,7 @@ async function procedureDialog(proc, catalog, items = []) {
         durationMin: Number(normalizeDigits(data.durationMin)),
         sessions: Number(normalizeDigits(data.sessions)),
         recipe,
+        followUpSchedule: schedule,
       };
       try {
         if (isNew) await createProcedure(input); else await updateProcedure(proc.id, input);

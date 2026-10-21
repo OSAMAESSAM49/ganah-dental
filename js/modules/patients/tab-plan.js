@@ -22,6 +22,7 @@ import {
   setItemStatus, addSession, deleteItem, itemMath, planTotals,
 } from '../../services/treatment.js';
 import { addItemDialog, editItemDialog, confirmDone, printQuote } from './plan-dialogs.js';
+import { offerInstructions } from '../followups/shared.js';
 
 const COLUMNS = [
   { key: 'planned', label: 'مخطط', color: 'var(--c-primary)' },
@@ -182,8 +183,10 @@ export async function renderTab({ body, patient, query, signal }) {
 
   const refresh = async () => { await load(); draw(); };
   const guard = async (fn, okMsg) => {
-    try { await fn(); if (okMsg) toastSuccess(okMsg); } catch (err) { toastError(err.message); }
+    let ok = false;
+    try { await fn(); ok = true; if (okMsg) toastSuccess(okMsg); } catch (err) { toastError(err.message); }
     await refresh();
+    return ok;
   };
 
   /** Changes status, asking for confirmation when completing. */
@@ -192,8 +195,9 @@ export async function renderTab({ body, patient, query, signal }) {
     if (!item || item.status === status) return;
     let opts = {};
     if (status === 'done') { const res = await confirmDone(item); if (!res) { draw(); return; } opts = res; }
-    if (item.status === 'done' && !(await confirmDialog({ title: 'إرجاع البند من «تم»؟', message: 'سيُلغى أثره على خريطة الأسنان.', confirmLabel: 'إرجاع' }))) { draw(); return; }
-    await guard(() => setItemStatus(id, status, opts), status === 'done' ? 'أحسنت! تم تسجيل الانتهاء' : null);
+    if (item.status === 'done' && !(await confirmDialog({ title: 'إرجاع البند من «تم»؟', message: 'سيُلغى أثره على خريطة الأسنان، وتعود المواد للمخزون، وتُحذف متابعاته التي لم تتم.', confirmLabel: 'إرجاع' }))) { draw(); return; }
+    const ok = await guard(() => setItemStatus(id, status, opts), status === 'done' ? 'أحسنت! تم تسجيل الانتهاء' : null);
+    if (ok && status === 'done') offerInstructions(item);
   };
 
   /* ---------- events ---------- */

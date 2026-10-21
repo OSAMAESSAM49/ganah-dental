@@ -67,3 +67,26 @@ body[data-print="80mm"] #print-root { page: receipt; }
   .th-sep { border: 0; border-block-start: 1px dashed #000; margin: 1.5mm 0; }
   .th-center { text-align: center; }
 }
+
+/* Prescription: A5 portrait. Drug names are LTR; directions Arabic. */
+@page rx { size: A5; margin: 10mm 10mm 12mm; }
+body[data-print="a5"] #print-root { page: rx; }
+@media print {
+  body[data-print="a5"] { font-size: 10.5pt; }
+  body[data-print="a5"] .print-header__clinic { font-size: 13pt; }
+  .rx-print { display: flex; flex-direction: column; min-block-size: 150mm; }
+  .rx-print__doctor { font-weight: 700; font-size: 12pt; margin-block-end: 3mm; }
+  .rx-print__meta { display: flex; flex-wrap: wrap; gap: 1.5mm 8mm; padding: 2.5mm 3mm; border: 1px solid #bbb; border-radius: 2mm; font-size: 10pt; }
+  .rx-print__symbol { font-family: Georgia, 'Times New Roman', serif; font-size: 26pt; font-weight: 700; color: #4A0CD3; margin-block: 3mm 1mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .rx-print__lines { margin: 0; padding-inline-start: 6mm; display: flex; flex-direction: column; gap: 4mm; }
+  .rx-print__lines li { break-inside: avoid; }
+  .rx-print__drug { font-weight: 700; font-size: 11.5pt; text-align: right; unicode-bidi: isolate; }
+  .rx-print__dose { font-size: 10.5pt; }
+  .rx-print__note { font-size: 9.5pt; color: #444; }
+  .rx-print__notes { margin-block-start: 5mm; padding: 2.5mm 3mm; background: #F4F0FE; border-radius: 2mm; white-space: pre-line; font-size: 10pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .rx-print__sign { margin-block-start: auto; padding-block-start: 12mm; display: flex; justify-content: flex-end; }
+  .rx-print__sign span { min-inline-size: 45mm; border-block-start: 1px solid #000; padding-block-start: 1mm; text-align: center; font-size: 9pt; }
+  body[data-print="a5"] .print-footer { margin-block-start: 4mm; font-size: 8pt; }
+
+  .print-instructions { white-space: pre-line; font-size: 12pt; line-height: 1.9; }
+}

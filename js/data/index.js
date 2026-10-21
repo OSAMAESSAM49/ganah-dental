@@ -20,7 +20,8 @@ let adapter = null;
  *          toothEvents: Repository, treatmentPlans: Repository, treatmentItems: Repository,
  *          appointments: Repository, invoices: Repository, payments: Repository,
  *          inventoryItems, stockBatches, stockMovements, expenseCategories, expenses,
- *          recurringExpenses, labCases: Repository }}
+ *          recurringExpenses, labCases, instructionTemplates, followUps, medicines, rxTemplates,
+ *          prescriptions: Repository }}
  */
 export const repos = /** @type {any} */ ({});
 
@@ -52,6 +53,11 @@ export async function initData({ name = DB_NAME, ...handlers } = {}) {
   repos.expenses = new Repository(adapter, 'expenses');
   repos.recurringExpenses = new Repository(adapter, 'recurringExpenses');
   repos.labCases = new Repository(adapter, 'labCases', { softDelete: true });
+  repos.instructionTemplates = new Repository(adapter, 'instructionTemplates');
+  repos.followUps = new Repository(adapter, 'followUps');
+  repos.medicines = new Repository(adapter, 'medicines');
+  repos.rxTemplates = new Repository(adapter, 'rxTemplates');
+  repos.prescriptions = new Repository(adapter, 'prescriptions', { softDelete: true });
   return adapter;
 }
 

@@ -45,13 +45,13 @@ export function selectField(o) {
     </div>`;
 }
 
-/** @param {{ name: string, label: string, value?: string, hint?: string, placeholder?: string, rows?: number }} o */
+/** @param {{ name: string, label: string, value?: string, hint?: string, placeholder?: string, rows?: number, attrs?: import('../core/dom.js').SafeHTML }} o */
 export function textareaField(o) {
   const id = fid(o.name);
   return html`
     <div class="field">
       <label class="field__label" for="${id}">${o.label}</label>
-      <textarea id="${id}" name="${o.name}" class="textarea" rows="${o.rows ?? 4}" ${o.placeholder ? html`placeholder="${o.placeholder}"` : ''} aria-describedby="${o.hint ? `${id}-hint ` : ''}${id}-err">${o.value ?? ''}</textarea>
+      <textarea id="${id}" name="${o.name}" class="textarea" rows="${o.rows ?? 4}" ${o.placeholder ? html`placeholder="${o.placeholder}"` : ''} aria-describedby="${o.hint ? `${id}-hint ` : ''}${id}-err" ${o.attrs ?? ''}>${o.value ?? ''}</textarea>
       ${o.hint ? html`<span class="field__hint" id="${id}-hint">${o.hint}</span>` : ''}
       <span class="field__error" id="${id}-err" data-error-for="${o.name}" role="alert"></span>
     </div>`;

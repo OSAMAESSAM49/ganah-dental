@@ -27,10 +27,11 @@ export async function loadSettings() {
   cache.clinic = { ...DEFAULT_CLINIC, ...(await repos.settings.get('clinic', {})) };
   cache.app = { ...DEFAULT_APP, ...(await repos.settings.get('app', {})) };
   cache.schedule = (await repos.settings.get('schedule', {})) ?? {};
+  cache.messages = (await repos.settings.get('messages', {})) ?? {};
   return cache;
 }
 
-/** Synchronous read from cache. @param {'clinic'|'app'|'schedule'} key */
+/** Synchronous read from cache. @param {'clinic'|'app'|'schedule'|'messages'} key */
 export const getSettings = (key) => cache[key];
 
 /** Persists a partial update and notifies listeners. @param {'clinic'|'app'} key */

@@ -69,5 +69,5 @@ export function calendarRange() {
 /** Doctors who can be booked (active users marked "doctor"). */
 export async function listDoctors() {
   const users = (await repos.users.list()).filter((u) => u.active);
-  return users.filter((u) => u.isDoctor).map(({ id, displayName, color }) => ({ id, displayName, color }));
+  return users.filter((u) => u.isDoctor).map(({ id, displayName, title, color }) => ({ id, displayName, title: title ?? '', color }));
 }

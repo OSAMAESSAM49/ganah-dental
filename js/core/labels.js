@@ -20,6 +20,11 @@ export const ENTITY_LABELS = {
   expenseCategories: 'تصنيف مصروفات',
   recurringExpenses: 'مصروف شهري ثابت',
   labCases: 'حالة معمل',
+  instructionTemplates: 'قالب تعليمات',
+  followUps: 'متابعة',
+  medicines: 'دواء',
+  rxTemplates: 'قالب روشتة',
+  prescriptions: 'روشتة',
   media: 'صورة / أشعة',
   backup: 'النسخ الاحتياطي',
 };
@@ -147,6 +152,14 @@ export const FIELD_LABELS = {
   cementedAt: 'تاريخ التركيب',
   cost: 'التكلفة',
   dayOfMonth: 'يوم الاستحقاق',
+  body: 'النص',
+  instructionTemplateId: 'تعليمات ما بعد الإجراء',
+  followUpSchedule: 'جدول المتابعة',
+  dueDate: 'تاريخ الاستحقاق',
+  dose: 'الجرعة',
+  duration: 'المدة',
+  form: 'الشكل',
+  groups: 'مجموعات التحذير',
 };
 
 export const TREATMENT_STATUS = {
@@ -183,6 +196,23 @@ export const LAB_STATUS = {
 export const LAB_WORK_TYPES = {
   crown: 'كراون', bridge: 'كوبري', veneer: 'فينير', denture: 'طقم', partial: 'طقم جزئي', night_guard: 'واقي ليلي',
   space_maintainer: 'حافظ مسافة', implant_crown: 'تاج على زرعة', other: 'أخرى',
+};
+
+export const FOLLOWUP_TYPES = {
+  call: { label: 'اتصال للاطمئنان', short: 'اتصال', icon: 'phone', tone: 'info' },
+  check: { label: 'فحص متابعة', short: 'فحص', icon: 'stethoscope', tone: 'primary' },
+  recall: { label: 'استدعاء دوري', short: 'استدعاء', icon: 'repeat', tone: 'accent' },
+};
+export const FOLLOWUP_STATUS = {
+  pending: { label: 'مطلوب', tone: 'warning' },
+  done: { label: 'تم', tone: 'success' },
+  skipped: { label: 'أُلغي', tone: '' },
+};
+export const MED_FORMS = {
+  tablet: 'أقراص', capsule: 'كبسولات', syrup: 'شراب', mouthwash: 'غسول فم', gel: 'جل', ampoule: 'حقن', drops: 'نقط', cream: 'كريم', other: 'أخرى',
+};
+export const MED_CATEGORIES = {
+  antibiotic: 'مضاد حيوي', analgesic: 'مسكن / مضاد التهاب', mouthwash: 'غسول', antifungal: 'مضاد فطريات', other: 'أخرى',
 };
 
 export const PAYMENT_METHODS = {

@@ -44,6 +44,9 @@ export function addDays(iso, n) {
   return toISODate(d);
 }
 
+/** Whole days from a to b (b − a); negative when b is earlier. */
+export const daysBetween = (a, b) => Math.round((toDate(b).getTime() - toDate(a).getTime()) / 86400000);
+
 export const weekday = (iso) => toDate(iso).getDay();
 export const weekdayName = (iso) => WEEKDAYS[weekday(iso)];
 

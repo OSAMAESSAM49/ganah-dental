@@ -18,6 +18,7 @@ import { setAppointmentStatus, saveClinicalNotes, deleteAppointment, buildRemind
 import { medicalBanner } from '../patients/medical.js';
 import { patientAvatar } from '../patients/list.js';
 import { confirmDone } from '../patients/plan-dialogs.js';
+import { offerInstructions } from '../followups/shared.js';
 import { openAppointmentForm } from './appt-form.js';
 
 const STEP_UI = {
@@ -141,7 +142,7 @@ export async function openAppointmentDetails(appt) {
           if (done) {
             const item = await repos.treatmentItems.get(done.dataset.itemDone);
             const res = await confirmDone(item);
-            if (res) { await setItemStatus(item.id, 'done', res); changed = true; toastSuccess(`تم: ${item.procedureName}`); await refresh(); }
+            if (res) { await setItemStatus(item.id, 'done', res); changed = true; toastSuccess(`تم: ${item.procedureName}`); await refresh(); await offerInstructions(item); }
             return;
           }
           if (t.closest('[data-save-notes]')) {

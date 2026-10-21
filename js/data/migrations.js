@@ -9,6 +9,7 @@
 import { seedCatalog } from './seed-catalog.js';
 import { inferChartEffect } from '../core/chart-conditions.js';
 import { SEED_EXPENSE_CATEGORIES, SEED_ITEMS, SEED_RECIPES } from './seed-inventory.js';
+import { SEED_INSTRUCTIONS, SEED_MEDICINES, SEED_RX_TEMPLATES, instructionFor, scheduleFor } from './seed-rx.js';
 
 /** @type {import('./idb.js').Migration[]} */
 export const MIGRATIONS = [
@@ -138,6 +139,53 @@ export const MIGRATIONS = [
         if (seed && !cursor.value.recipe?.length) {
           cursor.update({ ...cursor.value, recipe: seed.map(([key, qty, per]) => ({ itemId: ids[key], qty, per })) });
         }
+        cursor.continue();
+      };
+    },
+  },
+  {
+    version: 8,
+    description: 'Follow-ups, instruction templates, medicines, prescription templates, prescriptions; seeds',
+    up(db, tx) {
+      db.createObjectStore('instructionTemplates', { keyPath: 'id' });
+      const fu = db.createObjectStore('followUps', { keyPath: 'id' });
+      fu.createIndex('dueDate', 'dueDate');
+      fu.createIndex('patientId', 'patientId');
+      fu.createIndex('treatmentItemId', 'treatmentItemId');
+      db.createObjectStore('medicines', { keyPath: 'id' });
+      db.createObjectStore('rxTemplates', { keyPath: 'id' });
+      const rx = db.createObjectStore('prescriptions', { keyPath: 'id' });
+      rx.createIndex('patientId', 'patientId');
+      rx.createIndex('date', 'date');
+
+      const t = new Date().toISOString();
+      const meta = { createdAt: t, updatedAt: t, createdBy: null, updatedBy: null };
+      for (const tpl of SEED_INSTRUCTIONS) tx.objectStore('instructionTemplates').put({ ...tpl, active: true, ...meta });
+      for (const m of SEED_MEDICINES) tx.objectStore('medicines').put({ strength: '', notes: '', ...m, active: true, ...meta });
+      const meds = Object.fromEntries(SEED_MEDICINES.map((m) => [m.id, m]));
+      for (const r of SEED_RX_TEMPLATES) {
+        tx.objectStore('rxTemplates').put({
+          id: r.id, name: r.name, active: true, ...meta,
+          lines: r.meds.map((id) => ({ medicineId: id, name: meds[id].name, form: meds[id].form, dose: meds[id].dose, duration: meds[id].duration, notes: meds[id].notes ?? '' })),
+        });
+      }
+      // Default instructions + follow-up schedule for existing procedures that have none.
+      // On a fresh install the v4/v7 cursors are still updating these records in the same
+      // transaction, so a cursor value can be stale: re-read each record before writing it.
+      // Also repairs chartEffect, which the v7 cursor could overwrite the same way.
+      const procs = tx.objectStore('procedures');
+      procs.openCursor().onsuccess = (e) => {
+        const cursor = /** @type {IDBCursorWithValue} */ (/** @type {IDBRequest} */ (e.target).result);
+        if (!cursor) return;
+        procs.get(cursor.primaryKey).onsuccess = (g) => {
+          const p = /** @type {IDBRequest} */ (g.target).result;
+          procs.put({
+            ...p,
+            chartEffect: p.chartEffect ?? inferChartEffect(p.name),
+            instructionTemplateId: p.instructionTemplateId ?? instructionFor(p.name),
+            followUpSchedule: p.followUpSchedule?.length ? p.followUpSchedule : scheduleFor(p.name),
+          });
+        };
         cursor.continue();
       };
     },

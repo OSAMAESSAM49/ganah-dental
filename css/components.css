@@ -293,6 +293,7 @@
 .alert--success { --a-bg: var(--c-success-soft); --a-fg: var(--c-success); }
 .alert--warning { --a-bg: var(--c-warning-soft); --a-fg: var(--c-warning); }
 .alert--danger  { --a-bg: var(--c-danger-soft); --a-fg: var(--c-danger); }
+.alert--info    { --a-bg: var(--c-info-soft); --a-fg: var(--c-info); }
 /* Critical medical banner: loud on purpose */
 .alert--critical { --a-bg: #C1272D; --a-fg: #fff; color: #fff; box-shadow: 0 10px 30px rgb(193 39 45 / 30%); }
 .alert--critical .alert__body { color: #fff; }

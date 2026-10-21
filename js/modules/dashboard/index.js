@@ -11,6 +11,7 @@ import { can } from '../../core/permissions.js';
 import { currentUser } from '../../core/session.js';
 import { newPatientsThisMonth } from '../../services/patients.js';
 import { backupStatus } from '../../services/backup.js';
+import { followUpCounts } from '../../services/followups.js';
 import { revenueBetween, outstandingBalances } from '../../services/billing.js';
 import { allPatients } from '../../services/patients.js';
 import { todaysAppointments, setAppointmentStatus, NEXT_STEPS } from '../../services/appointments.js';
@@ -25,7 +26,7 @@ import { toastSuccess, toastError } from '../../components/toast.js';
 
 const QUICK = { arrived: 'وصل', in_chair: 'على الكرسي', done: 'انتهى' };
 
-const BUILD_PHASE = 7;
+const BUILD_PHASE = 8;
 const TOTAL_PHASES = 10;
 
 function greeting(d = new Date()) {
@@ -78,6 +79,7 @@ export default {
     const todays = showAppts ? (await todaysAppointments()).filter((a) => a.status !== 'cancelled') : [];
     const waiting = todays.filter((a) => a.status === 'arrived').length;
     const patientsById = showAppts ? new Map((await allPatients()).map((p) => [p.id, p])) : new Map();
+    const fu = can('followups') ? await followUpCounts() : { today: 0, overdue: 0 };
     let filter = 'all';
 
     render(el, html`
@@ -93,6 +95,7 @@ export default {
       </header>
 
       ${backup?.due ? html`<div class="alert alert--warning" style="margin-block-end: var(--sp-5)">${ico('database')}<div class="alert__content"><div class="alert__title">حان وقت النسخ الاحتياطي</div><div class="alert__body">${backup.lastAt ? `آخر نسخة منذ ${digits(backup.days)} يوم.` : 'لم تؤخذ أي نسخة احتياطية بعد.'} البيانات محفوظة على هذا الجهاز فقط.</div></div><a class="btn btn--accent btn--sm" href="#/settings?tab=backup">خذ نسخة الآن</a></div>` : ''}
+      ${fu.today + fu.overdue ? html`<div class="alert alert--info" style="margin-block-end: var(--sp-5)">${ico('bell')}<div class="alert__content"><div class="alert__title">متابعات مطلوبة: ${digits(fu.today + fu.overdue)}</div><div class="alert__body">${digits(fu.today)} اليوم${fu.overdue ? ` · ${digits(fu.overdue)} متأخرة` : ''} — اتصالات اطمئنان وفحوص بعد العلاج.</div></div><a class="btn btn--sm" href="#/followups">فتح المتابعات</a></div>` : ''}
       <div class="bento">
         ${showAppts ? html`<article class="card card--hero span-3">
           <div class="kpi">

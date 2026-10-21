@@ -27,8 +27,8 @@ const TABS = [
   { key: 'visits', label: 'الزيارات والمواعيد', icon: 'calendar-days', module: 'appointments', load: () => import('./tab-visits.js') },
   { key: 'payments', label: 'الحسابات', icon: 'receipt', module: 'billing', load: () => import('./tab-payments.js') },
   { key: 'photos', label: 'الصور والأشعة', icon: 'image', load: () => import('./tab-photos.js') },
-  { key: 'rx', label: 'الروشتات', icon: 'pill', phase: 8, module: 'prescriptions' },
-  { key: 'followups', label: 'المتابعات', icon: 'bell', phase: 8, module: 'followups' },
+  { key: 'rx', label: 'الروشتات', icon: 'pill', module: 'prescriptions', load: () => import('./tab-rx.js') },
+  { key: 'followups', label: 'المتابعات', icon: 'bell', module: 'followups', load: () => import('./tab-followups.js') },
 ];
 
 export default {

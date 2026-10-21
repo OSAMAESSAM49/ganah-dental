@@ -156,7 +156,7 @@ export async function editItemDialog(item) {
  * @returns {Promise<null | { consumption: Array<{ itemId: string, qty: number }> }>}
  */
 export async function confirmDone(item) {
-  const effects = describeDone(item);
+  const effects = await describeDone(item);
   const lines = await stockPreview(item);
   let consumption = lines.map((l) => ({ itemId: l.itemId, qty: l.qty }));
   const res = await openModal({

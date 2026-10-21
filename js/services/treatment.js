@@ -49,7 +49,7 @@ export function planTotals(items) {
 
 /**
  * @typedef {{ key: string,
- *   describe?: (item: object) => (string|null),          // shown in the "mark done" confirmation
+ *   describe?: (item: object) => (string|null|Promise<string|null>),  // shown in the "mark done" confirmation
  *   onDone?: (item: object, opts?: { consumption?: object[] }) => Promise<void>|void,  // opts from the done dialog
  *   onUndone?: (item: object) => Promise<void>|void }} DoneHandler
  */
@@ -60,8 +60,8 @@ export function registerDoneHandler(handler) {
   if (i >= 0) doneHandlers[i] = handler; else doneHandlers.push(handler);
 }
 
-/** What will happen when this item is marked done (for the confirmation dialog). */
-export const describeDone = (item) => doneHandlers.map((h) => h.describe?.(item)).filter(Boolean);
+/** What will happen when this item is marked done (for the confirmation dialog). describe() may be async. */
+export const describeDone = async (item) => (await Promise.all(doneHandlers.map((h) => h.describe?.(item)))).filter(Boolean);
 
 // Core handler: update the dental chart.
 registerDoneHandler({

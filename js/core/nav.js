@@ -18,8 +18,8 @@ export const NAV_GROUPS = [
   {
     title: 'العيادة',
     items: [
-      { path: '/followups', label: 'المتابعات', icon: 'bell', module: 'followups', phase: 8 },
-      { path: '/prescriptions', label: 'الروشتات', icon: 'pill', module: 'prescriptions', phase: 8 },
+      { path: '/followups', label: 'المتابعات', icon: 'bell', module: 'followups' },
+      { path: '/prescriptions', label: 'الروشتات', icon: 'pill', module: 'prescriptions' },
       { path: '/labs', label: 'معامل التركيبات', icon: 'flask-conical', module: 'labs' },
     ],
   },
@@ -68,6 +68,8 @@ export const ROUTES = [
   { path: '/inventory', title: 'المخزون', load: () => import('../modules/inventory/index.js'), permission: ['inventory', 'view'] },
   { path: '/expenses', title: 'المصروفات', load: () => import('../modules/expenses/index.js'), permission: ['expenses', 'view'] },
   { path: '/labs', title: 'معامل التركيبات', load: () => import('../modules/labs/index.js'), permission: ['labs', 'view'] },
+  { path: '/followups', title: 'المتابعات', load: () => import('../modules/followups/index.js'), permission: ['followups', 'view'] },
+  { path: '/prescriptions', title: 'الروشتات', load: () => import('../modules/prescriptions/index.js'), permission: ['prescriptions', 'view'] },
   { path: '/procedures', title: 'الإجراءات والأسعار', load: () => import('../modules/procedures/index.js'), permission: ['procedures', 'view'] },
   { path: '/settings', title: 'الإعدادات', load: () => import('../modules/settings/index.js'), permission: ['settings', 'view'] },
   { path: '/users', title: 'المستخدمون والصلاحيات', load: () => import('../modules/users/index.js'), permission: ['users', 'view'] },

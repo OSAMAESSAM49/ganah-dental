@@ -21,6 +21,7 @@ import { onEvent } from './core/bus.js';
 import { installAuditHook } from './services/audit.js';
 import { isSetupDone, restoreSession, logout } from './services/auth.js';
 import './services/inventory.js'; // registers the stock-deduction done-handler
+import './services/followups.js'; // registers the follow-up scheduling done-handler
 import { generateRecurringExpenses } from './services/expenses.js';
 import { pageSkeleton, errorState } from './components/states.js';
 import { toast, toastError } from './components/toast.js';
