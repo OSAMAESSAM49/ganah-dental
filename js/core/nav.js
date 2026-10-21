@@ -29,7 +29,7 @@ export const NAV_GROUPS = [
       { path: '/billing', label: 'الحسابات والفواتير', icon: 'receipt', module: 'billing' },
       { path: '/expenses', label: 'المصروفات', icon: 'wallet', module: 'expenses' },
       { path: '/inventory', label: 'المخزون', icon: 'package', module: 'inventory' },
-      { path: '/reports', label: 'التقارير', icon: 'chart-column', module: 'reports', phase: 9 },
+      { path: '/reports', label: 'التقارير', icon: 'chart-column', module: 'reports' },
     ],
   },
   {
@@ -70,6 +70,7 @@ export const ROUTES = [
   { path: '/labs', title: 'معامل التركيبات', load: () => import('../modules/labs/index.js'), permission: ['labs', 'view'] },
   { path: '/followups', title: 'المتابعات', load: () => import('../modules/followups/index.js'), permission: ['followups', 'view'] },
   { path: '/prescriptions', title: 'الروشتات', load: () => import('../modules/prescriptions/index.js'), permission: ['prescriptions', 'view'] },
+  { path: '/reports', title: 'التقارير', load: () => import('../modules/reports/index.js'), permission: ['reports', 'view'] },
   { path: '/procedures', title: 'الإجراءات والأسعار', load: () => import('../modules/procedures/index.js'), permission: ['procedures', 'view'] },
   { path: '/settings', title: 'الإعدادات', load: () => import('../modules/settings/index.js'), permission: ['settings', 'view'] },
   { path: '/users', title: 'المستخدمون والصلاحيات', load: () => import('../modules/users/index.js'), permission: ['users', 'view'] },

@@ -1,7 +1,7 @@
 /** Patients list: fast search (name / phone / file no), filters, sorting, trash. */
 import { html, ico, render, on } from '../../core/dom.js';
 import { initials } from '../../core/text.js';
-import { formatDate, digits, formatAge, arabicCount } from '../../core/format.js';
+import { formatDate, digits, formatAge, arabicCount, todayISO, toISODate } from '../../core/format.js';
 import { toWhatsAppNumber } from '../../core/validate.js';
 import { REFERRAL_SOURCES, GENDER_LABELS } from '../../core/labels.js';
 import { medicalAlerts } from '../../core/medical.js';
@@ -9,7 +9,7 @@ import { can } from '../../core/permissions.js';
 import { href } from '../../core/router.js';
 import { mountTable } from '../../components/table.js';
 import { confirmDialog } from '../../components/modal.js';
-import { toastSuccess } from '../../components/toast.js';
+import { toastSuccess, toastError } from '../../components/toast.js';
 import { allPatients, searchPatients, restorePatient, ageYears } from '../../services/patients.js';
 
 const PAGE = 100;
@@ -39,6 +39,7 @@ export default {
           <p class="page-header__sub" id="pcount"></p>
         </div>
         <div class="page-header__actions">
+          ${can('patients', 'export') ? html`<button type="button" class="btn" data-export>${ico('file-spreadsheet')} Excel</button>` : ''}
           ${canCreate ? html`<a class="btn btn--primary" href="#/patients/new">${ico('user-plus')} مريض جديد</a>` : ''}
         </div>
       </header>
@@ -99,6 +100,7 @@ export default {
       history.replaceState(history.state, '', href('/patients', {}, Object.keys(q).length ? q : undefined));
     };
 
+    let current = [];
     const refresh = async () => {
       let rows = state.filter === 'trash'
         ? (await allPatients({ includeDeleted: true })).filter((p) => p.deletedAt)
@@ -117,6 +119,7 @@ export default {
         }[state.sort];
         rows = [...rows].sort(cmp);
       }
+      current = rows;
       table.update(rows.slice(0, state.shown));
       el.querySelector('#pmore').hidden = rows.length <= state.shown;
       el.querySelector('#pcount').textContent = rows.length ? arabicCount(rows.length, PATIENT_COUNT) : 'لا يوجد مرضى';
@@ -131,6 +134,23 @@ export default {
     el.querySelector('#psource').addEventListener('change', (e) => { state.source = /** @type {HTMLSelectElement} */ (e.target).value; refresh(); }, { signal });
     el.querySelector('#psort').addEventListener('change', (e) => { state.sort = /** @type {HTMLSelectElement} */ (e.target).value; refresh(); }, { signal });
     el.querySelector('#pmore').addEventListener('click', () => { state.shown += PAGE; refresh(); }, { signal });
+    on(el, 'click', '[data-export]', async (_, b) => {
+      b.disabled = true;
+      try {
+        const { exportExcel } = await import('../../components/export.js');
+        await exportExcel({
+          fileName: `ganah-patients-${todayISO()}`, title: 'قائمة المرضى', subtitle: el.querySelector('#pcount').textContent,
+          sheets: [{ name: 'المرضى', rows: current, columns: [
+            { header: 'رقم الملف', key: 'fileNo', width: 12 }, { header: 'الاسم', key: 'name', width: 28 }, { header: 'الموبايل', key: 'phone', width: 15 },
+            { header: 'النوع', key: 'gender', value: (x) => GENDER_LABELS[x.gender] ?? '' }, { header: 'العمر', key: 'age', type: 'number', width: 8, value: (x) => ageYears(x) ?? '' },
+            { header: 'العنوان', key: 'address' }, { header: 'مصدر المعرفة', key: 'src', value: (x) => REFERRAL_SOURCES[x.referralSource] ?? '' },
+            { header: 'تنبيهات طبية', key: 'alerts', width: 30, value: (x) => [...medicalAlerts(x).critical, ...medicalAlerts(x).caution].join('، ') },
+            { header: 'تاريخ التسجيل', key: 'created', type: 'date', value: (x) => toISODate(new Date(x.createdAt)) },
+          ] }],
+        });
+        toastSuccess('تم تنزيل ملف Excel');
+      } catch (err) { toastError(err.message); } finally { b.disabled = false; }
+    }, { signal });
     on(el, 'click', '[data-filter]', (_, chip) => {
       state.filter = chip.dataset.filter;
       state.shown = PAGE;

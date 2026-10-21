@@ -41,8 +41,8 @@ Approved on 2026-10-21. This file records decisions so later phases stay consist
 5. ✅ Appointments: day/week/month/list views, chairs and doctors, conflict checks with nearest free slot, arrival flow, WhatsApp reminders, visits tab, live dashboard list.
 6. ✅ Billing: invoices from done items + extra lines, discounts, credit, pay-now / installments / later, payments (4 methods), void with reason, ledger, A4 and 80mm prints, outstanding balances, overdue installments, daily cash closing.
 7. ✅ Inventory (batches with expiry and cost, FEFO, movements, adjustments, alerts, shopping list), material recipes with editable deduction on done and return on undo, material cost and margin per procedure, expenses (categories, receipts, recurring monthly), lab cases with cost → expense sync.
-8. Follow-ups, WhatsApp templates, prescriptions.
-9. Dashboard KPIs, charts and alerts; reports; Excel and PDF export.
+8. ✅ Follow-ups, WhatsApp templates, prescriptions.
+9. ✅ Dashboard KPIs, charts and alerts; reports; Excel and PDF export.
 10. Full backup with images, merge import, demo data, polish, Arabic README and role guides.
 
 ## Phase 2 notes
@@ -102,3 +102,10 @@ Approved on 2026-10-21. This file records decisions so later phases stay consist
 - Message texts live in settings key `messages` (`{ instructions, call, check, recall }`), with placeholders {الاسم} {الاسم_الكامل} {الإجراء} {العيادة} {هاتف_العيادة} {التعليمات}. Defaults are in `DEFAULT_MESSAGES`.
 - Prescriptions are numbered from `counter.rxNo` (Rx-0001). Lines are snapshots `{ medicineId, name, form, dose, duration, notes }`, so editing a medicine never changes old prescriptions. `rxWarnings(patient, lines, medicinesById)` maps medicine `groups` (penicillin, nsaid, pregnancy) against the medical-history keys. Printing uses `printHTML(…, { size: 'a5' })`.
 - Migration caveat: several migrations iterate the same store with cursors inside one upgrade transaction. A later cursor can read a value before an earlier cursor's update lands, so v8 re-reads each procedure (`get` then `put`) and repairs `chartEffect`. Follow the same pattern for future backfills.
+
+## Phase 9 notes
+- `js/services/reports.js` is read-only aggregation for a period [from, to]: collections (non-void payments, cash basis), production (items whose `doneAt` local day is in the period, valued with `itemMath`), billed (non-void invoices). Periods of up to 62 days are bucketed by day, longer ones by month. `presetRange` names the period chips; weeks start on Saturday.
+- Material cost per treatment = consume − return movements linked by `treatmentItemId`. The doctor of an item is `doctorId` if set, otherwise whoever marked it done (`statusHistory`).
+- Charts: `js/components/chart.js` draws SVG columns (no library) at the container's measured width (`mountChart`, redrawn by a ResizeObserver) so text never scales. RTL: the first period is on the right. One y-axis only. Series colours `--chart-1/--chart-2` (css/reports.css) were checked with the dataviz palette validator for light and dark surfaces. Hover tooltips come from `wireCharts`.
+- Export: `js/components/export.js` takes one column spec (`{ header, key, type: money|date|number|percent|text, value? }`) for the on-screen table, Excel (`exportExcel`, ExcelJS loaded on demand from /vendor, RTL sheets, frozen header, totals row) and PDF (`printReport` → print stylesheet → "Save as PDF").
+- The dashboard compares this month with the same days of last month (`dashboardKpis`) and lists alerts gathered from each module the user can view.

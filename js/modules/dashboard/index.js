@@ -1,9 +1,10 @@
 /**
- * Dashboard. Phase 1: layout skeleton in the final visual style + system status.
- * Real KPIs, today's appointments, charts and alerts arrive in phase 9.
+ * Dashboard: today's appointments and patient flow, headline KPIs compared with the same
+ * days of last month, everything that needs attention (alerts), 12-month cash chart and
+ * system status. Each block only appears for users allowed to see its module.
  */
 import { html, ico, render, on } from '../../core/dom.js';
-import { formatBytes, formatDate, formatMoney, formatPercent, digits, todayISO } from '../../core/format.js';
+import { formatBytes, formatDate, formatMoney, digits, todayISO } from '../../core/format.js';
 import { getAdapter } from '../../data/index.js';
 import { getSettings } from '../../data/settings.js';
 import { emptyState } from '../../components/states.js';
@@ -12,22 +13,24 @@ import { currentUser } from '../../core/session.js';
 import { newPatientsThisMonth } from '../../services/patients.js';
 import { backupStatus } from '../../services/backup.js';
 import { followUpCounts } from '../../services/followups.js';
-import { revenueBetween, outstandingBalances } from '../../services/billing.js';
+import { outstandingBalances, allInstallments } from '../../services/billing.js';
+import { inventoryAlerts } from '../../services/inventory.js';
+import { overdueLabCases } from '../../services/labs.js';
+import { dashboardKpis, change } from '../../services/reports.js';
+import { mountChart, wireCharts } from '../../components/chart.js';
 import { allPatients } from '../../services/patients.js';
-import { todaysAppointments, setAppointmentStatus, NEXT_STEPS } from '../../services/appointments.js';
+import { todaysAppointments, setAppointmentStatus, tomorrowsReminders, NEXT_STEPS } from '../../services/appointments.js';
 import { openAppointmentForm } from '../appointments/appt-form.js';
 import { openAppointmentDetails } from '../appointments/appt-details.js';
 import { APPT_STATUS } from '../../core/labels.js';
 import { medicalAlerts } from '../../core/medical.js';
-import { formatClock } from '../../core/time.js';
+import { formatClock, MONTHS } from '../../core/time.js';
 import { href } from '../../core/router.js';
 import { onEvent } from '../../core/bus.js';
 import { toastSuccess, toastError } from '../../components/toast.js';
 
 const QUICK = { arrived: 'وصل', in_chair: 'على الكرسي', done: 'انتهى' };
 
-const BUILD_PHASE = 8;
-const TOTAL_PHASES = 10;
 
 function greeting(d = new Date()) {
   const h = d.getHours();
@@ -50,6 +53,51 @@ async function systemStatus() {
   };
 }
 
+/** "▲ 12%" pill vs the same days of last month; up is good unless invert. */
+function deltaPill(prev, cur, { invert = false } = {}) {
+  const c = change(prev, cur);
+  if (c === null) return '';
+  const pct = Math.round(Math.abs(c) * 100);
+  const title = 'مقارنة بنفس الفترة من الشهر الماضي';
+  if (pct === 0) return html`<span class="delta delta--flat" title="${title}">= 0%</span>`;
+  const up = c > 0;
+  return html`<span class="delta ${up !== invert ? 'delta--up' : 'delta--down'}" title="${title}">${up ? '▲' : '▼'} ${digits(pct)}%</span>`;
+}
+
+const alertItem = ({ icon, tone, title, sub, link }) => html`
+  <a class="dash-alert" href="${link}"><span class="dash-alert__icon dash-alert__icon--${tone}">${ico(icon, { size: 20 })}</span>
+    <span class="dash-alert__text"><strong>${title}</strong><span class="muted text-sm">${sub}</span></span></a>`;
+
+/** Everything that needs attention now, most urgent first. */
+async function collectAlerts(backup) {
+  const out = [];
+  if (backup?.due) out.push({ icon: 'database', tone: 'warning', title: 'حان وقت النسخ الاحتياطي', sub: backup.lastAt ? `آخر نسخة منذ ${digits(backup.days)} يوم` : 'لم تؤخذ أي نسخة بعد', link: '#/settings?tab=backup' });
+  if (can('followups')) {
+    const fu = await followUpCounts();
+    if (fu.overdue) out.push({ icon: 'bell', tone: 'danger', title: `${digits(fu.overdue)} متابعة متأخرة`, sub: 'اتصالات وفحوص بعد العلاج', link: '#/followups?filter=overdue' });
+    if (fu.today) out.push({ icon: 'bell', tone: 'info', title: `${digits(fu.today)} متابعة اليوم`, sub: 'رسالة واتساب جاهزة لكل مريض', link: '#/followups?filter=today' });
+  }
+  if (can('billing')) {
+    const overdue = (await allInstallments()).filter((i) => i.status === 'overdue');
+    if (overdue.length) out.push({ icon: 'wallet', tone: 'danger', title: `${digits(overdue.length)} قسط متأخر`, sub: formatMoney(overdue.reduce((n, i) => n + i.remainingOnInstallment, 0)), link: '#/billing?tab=installments' });
+  }
+  if (can('appointments')) {
+    const pending = (await tomorrowsReminders()).filter((a) => !a.reminderSentAt);
+    if (pending.length) out.push({ icon: 'message-circle', tone: 'info', title: `${digits(pending.length)} تذكير لمواعيد الغد`, sub: 'لم تُرسل بعد', link: '#/appointments' });
+  }
+  if (can('labs')) {
+    const late = await overdueLabCases();
+    if (late.length) out.push({ icon: 'flask-conical', tone: 'warning', title: `${digits(late.length)} حالة معمل متأخرة`, sub: late.slice(0, 2).map((c) => c.patientName).join('، '), link: '#/labs?filter=overdue' });
+  }
+  if (can('inventory')) {
+    const inv = await inventoryAlerts();
+    if (inv.expired.length) out.push({ icon: 'triangle-alert', tone: 'danger', title: `${digits(inv.expired.length)} تشغيلة منتهية الصلاحية`, sub: 'استبعدها من الاستخدام', link: '#/inventory?tab=alerts' });
+    if (inv.low.length) out.push({ icon: 'package', tone: 'warning', title: `${digits(inv.low.length)} صنف يحتاج شراء`, sub: inv.low.slice(0, 2).map((i) => i.name).join('، '), link: '#/inventory?tab=shopping' });
+    if (inv.expiring.length) out.push({ icon: 'clock', tone: 'warning', title: `${digits(inv.expiring.length)} تشغيلة تنتهي قريبًا`, sub: 'خلال 60 يومًا', link: '#/inventory?tab=alerts' });
+  }
+  return out;
+}
+
 const kpi = ({ icon, tone = '', label, value, meta }) => html`
   <article class="card span-3">
     <div class="kpi">
@@ -58,7 +106,7 @@ const kpi = ({ icon, tone = '', label, value, meta }) => html`
         <span class="kpi__label">${label}</span>
       </div>
       <div class="kpi__value">${value}</div>
-      <div class="kpi__foot"><span class="kpi__meta">${meta}</span></div>
+      <div class="kpi__foot">${meta}</div>
     </div>
   </article>`;
 
@@ -68,18 +116,17 @@ export default {
     const clinic = getSettings('clinic');
     const today = new Date();
     const s = await systemStatus();
-    const newPatients = can('patients') ? await newPatientsThisMonth() : 0;
     const backup = can('settings', 'edit') ? await backupStatus() : null;
-    const pct = Math.round((BUILD_PHASE / TOTAL_PHASES) * 100);
     const showMoney = can('billing');
-    const [todayRevenue, monthRevenue, outstanding] = showMoney
-      ? await Promise.all([revenueBetween(todayISO(), todayISO()), revenueBetween(`${todayISO().slice(0, 7)}-01`, todayISO()), outstandingBalances()])
-      : [0, 0, { total: 0, rows: [] }];
+    const [kpis, outstanding] = showMoney ? await Promise.all([dashboardKpis(), outstandingBalances()]) : [null, { total: 0, rows: [] }];
+    const newPatients = can('patients') ? await newPatientsThisMonth() : 0;
+    const prevMonth = new Date(today.getFullYear(), today.getMonth() - 1, Math.min(today.getDate(), new Date(today.getFullYear(), today.getMonth(), 0).getDate()));
+    const newPrev = can('patients') ? (await allPatients()).filter((p) => { const d = new Date(p.createdAt); return d.getFullYear() === prevMonth.getFullYear() && d.getMonth() === prevMonth.getMonth() && d.getDate() <= prevMonth.getDate(); }).length : 0;
+    const alerts = await collectAlerts(backup);
     const showAppts = can('appointments');
     const todays = showAppts ? (await todaysAppointments()).filter((a) => a.status !== 'cancelled') : [];
     const waiting = todays.filter((a) => a.status === 'arrived').length;
     const patientsById = showAppts ? new Map((await allPatients()).map((p) => [p.id, p])) : new Map();
-    const fu = can('followups') ? await followUpCounts() : { today: 0, overdue: 0 };
     let filter = 'all';
 
     render(el, html`
@@ -94,8 +141,6 @@ export default {
         </div>
       </header>
 
-      ${backup?.due ? html`<div class="alert alert--warning" style="margin-block-end: var(--sp-5)">${ico('database')}<div class="alert__content"><div class="alert__title">حان وقت النسخ الاحتياطي</div><div class="alert__body">${backup.lastAt ? `آخر نسخة منذ ${digits(backup.days)} يوم.` : 'لم تؤخذ أي نسخة احتياطية بعد.'} البيانات محفوظة على هذا الجهاز فقط.</div></div><a class="btn btn--accent btn--sm" href="#/settings?tab=backup">خذ نسخة الآن</a></div>` : ''}
-      ${fu.today + fu.overdue ? html`<div class="alert alert--info" style="margin-block-end: var(--sp-5)">${ico('bell')}<div class="alert__content"><div class="alert__title">متابعات مطلوبة: ${digits(fu.today + fu.overdue)}</div><div class="alert__body">${digits(fu.today)} اليوم${fu.overdue ? ` · ${digits(fu.overdue)} متأخرة` : ''} — اتصالات اطمئنان وفحوص بعد العلاج.</div></div><a class="btn btn--sm" href="#/followups">فتح المتابعات</a></div>` : ''}
       <div class="bento">
         ${showAppts ? html`<article class="card card--hero span-3">
           <div class="kpi">
@@ -108,9 +153,9 @@ export default {
             <div class="kpi__foot">${waiting ? html`<span class="delta delta--up">${digits(waiting)} في الانتظار</span>` : ''}<span class="kpi__meta">${todays.filter((a) => a.status === 'done').length ? `انتهى ${digits(todays.filter((a) => a.status === 'done').length)}` : 'اضغط للتقويم'}</span></div>
           </div>
         </article>` : ''}
-        ${showMoney && kpi({ icon: 'banknote', tone: 'lime', label: 'إيراد اليوم', value: html`${formatMoney(todayRevenue, { currency: false })}<small>ج.م</small>`, meta: html`الشهر: ${formatMoney(monthRevenue)} · <a href="#/billing?tab=closing">إقفال اليومية</a>` })}
-        ${can('patients') && kpi({ icon: 'user-round', tone: 'info', label: 'مرضى جدد هذا الشهر', value: digits(newPatients), meta: html`<a href="#/patients">عرض المرضى</a>` })}
-        ${showMoney && kpi({ icon: 'wallet', tone: 'warning', label: 'أرصدة مستحقة', value: html`${formatMoney(outstanding.total, { currency: false })}<small>ج.م</small>`, meta: html`على ${digits(outstanding.rows.length)} مريض · <a href="#/billing?tab=balances">التفاصيل</a>` })}
+        ${showMoney && kpi({ icon: 'banknote', tone: 'lime', label: 'مقبوضات الشهر', value: html`${formatMoney(kpis.current.collections, { currency: false })}<small>ج.م</small>`, meta: html`${deltaPill(kpis.previous.collections, kpis.current.collections)}<span class="kpi__meta">اليوم: ${formatMoney(kpis.current.series.find((x) => x.key === todayISO())?.income ?? 0)} · <a href="#/billing?tab=closing">إقفال اليومية</a></span>` })}
+        ${showMoney && kpi({ icon: 'trending-up', tone: 'success', label: 'صافي الشهر', value: html`${formatMoney(kpis.current.net, { currency: false })}<small>ج.م</small>`, meta: html`${deltaPill(kpis.previous.net, kpis.current.net)}<span class="kpi__meta">مصروفات ${formatMoney(kpis.current.expenses)} · مستحق ${formatMoney(outstanding.total)}</span>` })}
+        ${can('patients') && kpi({ icon: 'user-round', tone: 'info', label: 'مرضى جدد هذا الشهر', value: digits(newPatients), meta: html`${deltaPill(newPrev, newPatients)}<span class="kpi__meta"><a href="#/patients">عرض المرضى</a></span>` })}
 
         ${showAppts ? html`<section class="card span-8" aria-labelledby="today-title">
           <div class="card__header">
@@ -123,18 +168,26 @@ export default {
           <div class="card__body" id="today-list"></div>
         </section>` : ''}
 
-        <aside class="card card--inverse span-4" aria-labelledby="status-title">
+        <section class="card span-4" aria-labelledby="alerts-title">
+          <div class="card__header"><div class="card__heading"><h2 class="card__title" id="alerts-title">يحتاج انتباهك</h2>
+            <p class="card__subtitle">${alerts.length ? `${digits(alerts.length)} تنبيه` : 'لا شيء عاجل'}</p></div></div>
+          <div class="card__body">${alerts.length ? html`<div class="stack-sm">${alerts.map(alertItem)}</div>` : emptyState({ icon: 'circle-check', title: 'كل شيء تمام', hint: 'لا متابعات متأخرة ولا أقساط ولا نواقص في المخزون.' })}</div>
+        </section>
+
+        ${showMoney ? html`<section class="card span-8" aria-labelledby="trend-title">
+          <div class="card__header"><div class="card__heading"><h2 class="card__title" id="trend-title">المقبوضات والمصروفات — آخر 12 شهرًا</h2>
+            <p class="card__subtitle">مرّر على العمود لرؤية القيم · <a href="#/reports?tab=finance&preset=last12">التقرير الكامل</a></p></div></div>
+          <div class="card__body"><div class="chart-box" id="trend-chart"></div></div>
+        </section>` : ''}
+
+        <aside class="card card--inverse ${showMoney ? 'span-4' : 'span-12'}" aria-labelledby="status-title">
           <div class="card__header">
             <div class="card__heading">
               <h2 class="card__title" id="status-title">حالة النظام</h2>
-              <p class="card__subtitle">مرحلة البناء ${digits(BUILD_PHASE)} من ${digits(TOTAL_PHASES)}</p>
+              <p class="card__subtitle">البيانات محفوظة على هذا الجهاز فقط</p>
             </div>
-            <span class="badge badge--accent">${formatPercent(pct, { decimals: 0 })}</span>
           </div>
           <div class="card__body stack">
-            <div class="progress progress--lime" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="تقدم البناء">
-              <div class="progress__bar" style="inline-size: ${pct}%"></div>
-            </div>
             <ul class="list">
               <li class="list__item" style="background: rgb(127 127 127 / 12%)">
                 ${ico('database', { size: 20 })}
@@ -161,6 +214,18 @@ export default {
         </aside>
       </div>
     `);
+
+    if (showMoney) {
+      const t = kpis.trend;
+      const monthName = (k) => MONTHS[Number(k.slice(5, 7)) - 1];
+      mountChart(el.querySelector('#trend-chart'), {
+        labels: t.map((x) => monthName(x.key)), tipLabels: t.map((x) => `${monthName(x.key)} ${digits(x.key.slice(0, 4))}`),
+        series: [{ name: 'المقبوضات', values: t.map((x) => x.income) }, { name: 'المصروفات', values: t.map((x) => x.expenses) }],
+        format: (v) => formatMoney(v), tick: (v) => { const p = v / 100; return p >= 1e3 ? `${digits(+(p / 1e3).toFixed(1))}K` : digits(Math.round(p)); },
+        label: 'المقبوضات والمصروفات آخر 12 شهرًا', height: 220,
+      }, signal);
+      wireCharts(el, signal);
+    }
 
     if (!showAppts) return;
     const drawToday = () => {

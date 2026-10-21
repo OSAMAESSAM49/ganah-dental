@@ -1,0 +1,63 @@
+/* Charts and reports. Series colours validated (dataviz validator) on both surfaces. */
+
+:root {
+  --chart-1: #5B21E0;   /* income / main series */
+  --chart-2: #D06A12;   /* expenses / comparison */
+  --chart-grid: #E7E5EE;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --chart-1: #9D7BF5; --chart-2: #D9782A; --chart-grid: #2C2C34; }
+}
+:root[data-theme="dark"] { --chart-1: #9D7BF5; --chart-2: #D9782A; --chart-grid: #2C2C34; }
+
+.chart { position: relative; margin: 0; }
+.chart svg { display: block; overflow: visible; }
+.chart__grid, .chart__axis { stroke: var(--chart-grid); stroke-width: 1; shape-rendering: crispEdges; }
+.chart__axis { stroke: var(--c-border-strong); }
+.chart__tick { fill: var(--c-text-subtle); font-size: 12px; font-family: var(--font-sans); font-variant-numeric: tabular-nums; }
+.chart__hit { fill: transparent; cursor: default; }
+.chart__hit[data-on] { fill: var(--c-text); fill-opacity: .05; }
+.chart__legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); margin-block-end: var(--sp-3); font-size: var(--fs-sm); color: var(--c-text-muted); }
+.chart__legend span, .chart__tip span { display: inline-flex; align-items: center; gap: 6px; }
+.chart__legend i, .chart__tip i { inline-size: 10px; block-size: 10px; border-radius: 3px; flex-shrink: 0; }
+.chart__tip {
+  position: absolute; inset-block-start: 0; z-index: 2; pointer-events: none;
+  display: flex; flex-direction: column; gap: 2px; min-inline-size: 150px;
+  padding: var(--sp-2) var(--sp-3); border-radius: var(--radius-md);
+  background: var(--c-surface-inverse); color: var(--c-text-inverse); font-size: var(--fs-xs);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
+}
+.chart__tip b { font-variant-numeric: tabular-nums; }
+.chart-box { min-block-size: 240px; }
+
+.period-bar { display: flex; flex-wrap: wrap; align-items: end; gap: var(--sp-3); margin-block-end: var(--sp-4); }
+.period-bar .field { margin: 0; inline-size: min(200px, 100%); }
+.chips a.chip { text-decoration: none; }
+.chips a.chip:not([aria-pressed="true"]) { color: inherit; }
+.period-bar .chips { flex: 1 1 100%; }
+.report-actions { display: flex; gap: var(--sp-2); margin-inline-start: auto; }
+
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--sp-3); margin-block-end: var(--sp-4); }
+.stat { padding: var(--sp-4) var(--sp-5); border-radius: var(--radius-lg); background: var(--c-surface); display: flex; flex-direction: column; gap: var(--sp-1); }
+.stat__label { color: var(--c-text-muted); font-size: var(--fs-sm); }
+.stat__value { font-size: var(--fs-xl); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; }
+.stat__value small { font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--c-text-muted); margin-inline-start: 4px; }
+.stat__meta { font-size: var(--fs-xs); color: var(--c-text-subtle); }
+.stat--hero { background: var(--c-hero-bg); color: var(--c-hero-fg); }
+.stat--hero .stat__label, .stat--hero .stat__meta, .stat--hero .stat__value small { color: var(--c-hero-muted); }
+
+
+.dash-alerts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--sp-2); }
+.dash-alert { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3); border-radius: var(--radius-lg); background: var(--c-surface-2); color: inherit; text-decoration: none; }
+.dash-alert:hover { background: var(--c-primary-softer); }
+.dash-alert__icon { display: grid; place-items: center; inline-size: 38px; block-size: 38px; border-radius: 50%; flex-shrink: 0; }
+.dash-alert__icon--danger { background: var(--c-danger-soft); color: var(--c-danger); }
+.dash-alert__icon--warning { background: var(--c-warning-soft); color: var(--c-warning); }
+.dash-alert__icon--info { background: var(--c-info-soft); color: var(--c-info); }
+.dash-alert__text { display: flex; flex-direction: column; min-inline-size: 0; }
+.dash-alert__text strong { font-variant-numeric: tabular-nums; }
+
+@media print {
+  .print-subtitle { margin-block: -2mm 4mm; color: #444; font-size: 10pt; }
+  .print-table .print-total td { background: #F4F0FE !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
