@@ -12,7 +12,7 @@ import { META_FIELDS, SECRET_FIELDS } from '../core/labels.js';
 export const AUDITED_STORES = new Set([
   'users', 'roles', 'settings',
   'patients', 'payments', 'invoices', 'installments', 'inventoryItems', 'stockMovements', 'stockBatches',
-  'appointments', 'treatmentItems', 'expenses', 'procedures', 'labCases',
+  'appointments', 'treatmentItems', 'expenses', 'procedures', 'procedureCategories', 'media', 'labCases',
 ]);
 
 const isSecret = (key) => SECRET_FIELDS.has(key) || /hash|salt/i.test(key);

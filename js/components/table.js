@@ -67,7 +67,7 @@ export function mountTable(el, opts) {
           </tr></thead>
           <tbody>
             ${shown.map((row) => html`
-              <tr ${opts.rowHref ? html`data-href="${opts.rowHref(row)}" tabindex="0"` : ''}>
+              <tr ${opts.rowHref?.(row) ? html`data-href="${opts.rowHref(row)}" tabindex="0"` : ''}>
                 ${opts.columns.map((c) => html`<td data-label="${c.label}" class="${c.num ? 'num' : ''}">${c.render ? c.render(row) : row[c.key] ?? '—'}</td>`)}
               </tr>`)}
           </tbody>

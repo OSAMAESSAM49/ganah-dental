@@ -6,6 +6,8 @@
  * requests synchronously (see idb.js).
  */
 
+import { seedCatalog } from './seed-catalog.js';
+
 /** @type {import('./idb.js').Migration[]} */
 export const MIGRATIONS = [
   {
@@ -30,6 +32,22 @@ export const MIGRATIONS = [
       audit.createIndex('userId', 'userId');
       audit.createIndex('entity', 'entity');
       audit.createIndex('entityRef', ['entity', 'entityId']);
+    },
+  },
+  {
+    version: 3,
+    description: 'Patients, patient media, procedures catalog (seeded)',
+    up(db, tx) {
+      const patients = db.createObjectStore('patients', { keyPath: 'id' });
+      patients.createIndex('fileNo', 'fileNo', { unique: true });
+      patients.createIndex('phone', 'phone');
+      patients.createIndex('createdAt', 'createdAt');
+      const media = db.createObjectStore('media', { keyPath: 'id' });
+      media.createIndex('patientId', 'patientId');
+      media.createIndex('kind', 'kind');
+      db.createObjectStore('procedureCategories', { keyPath: 'id' });
+      db.createObjectStore('procedures', { keyPath: 'id' }).createIndex('categoryId', 'categoryId');
+      seedCatalog((store, record) => tx.objectStore(store).put(record));
     },
   },
 ];

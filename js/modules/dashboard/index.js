@@ -9,6 +9,8 @@ import { getSettings } from '../../data/settings.js';
 import { emptyState } from '../../components/states.js';
 import { can } from '../../core/permissions.js';
 import { currentUser } from '../../core/session.js';
+import { newPatientsThisMonth } from '../../services/patients.js';
+import { backupStatus } from '../../services/backup.js';
 
 const BUILD_PHASE = 1;
 const TOTAL_PHASES = 10;
@@ -52,6 +54,8 @@ export default {
     const clinic = getSettings('clinic');
     const today = new Date();
     const s = await systemStatus();
+    const newPatients = can('patients') ? await newPatientsThisMonth() : 0;
+    const backup = can('settings', 'edit') ? await backupStatus() : null;
     const pct = Math.round((BUILD_PHASE / TOTAL_PHASES) * 100);
 
     render(el, html`
@@ -62,10 +66,11 @@ export default {
         </div>
         <div class="page-header__actions">
           <a class="btn btn--dark" href="#/appointments">${ico('plus')} موعد جديد</a>
-          <a class="btn" href="#/patients">${ico('user-plus')} مريض جديد</a>
+          ${can('patients', 'create') ? html`<a class="btn" href="#/patients/new">${ico('user-plus')} مريض جديد</a>` : ''}
         </div>
       </header>
 
+      ${backup?.due ? html`<div class="alert alert--warning" style="margin-block-end: var(--sp-5)">${ico('database')}<div class="alert__content"><div class="alert__title">حان وقت النسخ الاحتياطي</div><div class="alert__body">${backup.lastAt ? `آخر نسخة منذ ${digits(backup.days)} يوم.` : 'لم تؤخذ أي نسخة احتياطية بعد.'} البيانات محفوظة على هذا الجهاز فقط.</div></div><a class="btn btn--accent btn--sm" href="#/settings?tab=backup">خذ نسخة الآن</a></div>` : ''}
       <div class="bento">
         <article class="card card--hero span-3">
           <div class="kpi">
@@ -79,7 +84,7 @@ export default {
           </div>
         </article>
         ${can('billing') && kpi({ icon: 'banknote', tone: 'lime', label: 'إيراد اليوم', value: html`${formatMoney(0, { currency: false })}<small>ج.م</small>`, meta: 'من المدفوعات المسجلة اليوم' })}
-        ${can('patients') && kpi({ icon: 'user-round', tone: 'info', label: 'مرضى جدد هذا الشهر', value: digits(0), meta: 'من ملفات المرضى' })}
+        ${can('patients') && kpi({ icon: 'user-round', tone: 'info', label: 'مرضى جدد هذا الشهر', value: digits(newPatients), meta: html`<a href="#/patients">عرض المرضى</a>` })}
         ${can('billing') && kpi({ icon: 'wallet', tone: 'warning', label: 'أرصدة مستحقة', value: html`${formatMoney(0, { currency: false })}<small>ج.م</small>`, meta: 'على المرضى إجمالًا' })}
 
         <section class="card span-8" aria-labelledby="today-title">

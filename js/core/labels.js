@@ -14,6 +14,9 @@ export const ENTITY_LABELS = {
   treatmentItems: 'بند علاج',
   expenses: 'مصروف',
   procedures: 'إجراء',
+  procedureCategories: 'تصنيف إجراءات',
+  media: 'صورة / أشعة',
+  backup: 'النسخ الاحتياطي',
 };
 
 export const AUDIT_ACTION_LABELS = {
@@ -30,6 +33,8 @@ export const AUDIT_ACTION_LABELS = {
   recovery_used: 'استخدام رمز الاسترداد',
   recovery_regenerated: 'إنشاء رمز استرداد جديد',
   setup: 'إعداد أول مرة',
+  backup_export: 'تنزيل نسخة احتياطية',
+  backup_restore: 'استرجاع نسخة احتياطية',
 };
 
 export const AUDIT_ACTION_TONES = {
@@ -37,6 +42,7 @@ export const AUDIT_ACTION_TONES = {
   login: '', logout: '', login_failed: 'warning', lock: '',
   password_reset: 'warning', password_change: 'info', recovery_used: 'danger',
   recovery_regenerated: 'warning', setup: 'primary',
+  backup_export: 'success', backup_restore: 'danger',
 };
 
 export const FIELD_LABELS = {
@@ -61,9 +67,45 @@ export const FIELD_LABELS = {
   backupReminderDays: 'تذكير النسخ الاحتياطي (أيام)',
   notes: 'ملاحظات',
   deletedAt: 'تاريخ الحذف',
+  fileNo: 'رقم الملف',
+  phone2: 'هاتف آخر',
+  gender: 'النوع',
+  dob: 'تاريخ الميلاد',
+  dobEstimated: 'تاريخ ميلاد تقريبي',
+  occupation: 'المهنة',
+  referralSource: 'مصدر المعرفة',
+  referralNote: 'تفاصيل المصدر',
+  photo: 'الصورة',
+  medical: 'التاريخ الطبي',
+  price: 'السعر',
+  durationMin: 'المدة (دقيقة)',
+  sessions: 'عدد الجلسات',
+  perTooth: 'لكل سن',
+  needsLab: 'يحتاج معمل',
+  categoryId: 'التصنيف',
+  order: 'الترتيب',
+  caption: 'الوصف',
+  tag: 'قبل/بعد',
+  takenAt: 'تاريخ التصوير',
+  kind: 'النوع',
+};
+
+export const GENDER_LABELS = { male: 'ذكر', female: 'أنثى' };
+
+/** How the patient heard about the clinic (marketing reports). */
+export const REFERRAL_SOURCES = {
+  facebook: 'فيسبوك',
+  instagram: 'إنستجرام',
+  tiktok: 'تيك توك',
+  google: 'جوجل / الخريطة',
+  friend: 'صديق أو قريب',
+  patient: 'مريض بالعيادة',
+  sign: 'لافتة العيادة',
+  doctor: 'طبيب آخر',
+  other: 'أخرى',
 };
 
 /** Fields never shown or stored in audit diffs. */
 export const SECRET_FIELDS = new Set(['password', 'pin', 'recovery']);
 /** Bookkeeping fields that are not interesting in a diff. */
-export const META_FIELDS = new Set(['id', 'createdAt', 'updatedAt', 'createdBy', 'updatedBy', 'deletedBy', 'lastLoginAt']);
+export const META_FIELDS = new Set(['id', 'createdAt', 'updatedAt', 'createdBy', 'updatedBy', 'deletedBy', 'lastLoginAt', 'searchText']);

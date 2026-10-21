@@ -19,6 +19,8 @@ import { openMenu } from '../components/menu.js';
 import { confirmDialog } from '../components/modal.js';
 import { logout } from '../services/auth.js';
 import { openChangePasswordDialog, openPinDialog } from '../modules/account/dialogs.js';
+import { attachPatientSearch } from '../components/patient-search.js';
+import { backupStatus } from '../services/backup.js';
 
 /** @type {HTMLElement} */
 let app;
@@ -73,8 +75,25 @@ function drawNav() {
   render(app.querySelector('.sidebar__nav'), html`${navMarkup(currentPath)}`);
   render(app.querySelector('.bottom-nav'), bottomMarkup(currentPath));
   render(app.querySelector('[data-action="user-menu"]'), userChipMarkup());
-  const backup = app.querySelector('[data-slot="sidebar-card"]');
-  if (backup) backup.hidden = !can('settings', 'view');
+  const search = app.querySelector('.topbar__search');
+  if (search) search.hidden = !can('patients', 'view');
+  drawBackupCard();
+}
+
+/** Sidebar card: when the last backup was taken (only for users who can make backups). */
+async function drawBackupCard() {
+  const card = app.querySelector('[data-slot="sidebar-card"]');
+  if (!card) return;
+  if (!getSession() || !can('settings', 'edit')) { card.hidden = true; return; }
+  const s = await backupStatus();
+  card.hidden = false;
+  card.dataset.due = s.due ? '1' : '';
+  render(card, html`
+    <div class="sidebar-card__title">${s.due ? 'حان وقت النسخ الاحتياطي' : 'بياناتك محفوظة على هذا الجهاز'}</div>
+    <p class="sidebar-card__text">${s.lastAt
+      ? (s.days === 0 ? 'آخر نسخة احتياطية: اليوم' : `آخر نسخة احتياطية: منذ ${s.days === 1 ? 'يوم' : s.days === 2 ? 'يومين' : `${s.days} ${s.days <= 10 ? 'أيام' : 'يومًا'}`}`)
+      : 'لم تؤخذ أي نسخة احتياطية بعد.'}</p>
+    <a class="btn btn--accent btn--sm btn--block" href="#/settings?tab=backup">${ico('database', { size: 18 })} ${s.due ? 'خذ نسخة الآن' : 'النسخ الاحتياطي'}</a>`);
 }
 
 function drawBrand() {
@@ -136,7 +155,7 @@ export function mountShell(root) {
         </button>
         <div class="topbar__search input-group">
           ${ico('search', { size: 20 })}
-          <input class="input input--pill" type="search" placeholder="ابحث عن مريض بالاسم أو الموبايل أو رقم الملف…" aria-label="بحث" disabled title="متاح في المرحلة ٣">
+          <input class="input input--pill" type="search" placeholder="ابحث عن مريض بالاسم أو الموبايل أو رقم الملف…" aria-label="بحث عن مريض" id="gsearch-input" autocomplete="off">
         </div>
         <div class="topbar__spacer"></div>
         <div class="topbar__actions">
@@ -155,6 +174,7 @@ export function mountShell(root) {
   if (getPref('sidebar') === 'collapsed') app.dataset.sidebar = 'collapsed';
   drawBrand();
   drawNav();
+  attachPatientSearch(/** @type {HTMLInputElement} */ (app.querySelector('#gsearch-input')));
 
   const mqDrawer = matchMedia('(max-width: 1023px)');
   const closeDrawer = () => { delete app.dataset.drawer; };
@@ -186,6 +206,7 @@ export function mountShell(root) {
   app.addEventListener('keydown', (e) => { if (e.key === 'Escape' && app.dataset.drawer === 'open') closeDrawer(); });
   onEvent('route:changed', closeDrawer);
   onEvent('auth:changed', () => drawNav());
+  onEvent('data:changed', ({ store, id }) => { if (store === 'meta' && id === 'lastBackupAt') drawBackupCard(); });
   onEvent('settings:changed', ({ key }) => { if (key === 'clinic') drawBrand(); });
 
   return /** @type {HTMLElement} */ (app.querySelector('#main'));

@@ -15,7 +15,8 @@ let adapter = null;
 /**
  * Registry of repositories. Feature phases add entries here.
  * @type {{ meta: KeyValueRepository, settings: KeyValueRepository,
- *          users: Repository, roles: Repository, audit: Repository }}
+ *          users: Repository, roles: Repository, audit: Repository, patients: Repository,
+ *          media: Repository, procedureCategories: Repository, procedures: Repository }}
  */
 export const repos = /** @type {any} */ ({});
 
@@ -30,7 +31,26 @@ export async function initData({ name = DB_NAME, ...handlers } = {}) {
   repos.users = new Repository(adapter, 'users', { softDelete: true });
   repos.roles = new Repository(adapter, 'roles');
   repos.audit = new Repository(adapter, 'auditLog');
+  repos.patients = new Repository(adapter, 'patients', { softDelete: true });
+  repos.media = new Repository(adapter, 'media');
+  repos.procedureCategories = new Repository(adapter, 'procedureCategories');
+  repos.procedures = new Repository(adapter, 'procedures');
   return adapter;
+}
+
+/**
+ * Atomically increments a named counter in meta and returns the new value
+ * (file numbers, invoice numbers, receipt numbers…).
+ * @param {string} name e.g. 'patientFileNo'
+ */
+export async function nextCounter(name) {
+  const key = `counter.${name}`;
+  return getAdapter().transaction(['meta'], 'readwrite', async (t) => {
+    const row = await t.get('meta', key);
+    const value = (row?.value ?? 0) + 1;
+    await t.put('meta', { key, value, updatedAt: new Date().toISOString() });
+    return value;
+  });
 }
 
 /** The active adapter (for backup/restore and multi-store transactions). */

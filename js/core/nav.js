@@ -12,7 +12,7 @@ export const NAV_GROUPS = [
     items: [
       { path: '/', label: 'الرئيسية', icon: 'layout-dashboard', module: 'dashboard' },
       { path: '/appointments', label: 'المواعيد', icon: 'calendar-days', module: 'appointments', phase: 5 },
-      { path: '/patients', label: 'المرضى', icon: 'users', module: 'patients', phase: 3 },
+      { path: '/patients', label: 'المرضى', icon: 'users', module: 'patients' },
     ],
   },
   {
@@ -35,10 +35,10 @@ export const NAV_GROUPS = [
   {
     title: 'الإدارة',
     items: [
-      { path: '/procedures', label: 'الإجراءات والأسعار', icon: 'list-checks', module: 'procedures', phase: 3 },
+      { path: '/procedures', label: 'الإجراءات والأسعار', icon: 'list-checks', module: 'procedures' },
       { path: '/users', label: 'المستخدمون والصلاحيات', icon: 'shield-check', module: 'users' },
       { path: '/audit', label: 'سجل العمليات', icon: 'scroll-text', module: 'audit' },
-      { path: '/settings', label: 'الإعدادات', icon: 'settings', module: 'settings', phase: 10 },
+      { path: '/settings', label: 'الإعدادات', icon: 'settings', module: 'settings' },
       { path: '/styleguide', label: 'دليل التصميم', icon: 'palette', module: 'settings' },
     ],
   },
@@ -59,6 +59,12 @@ export const ROUTES = [
   { path: '/setup', title: 'إعداد البرنامج', load: () => import('../modules/setup/index.js'), meta: { public: true, layout: 'bare', setup: true } },
   { path: '/login', title: 'تسجيل الدخول', load: () => import('../modules/login/index.js'), meta: { public: true, layout: 'bare' } },
   { path: '/', title: 'الرئيسية', load: () => import('../modules/dashboard/index.js'), permission: ['dashboard', 'view'] },
+  { path: '/patients', title: 'المرضى', load: () => import('../modules/patients/list.js'), permission: ['patients', 'view'] },
+  { path: '/patients/new', title: 'مريض جديد', load: () => import('../modules/patients/form.js'), permission: ['patients', 'create'] },
+  { path: '/patients/:id', title: 'ملف المريض', load: () => import('../modules/patients/file.js'), permission: ['patients', 'view'] },
+  { path: '/patients/:id/edit', title: 'تعديل بيانات المريض', load: () => import('../modules/patients/form.js'), permission: ['patients', 'edit'] },
+  { path: '/procedures', title: 'الإجراءات والأسعار', load: () => import('../modules/procedures/index.js'), permission: ['procedures', 'view'] },
+  { path: '/settings', title: 'الإعدادات', load: () => import('../modules/settings/index.js'), permission: ['settings', 'view'] },
   { path: '/users', title: 'المستخدمون والصلاحيات', load: () => import('../modules/users/index.js'), permission: ['users', 'view'] },
   { path: '/audit', title: 'سجل العمليات', load: () => import('../modules/audit/index.js'), permission: ['audit', 'view'] },
   { path: '/styleguide', title: 'دليل التصميم', load: () => import('../modules/styleguide/index.js'), permission: ['settings', 'view'] },
