@@ -146,7 +146,10 @@ export class KeyValueRepository {
   }
 
   async set(key, value) {
+    const before = await this.get(key, null);
     await this.adapter.put(this.store, { key, value, updatedAt: now() });
+    try { await repoHooks.afterWrite({ store: this.store, action: 'update', id: key, before, after: value }); }
+    catch (err) { console.error('[repo] afterWrite hook failed', err); }
     emit('data:changed', { store: this.store, action: 'update', id: key });
     return value;
   }

@@ -1,24 +1,30 @@
 /**
- * App shell: floating sidebar, top bar, phone bottom nav, drawer behaviour.
- * The shell renders once; route changes only update the active link and the page title.
+ * App shell: floating sidebar, top bar, phone bottom nav, drawer behaviour, user menu.
+ * The shell renders once; route changes only update the active link, title and layout.
+ * Menu items the user cannot view are hidden (not just blocked).
  */
 import { html, ico, on, render } from './dom.js';
 import { NAV_GROUPS, BOTTOM_NAV, NAV_ITEMS } from './nav.js';
 import { getPref, setPref } from './prefs.js';
 import { cycleTheme, getTheme, THEME_ICONS, THEME_LABELS } from './theme.js';
 import { onEvent } from './bus.js';
+import { can } from './permissions.js';
+import { getSession } from './session.js';
+import { initials } from './text.js';
+import { navigate } from './router.js';
 import { brandMark } from '../components/brand.js';
 import { getSettings } from '../data/settings.js';
 import { toast } from '../components/toast.js';
+import { openMenu } from '../components/menu.js';
+import { confirmDialog } from '../components/modal.js';
+import { logout } from '../services/auth.js';
+import { openChangePasswordDialog, openPinDialog } from '../modules/account/dialogs.js';
 
 /** @type {HTMLElement} */
 let app;
-/** Visibility filter for nav items; replaced by the permission system in phase 2. */
-let canSee = (_item) => true;
+let currentPath = '/';
 
-/** @param {(item: import('./nav.js').NavItem) => boolean} fn */
-export function setNavFilter(fn) { canSee = fn; if (app) drawNav(); }
-
+const canSee = (item) => can(item.module, 'view');
 const isActive = (path, current) => (path === '/' ? current === '/' : current === path || current.startsWith(path + '/'));
 
 function navMarkup(current) {
@@ -50,11 +56,35 @@ function bottomMarkup(current) {
     </button>`;
 }
 
-let currentPath = '/';
+const avatar = (user) => html`<span class="avatar avatar--c-${user?.color || 'lime'}">${initials((user?.displayName ?? '؟').replace(/^د\.\s*/, ''))}</span>`;
+
+function userChipMarkup() {
+  const s = getSession();
+  if (!s) return '';
+  return html`${avatar(s.user)}
+    <span class="user-chip__text">
+      <span class="user-chip__name">${s.user.displayName}</span>
+      <span class="user-chip__role">${s.role?.name ?? ''}</span>
+    </span>
+    ${ico('chevron-down', { size: 16 })}`;
+}
 
 function drawNav() {
   render(app.querySelector('.sidebar__nav'), html`${navMarkup(currentPath)}`);
   render(app.querySelector('.bottom-nav'), bottomMarkup(currentPath));
+  render(app.querySelector('[data-action="user-menu"]'), userChipMarkup());
+  const backup = app.querySelector('[data-slot="sidebar-card"]');
+  if (backup) backup.hidden = !can('settings', 'view');
+}
+
+function drawBrand() {
+  const clinic = getSettings('clinic');
+  render(app.querySelector('.sidebar__brand'), html`
+    ${clinic.logo ? html`<img class="brand-mark" src="${clinic.logo}" alt="" style="object-fit:contain;background:#fff">` : brandMark({ size: 46 })}
+    <span class="sidebar__brand-text">
+      <span class="sidebar__brand-name">${clinic.shortName}</span>
+      <span class="sidebar__brand-sub">${clinic.tagline}</span>
+    </span>`);
 }
 
 function themeButton() {
@@ -62,19 +92,33 @@ function themeButton() {
   return html`${ico(THEME_ICONS[t], { size: 20 })}<span class="visually-hidden">المظهر: ${THEME_LABELS[t]}</span>`;
 }
 
+async function signOut({ switchUser = false } = {}) {
+  if (!switchUser && !(await confirmDialog({ title: 'تسجيل الخروج؟', message: 'ستحتاج إلى كلمة المرور أو الرمز السريع للدخول مرة أخرى.', confirmLabel: 'تسجيل الخروج' }))) return;
+  await logout('logout');
+  navigate('/login', { replace: true });
+}
+
+function openUserMenu(anchor) {
+  const s = getSession();
+  if (!s) return;
+  openMenu(anchor, {
+    header: html`<div class="menu__header">${avatar(s.user)}<div class="menu__header-text"><strong>${s.user.displayName}</strong><small>${s.role?.name ?? ''} · <span class="ltr">${s.user.username}</span></small></div></div>`,
+    items: [
+      { label: 'تبديل المستخدم', icon: 'users', onSelect: () => signOut({ switchUser: true }) },
+      { label: 'تغيير كلمة المرور', icon: 'key-round', onSelect: () => openChangePasswordDialog() },
+      { label: s.user.hasPin ? 'تغيير الرمز السريع' : 'تعيين رمز سريع (PIN)', icon: 'lock', onSelect: () => openPinDialog() },
+      'sep',
+      { label: 'تسجيل الخروج', icon: 'log-out', danger: true, onSelect: () => signOut() },
+    ],
+  });
+}
+
 /** Renders the shell into #app and wires its controls. */
 export function mountShell(root) {
   app = root;
-  const clinic = getSettings('clinic');
   render(app, html`
     <aside class="sidebar" id="sidebar" aria-label="القائمة الرئيسية">
-      <a class="sidebar__brand" href="#/">
-        ${brandMark({ size: 46 })}
-        <span class="sidebar__brand-text">
-          <span class="sidebar__brand-name">${clinic.shortName}</span>
-          <span class="sidebar__brand-sub">${clinic.tagline}</span>
-        </span>
-      </a>
+      <a class="sidebar__brand" href="#/"></a>
       <nav class="sidebar__nav"></nav>
       <div class="sidebar__footer">
         <div class="sidebar-card" data-slot="sidebar-card">
@@ -100,13 +144,7 @@ export function mountShell(root) {
           <button type="button" class="icon-btn" data-action="notifications" aria-label="التنبيهات">
             ${ico('bell', { size: 20 })}
           </button>
-          <button type="button" class="user-chip" data-action="user-menu" aria-label="حساب المستخدم">
-            <span class="avatar avatar--lime">ج</span>
-            <span class="user-chip__text">
-              <span class="user-chip__name">مستخدم تجريبي</span>
-              <span class="user-chip__role">بدون تسجيل دخول</span>
-            </span>
-          </button>
+          <button type="button" class="user-chip" data-action="user-menu" aria-label="حساب المستخدم" aria-haspopup="menu"></button>
         </div>
       </header>
       <main id="main" class="content" tabindex="-1"></main>
@@ -115,6 +153,7 @@ export function mountShell(root) {
   `);
 
   if (getPref('sidebar') === 'collapsed') app.dataset.sidebar = 'collapsed';
+  drawBrand();
   drawNav();
 
   const mqDrawer = matchMedia('(max-width: 1023px)');
@@ -124,8 +163,8 @@ export function mountShell(root) {
     switch (el.dataset.action) {
       case 'toggle-sidebar':
         if (mqDrawer.matches) {
-          app.dataset.drawer = app.dataset.drawer === 'open' ? '' : 'open';
-          if (app.dataset.drawer === 'open') app.querySelector('.sidebar a')?.focus();
+          if (app.dataset.drawer === 'open') closeDrawer();
+          else { app.dataset.drawer = 'open'; app.querySelector('.sidebar a')?.focus(); }
         } else {
           const collapsed = app.dataset.sidebar === 'collapsed';
           if (collapsed) delete app.dataset.sidebar; else app.dataset.sidebar = 'collapsed';
@@ -141,23 +180,25 @@ export function mountShell(root) {
         break;
       }
       case 'notifications': toast('التنبيهات (نقص المخزون، المتابعات، الأقساط) ستظهر هنا في المرحلة ٩.'); break;
-      case 'user-menu': toast('تسجيل الدخول وتبديل المستخدم في المرحلة ٢.'); break;
+      case 'user-menu': openUserMenu(el); break;
     }
   });
   app.addEventListener('keydown', (e) => { if (e.key === 'Escape' && app.dataset.drawer === 'open') closeDrawer(); });
   onEvent('route:changed', closeDrawer);
-  onEvent('settings:changed', ({ key, value }) => {
-    if (key !== 'clinic') return;
-    app.querySelector('.sidebar__brand-name').textContent = value.shortName;
-    app.querySelector('.sidebar__brand-sub').textContent = value.tagline;
-  });
+  onEvent('auth:changed', () => drawNav());
+  onEvent('settings:changed', ({ key }) => { if (key === 'clinic') drawBrand(); });
 
   return /** @type {HTMLElement} */ (app.querySelector('#main'));
 }
 
-/** Highlights the active nav item and sets the document title. */
-export function setActiveRoute(path, title) {
+/**
+ * Highlights the active nav item, sets the document title and switches between the full
+ * shell and the bare (login/setup) layout.
+ */
+export function setActiveRoute(path, title, route) {
   currentPath = path;
+  if (route?.meta?.layout === 'bare') app.dataset.layout = 'bare';
+  else delete app.dataset.layout;
   drawNav();
   const clinic = getSettings('clinic');
   document.title = title ? `${title} · ${clinic.shortName}` : clinic.shortName;

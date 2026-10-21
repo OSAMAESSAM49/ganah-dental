@@ -17,6 +17,21 @@ export const MIGRATIONS = [
       tx.objectStore('meta').put({ key: 'createdAt', value: new Date().toISOString() });
     },
   },
+  {
+    version: 2,
+    description: 'Accounts: users, roles, audit log',
+    up(db) {
+      const users = db.createObjectStore('users', { keyPath: 'id' });
+      users.createIndex('username', 'username', { unique: true });
+      users.createIndex('roleId', 'roleId');
+      db.createObjectStore('roles', { keyPath: 'id' });
+      const audit = db.createObjectStore('auditLog', { keyPath: 'id' });
+      audit.createIndex('at', 'at');
+      audit.createIndex('userId', 'userId');
+      audit.createIndex('entity', 'entity');
+      audit.createIndex('entityRef', ['entity', 'entityId']);
+    },
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;

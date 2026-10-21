@@ -36,8 +36,8 @@ export const NAV_GROUPS = [
     title: 'الإدارة',
     items: [
       { path: '/procedures', label: 'الإجراءات والأسعار', icon: 'list-checks', module: 'procedures', phase: 3 },
-      { path: '/users', label: 'المستخدمون والصلاحيات', icon: 'shield-check', module: 'users', phase: 2 },
-      { path: '/audit', label: 'سجل العمليات', icon: 'scroll-text', module: 'audit', phase: 2 },
+      { path: '/users', label: 'المستخدمون والصلاحيات', icon: 'shield-check', module: 'users' },
+      { path: '/audit', label: 'سجل العمليات', icon: 'scroll-text', module: 'audit' },
       { path: '/settings', label: 'الإعدادات', icon: 'settings', module: 'settings', phase: 10 },
       { path: '/styleguide', label: 'دليل التصميم', icon: 'palette', module: 'settings' },
     ],
@@ -51,9 +51,16 @@ export const NAV_ITEMS = NAV_GROUPS.flatMap((g) => g.items);
 
 const comingSoon = () => import('../modules/coming-soon/index.js');
 
-/** Route definitions for the router. */
+/**
+ * Route definitions for the router.
+ * meta.public: reachable without signing in · meta.layout 'bare': no sidebar/top bar.
+ */
 export const ROUTES = [
+  { path: '/setup', title: 'إعداد البرنامج', load: () => import('../modules/setup/index.js'), meta: { public: true, layout: 'bare', setup: true } },
+  { path: '/login', title: 'تسجيل الدخول', load: () => import('../modules/login/index.js'), meta: { public: true, layout: 'bare' } },
   { path: '/', title: 'الرئيسية', load: () => import('../modules/dashboard/index.js'), permission: ['dashboard', 'view'] },
+  { path: '/users', title: 'المستخدمون والصلاحيات', load: () => import('../modules/users/index.js'), permission: ['users', 'view'] },
+  { path: '/audit', title: 'سجل العمليات', load: () => import('../modules/audit/index.js'), permission: ['audit', 'view'] },
   { path: '/styleguide', title: 'دليل التصميم', load: () => import('../modules/styleguide/index.js'), permission: ['settings', 'view'] },
   ...NAV_ITEMS.filter((i) => i.phase).map((i) => ({
     path: i.path, title: i.label, load: comingSoon, permission: [i.module, 'view'], meta: { phase: i.phase, icon: i.icon },
@@ -61,3 +68,5 @@ export const ROUTES = [
 ];
 
 export const NOT_FOUND_ROUTE = { path: '*', title: 'الصفحة غير موجودة', load: () => import('../modules/not-found/index.js') };
+
+export const FORBIDDEN_ROUTE = { path: '*', title: 'غير مسموح', load: () => import('../modules/forbidden/index.js') };

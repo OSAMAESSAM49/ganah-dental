@@ -20,7 +20,7 @@ let routes = [];
 let notFound = null;
 let outlet = null;
 let hooks = { beforeEach: null, afterEach: null, onError: null, loading: null };
-let current = { path: null, cleanup: null, controller: null };
+let current = { path: null, key: null, cleanup: null, controller: null };
 let renderToken = 0;
 let dirtyGuard = null;
 let suppressNext = false;
@@ -92,8 +92,9 @@ export const currentRoute = () => parseHash(location.hash);
 export function setLeaveGuard(fn) { dirtyGuard = fn; }
 
 /**
- * Starts listening. hooks.beforeEach(route, params) may return false (block) or a path
- * string (redirect). hooks.loading(el) renders a loading state.
+ * Starts listening. hooks.beforeEach(route, params, path) may return false (block), a path
+ * string (redirect) or { render: RouteDef } (show another view at this URL).
+ * hooks.loading(el) renders a loading state.
  */
 export function startRouter(el, opts = {}) {
   outlet = el;
@@ -106,7 +107,8 @@ async function handleChange() {
   if (suppressNext) { suppressNext = false; return; }
   const { path, query } = parseHash(location.hash);
 
-  if (dirtyGuard && current.path !== null && path !== current.path) {
+  const key = location.hash || '#/';
+  if (dirtyGuard && current.key && key !== current.key) {
     const ok = await dirtyGuard();
     if (!ok) { suppressNext = true; history.back(); return; }
     dirtyGuard = null;
@@ -119,6 +121,11 @@ async function handleChange() {
     const verdict = await hooks.beforeEach(match.route, match.params, path);
     if (verdict === false) return;
     if (typeof verdict === 'string' && verdict !== path) { navigate(verdict, { replace: true }); return; }
+    // { render: RouteDef } shows another view at the same URL (e.g. "no permission")
+    if (verdict && typeof verdict === 'object' && verdict.render) {
+      await renderRoute(verdict.render, match.params, query, path);
+      return;
+    }
   }
 
   await renderRoute(match.route, match.params, query, path);
@@ -128,7 +135,7 @@ async function renderRoute(route, params, query, path) {
   const token = ++renderToken;
   teardown();
   const controller = new AbortController();
-  current = { path, cleanup: null, controller };
+  current = { path, key: location.hash || '#/', cleanup: null, controller };
   dirtyGuard = null;
 
   hooks.loading?.(outlet);

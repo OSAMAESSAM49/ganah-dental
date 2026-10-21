@@ -430,7 +430,12 @@
   pointer-events: none;
 }
 [dir="ltr"] .toast-region { transform: translateX(-50%); }
-@media (max-width: 639px) { .toast-region { inset-block-end: calc(96px + env(safe-area-inset-bottom)); } }
+@media (max-width: 639px) {
+  .toast-region { inset-block-end: calc(96px + env(safe-area-inset-bottom)); }
+  .toast { border-radius: var(--radius-lg); flex-wrap: wrap; }
+  .toast__msg { flex: 1 1 60%; }
+}
+.app[data-layout="bare"] ~ .toast-region { inset-block-end: var(--sp-6); }
 .toast {
   --t-fg: #B79AF8;
   pointer-events: auto;

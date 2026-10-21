@@ -7,6 +7,8 @@ import { formatBytes, formatDate, formatMoney, formatPercent, digits } from '../
 import { getAdapter } from '../../data/index.js';
 import { getSettings } from '../../data/settings.js';
 import { emptyState } from '../../components/states.js';
+import { can } from '../../core/permissions.js';
+import { currentUser } from '../../core/session.js';
 
 const BUILD_PHASE = 1;
 const TOTAL_PHASES = 10;
@@ -55,7 +57,7 @@ export default {
     render(el, html`
       <header class="page-header">
         <div class="page-header__text">
-          <h1 class="page-header__title">${greeting(today)} 👋</h1>
+          <h1 class="page-header__title">${greeting(today)}، ${currentUser()?.displayName ?? ""} 👋</h1>
           <p class="page-header__sub">${WEEKDAYS[today.getDay()]} ${formatDate(today)} · ${clinic.name}</p>
         </div>
         <div class="page-header__actions">
@@ -76,9 +78,9 @@ export default {
             <div class="kpi__foot"><span class="delta delta--up">${digits('+0')}</span><span class="kpi__meta">تظهر بعد إضافة المواعيد</span></div>
           </div>
         </article>
-        ${kpi({ icon: 'banknote', tone: 'lime', label: 'إيراد اليوم', value: html`${formatMoney(0, { currency: false })}<small>ج.م</small>`, meta: 'من المدفوعات المسجلة اليوم' })}
-        ${kpi({ icon: 'user-round', tone: 'info', label: 'مرضى جدد هذا الشهر', value: digits(0), meta: 'من ملفات المرضى' })}
-        ${kpi({ icon: 'wallet', tone: 'warning', label: 'أرصدة مستحقة', value: html`${formatMoney(0, { currency: false })}<small>ج.م</small>`, meta: 'على المرضى إجمالًا' })}
+        ${can('billing') && kpi({ icon: 'banknote', tone: 'lime', label: 'إيراد اليوم', value: html`${formatMoney(0, { currency: false })}<small>ج.م</small>`, meta: 'من المدفوعات المسجلة اليوم' })}
+        ${can('patients') && kpi({ icon: 'user-round', tone: 'info', label: 'مرضى جدد هذا الشهر', value: digits(0), meta: 'من ملفات المرضى' })}
+        ${can('billing') && kpi({ icon: 'wallet', tone: 'warning', label: 'أرصدة مستحقة', value: html`${formatMoney(0, { currency: false })}<small>ج.م</small>`, meta: 'على المرضى إجمالًا' })}
 
         <section class="card span-8" aria-labelledby="today-title">
           <div class="card__header">

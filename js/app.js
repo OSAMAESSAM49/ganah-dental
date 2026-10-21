@@ -1,19 +1,25 @@
 /**
  * Boot sequence:
- *   1. open storage + run migrations     4. render shell + start router
- *   2. load settings (digit style…)      5. register service worker (offline)
- *   3. ask for persistent storage        6. hide splash
- * Phase 2 inserts: setup wizard (first run) and login before step 4.
+ *   1. open storage + run migrations     5. render shell + start router (with auth guard)
+ *   2. connect the audit log             6. watch for idle → auto-lock
+ *   3. load settings (digit style…)      7. register service worker (offline)
+ *   4. restore this tab's session        8. hide splash
+ * Route guard order: setup wizard (first run) → login → permission check.
  */
 import { applyTheme } from './core/theme.js';
-import { html, ico, render } from './core/dom.js';
+import { html, render } from './core/dom.js';
 import { setDigitStyle } from './core/format.js';
-import { defineRoutes, startRouter } from './core/router.js';
-import { ROUTES, NOT_FOUND_ROUTE } from './core/nav.js';
+import { defineRoutes, startRouter, navigate } from './core/router.js';
+import { ROUTES, NOT_FOUND_ROUTE, FORBIDDEN_ROUTE } from './core/nav.js';
 import { mountShell, setActiveRoute } from './core/shell.js';
+import { can } from './core/permissions.js';
+import { getSession, currentUser } from './core/session.js';
+import { startIdleWatch, stopIdleWatch } from './core/idle.js';
 import { initData, requestPersistentStorage } from './data/index.js';
-import { loadSettings } from './data/settings.js';
+import { loadSettings, getSettings } from './data/settings.js';
 import { onEvent } from './core/bus.js';
+import { installAuditHook } from './services/audit.js';
+import { isSetupDone, restoreSession, logout } from './services/auth.js';
 import { pageSkeleton, errorState } from './components/states.js';
 import { toast, toastError } from './components/toast.js';
 
@@ -62,6 +68,17 @@ function registerServiceWorker() {
   });
 }
 
+const idleMs = () => (getSettings('app').idleLogoutMinutes || 0) * 60_000;
+
+async function lockForIdle() {
+  const user = currentUser();
+  if (!user) return;
+  document.querySelectorAll('dialog').forEach((d) => d.remove());
+  document.querySelector('.menu[data-popover]')?.remove();
+  await logout('lock');
+  navigate(`/login?user=${encodeURIComponent(user.id)}&reason=idle`, { replace: true });
+}
+
 async function boot() {
   try {
     await initData({
@@ -76,17 +93,33 @@ async function boot() {
     return;
   }
 
+  installAuditHook();
   const settings = await loadSettings();
   setDigitStyle(settings.app.digitStyle);
   requestPersistentStorage().catch(() => {});
+
+  let setupDone = await isSetupDone();
+  if (setupDone) await restoreSession(idleMs());
 
   const outlet = mountShell(document.getElementById('app'));
 
   defineRoutes(ROUTES, NOT_FOUND_ROUTE);
   startRouter(outlet, {
     loading: (el) => render(el, pageSkeleton()),
-    afterEach: (_route, { title, path }) => {
-      setActiveRoute(path, title);
+    async beforeEach(route, _params, path) {
+      if (!setupDone) setupDone = await isSetupDone();
+      if (!setupDone) return route.meta?.setup ? true : '/setup';
+      if (route.meta?.setup) return getSession() ? '/' : '/login';
+      if (route.meta?.public) return getSession() && path === '/login' ? '/' : true;
+      if (!getSession()) {
+        const next = location.hash.replace(/^#/, '') || '/';
+        return next === '/' ? '/login' : `/login?next=${encodeURIComponent(next)}`;
+      }
+      if (route.permission && !can(...route.permission)) return { render: FORBIDDEN_ROUTE };
+      return true;
+    },
+    afterEach: (route, { title, path }) => {
+      setActiveRoute(path, title, route);
       window.scrollTo({ top: 0 });
       outlet.focus({ preventScroll: true });
     },
@@ -98,6 +131,11 @@ async function boot() {
   });
 
   onEvent('settings:changed', ({ key, value }) => { if (key === 'app') setDigitStyle(value.digitStyle); });
+
+  // Auto-lock after inactivity while someone is signed in.
+  const watchIdle = () => startIdleWatch({ minutes: () => getSettings('app').idleLogoutMinutes, onIdle: lockForIdle });
+  onEvent('auth:changed', ({ user }) => (user ? watchIdle() : stopIdleWatch()));
+  if (getSession()) watchIdle();
 
   registerServiceWorker();
   hideSplash();

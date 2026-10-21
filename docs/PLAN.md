@@ -35,7 +35,7 @@ Approved on 2026-10-21. This file records decisions so later phases stay consist
 
 ## Phases
 1. ✅ Skeleton: design system, right-to-left shell, router, storage and migrations, PWA, dev server, tests.
-2. Accounts: setup wizard, login (PBKDF2), roles, the permission matrix with per-user overrides, idle logout, user switching, audit log.
+2. ✅ Accounts: setup wizard, login (PBKDF2, 310k iterations) with password or PIN, recovery code, roles, the permission matrix with per-user overrides, idle auto-lock, user switching, audit log.
 3. Patients and medical history, the procedures catalog, and basic backup and restore.
 4. Dental chart (FDI, SVG) and treatment plans (Kanban, plan options, quote).
 5. Appointments: calendar views, chairs and doctors, conflict checks, arrival flow, WhatsApp reminders.
@@ -44,3 +44,10 @@ Approved on 2026-10-21. This file records decisions so later phases stay consist
 8. Follow-ups, WhatsApp templates, prescriptions.
 9. Dashboard KPIs, charts and alerts; reports; Excel and PDF export.
 10. Full backup with images, merge import, demo data, polish, Arabic README and role guides.
+
+## Phase 2 notes
+- The session lives in `sessionStorage`. A reload keeps you signed in; closing the tab signs you out; an idle tab asks for login again.
+- Admin-only modules (`users`, `audit`) cannot be granted to any other role or user. The Admin role always has everything.
+- Safety rules: at least one active Admin must remain, and you cannot disable, delete or demote yourself.
+- Audit entries are written by `repoHooks.afterWrite` for the stores listed in `AUDITED_STORES` (`js/services/audit.js`). Add new stores there in later phases. Secrets and images are never copied into the log.
+- `dateField` (`js/components/date-field.js`) is the standard date input from now on: always DD/MM/YYYY, with a calendar that starts on Saturday.

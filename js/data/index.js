@@ -5,7 +5,7 @@
  */
 import { createIndexedDBAdapter } from './adapter-indexeddb.js';
 import { MIGRATIONS } from './migrations.js';
-import { KeyValueRepository } from './repository.js';
+import { KeyValueRepository, Repository } from './repository.js';
 
 export const DB_NAME = 'ganah-dental';
 
@@ -14,7 +14,8 @@ let adapter = null;
 
 /**
  * Registry of repositories. Feature phases add entries here.
- * @type {{ meta: KeyValueRepository, settings: KeyValueRepository }}
+ * @type {{ meta: KeyValueRepository, settings: KeyValueRepository,
+ *          users: Repository, roles: Repository, audit: Repository }}
  */
 export const repos = /** @type {any} */ ({});
 
@@ -26,6 +27,9 @@ export async function initData({ name = DB_NAME, ...handlers } = {}) {
   adapter = await createIndexedDBAdapter(name, MIGRATIONS, handlers);
   repos.meta = new KeyValueRepository(adapter, 'meta');
   repos.settings = new KeyValueRepository(adapter, 'settings');
+  repos.users = new Repository(adapter, 'users', { softDelete: true });
+  repos.roles = new Repository(adapter, 'roles');
+  repos.audit = new Repository(adapter, 'auditLog');
   return adapter;
 }
 

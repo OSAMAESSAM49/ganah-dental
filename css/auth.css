@@ -1,0 +1,89 @@
+/* Login, lock screen and first-run setup wizard (full-screen, no sidebar). */
+
+.auth {
+  min-block-size: 100dvh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  gap: var(--sp-5);
+  padding: var(--sp-5);
+}
+
+/* Brand panel (inline-start = right in RTL) */
+.auth__brand {
+  position: relative;
+  overflow: hidden;
+  display: flex; flex-direction: column; justify-content: space-between; gap: var(--sp-8);
+  padding: var(--sp-10);
+  border-radius: var(--radius-xl);
+  background: linear-gradient(150deg, #4A0CD3 0%, #5C18E9 55%, #7D39EB 100%);
+  color: #fff;
+  box-shadow: var(--shadow-primary);
+}
+.auth__brand::before, .auth__brand::after { content: ""; position: absolute; border-radius: 50%; pointer-events: none; }
+.auth__brand::before { inline-size: 560px; block-size: 560px; inset-block-end: -300px; inset-inline-end: -160px; border: 80px solid rgb(255 255 255 / 8%); }
+.auth__brand::after { inline-size: 150px; block-size: 150px; inset-block-start: 38%; inset-inline-end: -50px; background: var(--brand-lime); }
+.auth__logo { position: relative; display: flex; align-items: center; gap: var(--sp-4); z-index: 1; }
+.auth__logo .brand-mark { inline-size: 64px; block-size: 64px; border-radius: 18px; }
+.auth__logo-name { font-size: var(--fs-xl); font-weight: var(--fw-bold); line-height: 1.2; }
+.auth__logo-sub { opacity: .8; }
+.auth__headline { position: relative; z-index: 1; font-size: clamp(1.9rem, 3.2vw, 3rem); font-weight: var(--fw-bold); line-height: 1.3; max-inline-size: 14ch; }
+.auth__headline em { font-style: normal; background: var(--brand-lime); color: #000; padding: 0 .3em; border-radius: 14px; }
+.auth__facts { position: relative; z-index: 1; display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.auth__fact { display: inline-flex; align-items: center; gap: var(--sp-2); padding: var(--sp-2) var(--sp-4); border-radius: var(--radius-pill); background: rgb(255 255 255 / 14%); font-size: var(--fs-sm); font-weight: var(--fw-medium); backdrop-filter: blur(6px); }
+
+/* Form panel */
+.auth__panel { display: flex; align-items: center; justify-content: center; padding: var(--sp-6) var(--sp-4); }
+.auth__card { inline-size: min(480px, 100%); display: flex; flex-direction: column; gap: var(--sp-6); }
+.auth__title { font-size: var(--fs-2xl); font-weight: var(--fw-bold); }
+.auth__sub { color: var(--c-text-muted); margin-block-start: var(--sp-1); }
+.auth__footer { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-3); flex-wrap: wrap; font-size: var(--fs-sm); color: var(--c-text-muted); }
+.link-btn { border: 0; background: none; padding: var(--sp-2) 0; color: var(--c-primary-text); font-weight: var(--fw-bold); text-decoration: underline; text-underline-offset: 3px; min-block-size: var(--touch-min); }
+
+/* Quick-pick user tiles */
+.user-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: var(--sp-3); }
+.user-tile {
+  display: flex; flex-direction: column; align-items: center; gap: var(--sp-2);
+  padding: var(--sp-4) var(--sp-2); border: 2px solid transparent; border-radius: var(--radius-lg);
+  background: var(--c-surface); box-shadow: var(--shadow-sm); color: inherit; text-align: center;
+  transition: transform var(--dur-fast), border-color var(--dur-fast), box-shadow var(--dur);
+}
+.user-tile:hover { transform: translateY(-2px); }
+.user-tile[aria-pressed="true"] { border-color: var(--c-primary); box-shadow: var(--shadow-primary); }
+.user-tile .avatar { inline-size: 56px; block-size: 56px; font-size: var(--fs-lg); }
+.user-tile__name { font-weight: var(--fw-bold); font-size: var(--fs-sm); line-height: 1.3; }
+.user-tile__role { font-size: var(--fs-xs); color: var(--c-text-muted); }
+
+/* PIN entry */
+.pin-dots { display: flex; justify-content: center; gap: var(--sp-3); direction: ltr; }
+.pin-dots span { inline-size: 16px; block-size: 16px; border-radius: 50%; box-shadow: inset 0 0 0 2px var(--c-border-strong); transition: background var(--dur-fast); }
+.pin-dots span[data-on] { background: var(--c-primary); box-shadow: none; }
+.pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-3); direction: ltr; max-inline-size: 320px; margin-inline: auto; inline-size: 100%; }
+.pin-pad button {
+  block-size: 64px; border: 0; border-radius: var(--radius-lg); background: var(--c-surface); box-shadow: var(--shadow-sm);
+  font-size: var(--fs-xl); font-weight: var(--fw-bold); color: var(--c-text);
+  display: grid; place-items: center;
+}
+.pin-pad button:active { transform: scale(.97); background: var(--c-primary-soft); }
+
+/* Wizard steps */
+.steps { display: flex; gap: var(--sp-2); }
+.steps__item { flex: 1; display: flex; flex-direction: column; gap: var(--sp-2); font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--c-text-subtle); }
+.steps__item::before { content: ""; block-size: 6px; border-radius: var(--radius-pill); background: var(--c-surface-sunken); }
+.steps__item[data-state="done"]::before { background: var(--c-primary); }
+.steps__item[data-state="current"]::before { background: linear-gradient(270deg, var(--c-primary), var(--brand-lime)); }
+.steps__item[data-state="current"] { color: var(--c-text); }
+
+.logo-picker { display: flex; align-items: center; gap: var(--sp-4); flex-wrap: wrap; }
+.logo-picker__preview { inline-size: 76px; block-size: 76px; border-radius: var(--radius-lg); background: var(--c-surface-sunken); display: grid; place-items: center; overflow: hidden; flex-shrink: 0; }
+.logo-picker__preview img { inline-size: 100%; block-size: 100%; object-fit: contain; }
+
+@media (max-width: 1023px) {
+  .auth { grid-template-columns: minmax(0, 1fr); padding: var(--sp-3); gap: var(--sp-2); }
+  .auth__brand { padding: var(--sp-5) var(--sp-6); gap: var(--sp-4); }
+  .auth__brand::after { inline-size: 70px; block-size: 70px; inset-block-start: 14px; inset-inline-end: -24px; }
+  .auth__headline, .auth__facts { display: none; }
+  .auth__panel { padding: var(--sp-4) var(--sp-2); align-items: flex-start; }
+}
+
+/* Bare layout: auth screens fill the viewport */
+.app[data-layout="bare"] .content { max-inline-size: none; padding: 0; }
