@@ -3,7 +3,7 @@
  * Real KPIs, today's appointments, charts and alerts arrive in phase 9.
  */
 import { html, ico, render, on } from '../../core/dom.js';
-import { formatBytes, formatDate, formatMoney, formatPercent, digits } from '../../core/format.js';
+import { formatBytes, formatDate, formatMoney, formatPercent, digits, todayISO } from '../../core/format.js';
 import { getAdapter } from '../../data/index.js';
 import { getSettings } from '../../data/settings.js';
 import { emptyState } from '../../components/states.js';
@@ -11,6 +11,7 @@ import { can } from '../../core/permissions.js';
 import { currentUser } from '../../core/session.js';
 import { newPatientsThisMonth } from '../../services/patients.js';
 import { backupStatus } from '../../services/backup.js';
+import { revenueBetween, outstandingBalances } from '../../services/billing.js';
 import { allPatients } from '../../services/patients.js';
 import { todaysAppointments, setAppointmentStatus, NEXT_STEPS } from '../../services/appointments.js';
 import { openAppointmentForm } from '../appointments/appt-form.js';
@@ -24,7 +25,7 @@ import { toastSuccess, toastError } from '../../components/toast.js';
 
 const QUICK = { arrived: 'وصل', in_chair: 'على الكرسي', done: 'انتهى' };
 
-const BUILD_PHASE = 5;
+const BUILD_PHASE = 6;
 const TOTAL_PHASES = 10;
 
 function greeting(d = new Date()) {
@@ -69,6 +70,10 @@ export default {
     const newPatients = can('patients') ? await newPatientsThisMonth() : 0;
     const backup = can('settings', 'edit') ? await backupStatus() : null;
     const pct = Math.round((BUILD_PHASE / TOTAL_PHASES) * 100);
+    const showMoney = can('billing');
+    const [todayRevenue, monthRevenue, outstanding] = showMoney
+      ? await Promise.all([revenueBetween(todayISO(), todayISO()), revenueBetween(`${todayISO().slice(0, 7)}-01`, todayISO()), outstandingBalances()])
+      : [0, 0, { total: 0, rows: [] }];
     const showAppts = can('appointments');
     const todays = showAppts ? (await todaysAppointments()).filter((a) => a.status !== 'cancelled') : [];
     const waiting = todays.filter((a) => a.status === 'arrived').length;
@@ -100,9 +105,9 @@ export default {
             <div class="kpi__foot">${waiting ? html`<span class="delta delta--up">${digits(waiting)} في الانتظار</span>` : ''}<span class="kpi__meta">${todays.filter((a) => a.status === 'done').length ? `انتهى ${digits(todays.filter((a) => a.status === 'done').length)}` : 'اضغط للتقويم'}</span></div>
           </div>
         </article>` : ''}
-        ${can('billing') && kpi({ icon: 'banknote', tone: 'lime', label: 'إيراد اليوم', value: html`${formatMoney(0, { currency: false })}<small>ج.م</small>`, meta: 'من المدفوعات المسجلة اليوم' })}
+        ${showMoney && kpi({ icon: 'banknote', tone: 'lime', label: 'إيراد اليوم', value: html`${formatMoney(todayRevenue, { currency: false })}<small>ج.م</small>`, meta: html`الشهر: ${formatMoney(monthRevenue)} · <a href="#/billing?tab=closing">إقفال اليومية</a>` })}
         ${can('patients') && kpi({ icon: 'user-round', tone: 'info', label: 'مرضى جدد هذا الشهر', value: digits(newPatients), meta: html`<a href="#/patients">عرض المرضى</a>` })}
-        ${can('billing') && kpi({ icon: 'wallet', tone: 'warning', label: 'أرصدة مستحقة', value: html`${formatMoney(0, { currency: false })}<small>ج.م</small>`, meta: 'على المرضى إجمالًا' })}
+        ${showMoney && kpi({ icon: 'wallet', tone: 'warning', label: 'أرصدة مستحقة', value: html`${formatMoney(outstanding.total, { currency: false })}<small>ج.م</small>`, meta: html`على ${digits(outstanding.rows.length)} مريض · <a href="#/billing?tab=balances">التفاصيل</a>` })}
 
         ${showAppts ? html`<section class="card span-8" aria-labelledby="today-title">
           <div class="card__header">

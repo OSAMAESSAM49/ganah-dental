@@ -82,6 +82,22 @@ export const MIGRATIONS = [
       appts.createIndex('status', 'status');
     },
   },
+  {
+    version: 6,
+    description: 'Billing: invoices (with installment schedule) and payments',
+    up(db) {
+      const inv = db.createObjectStore('invoices', { keyPath: 'id' });
+      inv.createIndex('number', 'number', { unique: true });
+      inv.createIndex('patientId', 'patientId');
+      inv.createIndex('date', 'date');
+      inv.createIndex('status', 'status');
+      const pay = db.createObjectStore('payments', { keyPath: 'id' });
+      pay.createIndex('receiptNo', 'receiptNo', { unique: true });
+      pay.createIndex('patientId', 'patientId');
+      pay.createIndex('invoiceId', 'invoiceId');
+      pay.createIndex('date', 'date');
+    },
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;

@@ -106,6 +106,7 @@ export async function openAppointmentDetails(appt) {
         <div class="row" style="border-block-start: 1px solid var(--c-border); padding-block-start: var(--sp-4)">
           ${a.status === 'booked' ? html`<button type="button" class="btn btn--whatsapp btn--sm" data-remind>${ico('message-circle', { size: 18 })} تذكير واتساب</button>` : ''}
           ${canEdit && !['done', 'cancelled', 'no_show'].includes(a.status) ? html`<button type="button" class="btn btn--sm" data-edit>${ico('pencil', { size: 18 })} تعديل / تأجيل</button>` : ''}
+          ${can('billing', 'view') && (a.status === 'done' || a.status === 'in_chair') ? html`<a class="btn btn--sm" href="${href('/patients/:id', { id: a.patientId }, { tab: 'payments' })}" data-close>${ico('receipt', { size: 18 })} الحساب والفاتورة</a>` : ''}
           ${can('appointments', 'create') ? html`<button type="button" class="btn btn--sm btn--soft" data-followup>${ico('calendar-check', { size: 18 })} حجز موعد قادم</button>` : ''}
           ${can('appointments', 'delete') ? html`<button type="button" class="btn btn--ghost btn--sm" data-delete style="color: var(--c-danger); margin-inline-start: auto">${ico('trash-2', { size: 18 })} حذف</button>` : ''}
         </div>

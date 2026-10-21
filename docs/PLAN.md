@@ -39,7 +39,7 @@ Approved on 2026-10-21. This file records decisions so later phases stay consist
 3. ✅ Patients and medical history, photos & X-rays (stored as Blobs, before/after compare), the procedures catalog (seeded, prices start at 0), global search, and basic backup and restore.
 4. ✅ Dental chart (FDI, SVG, surfaces, history) and treatment plans (Kanban with pointer drag & drop, list, options, quote, done-hooks).
 5. ✅ Appointments: day/week/month/list views, chairs and doctors, conflict checks with nearest free slot, arrival flow, WhatsApp reminders, visits tab, live dashboard list.
-6. Billing: invoices, discounts, installments, ledger, receipts on A4 and 80mm paper, daily cash closing.
+6. ✅ Billing: invoices from done items + extra lines, discounts, credit, pay-now / installments / later, payments (4 methods), void with reason, ledger, A4 and 80mm prints, outstanding balances, overdue installments, daily cash closing.
 7. Inventory and material recipes with automatic deduction, expenses, lab cases.
 8. Follow-ups, WhatsApp templates, prescriptions.
 9. Dashboard KPIs, charts and alerts; reports; Excel and PDF export.
@@ -77,3 +77,10 @@ Approved on 2026-10-21. This file records decisions so later phases stay consist
 - Reminders are wa.me links that staff send by hand, and `reminderSentAt` records the send. Automatic sending needs a backend (out of scope).
 - Views refresh on `data:changed` for appointments, because dialogs (edit, follow-up) can finish after the details dialog closes.
 - The calendar root class is `.sched`. `.cal` belongs to the date-picker popover.
+
+## Phase 6 notes
+- Invoices are immutable after creation; to fix one, void it with a reason. Voiding releases its treatment items (`invoiceId` → null) and leaves its payments as account credit.
+- A payment with no invoice is an advance. Patient credit = unlinked payments − Σ invoice.appliedCredit. Balance = Σ live invoice totals − Σ live payments.
+- Installments live on the invoice (`installments[]`). Coverage = paid − `installmentsBase`, which excludes the deposit and credit applied at creation (or amounts paid before a re-plan), applied in due-date order. Use `invoiceInstallments(inv, paid)`, not `installmentsState` directly.
+- Numbers come from meta counters (`counter.invoiceNo`, `counter.receiptNo`) and are displayed as INV-00001 and RC-00001.
+- An invoiced treatment item can no longer change status or price (enforced in `treatment.js`).

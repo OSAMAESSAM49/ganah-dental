@@ -117,6 +117,16 @@ export const FIELD_LABELS = {
   clinicalNotes: 'ملاحظات الطبيب',
   reminderSentAt: 'وقت إرسال التذكير',
   cancelReason: 'سبب الإلغاء',
+  number: 'الرقم',
+  receiptNo: 'رقم الإيصال',
+  amount: 'المبلغ',
+  method: 'طريقة الدفع',
+  invoiceId: 'الفاتورة',
+  lines: 'البنود',
+  installments: 'الأقساط',
+  appliedCredit: 'رصيد مستخدم',
+  voidReason: 'سبب الإلغاء',
+  voidedAt: 'تاريخ الإلغاء',
 };
 
 export const TREATMENT_STATUS = {
@@ -124,6 +134,20 @@ export const TREATMENT_STATUS = {
   in_progress: { label: 'جاري', tone: 'warning' },
   done: { label: 'تم', tone: 'success' },
   cancelled: { label: 'ملغي', tone: '' },
+};
+
+export const PAYMENT_METHODS = {
+  cash: { label: 'نقدي', icon: 'banknote' },
+  card: { label: 'بطاقة / فيزا', icon: 'wallet' },
+  vodafone: { label: 'فودافون كاش', icon: 'phone' },
+  instapay: { label: 'إنستاباي', icon: 'refresh-cw' },
+};
+
+export const INVOICE_STATUS = {
+  open: { label: 'غير مدفوعة', tone: 'danger' },
+  partial: { label: 'مدفوعة جزئيًا', tone: 'warning' },
+  paid: { label: 'مدفوعة', tone: 'success' },
+  void: { label: 'ملغاة', tone: '' },
 };
 
 /** Appointment arrival flow: booked → arrived → in_chair → done (or no_show / cancelled). */
