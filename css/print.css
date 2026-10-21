@@ -1,0 +1,48 @@
+/*
+ * Print stylesheet. PDFs are produced with the browser's "Save as PDF", which shapes Arabic
+ * correctly. Anything rendered into #print-root replaces the app on paper.
+ * Page sizes: body[data-print="a4"] (default) or body[data-print="80mm"] (thermal receipts).
+ */
+
+#print-root { display: none; }
+
+@media print {
+  @page { size: A4; margin: 14mm 12mm; }
+
+  :root { color-scheme: light; }
+  body { background: #fff !important; color: #000 !important; font-size: 11pt; line-height: 1.55; }
+
+  body.is-printing > *:not(#print-root) { display: none !important; }
+  body.is-printing #print-root { display: block; }
+
+  a { color: inherit; text-decoration: none; }
+  .no-print { display: none !important; }
+
+  .print-header {
+    display: flex; align-items: center; justify-content: space-between; gap: 12mm;
+    padding-block-end: 4mm; margin-block-end: 6mm;
+    border-block-end: 2px solid #4A0CD3;
+  }
+  .print-header__logo { block-size: 18mm; inline-size: auto; }
+  .print-header__clinic { font-weight: 700; font-size: 15pt; }
+  .print-header__meta { font-size: 9.5pt; color: #444; }
+  .print-title { font-size: 14pt; font-weight: 700; margin-block-end: 4mm; }
+
+  .print-table { inline-size: 100%; border-collapse: collapse; font-size: 10pt; }
+  .print-table th, .print-table td { border: 1px solid #bbb; padding: 2mm 3mm; text-align: start; }
+  .print-table thead { display: table-header-group; } /* repeat header on each page */
+  .print-table th { background: #EDE6FD !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .print-table tr { break-inside: avoid; }
+  .print-table .num { text-align: end; font-variant-numeric: tabular-nums; }
+
+  .print-footer { margin-block-start: 8mm; font-size: 9pt; color: #555; text-align: center; }
+}
+
+/* Thermal receipt printers: 80mm roll, ~72mm printable */
+@media print {
+  body[data-print="80mm"] { font-size: 9.5pt; }
+  body[data-print="80mm"] .print-header { flex-direction: column; text-align: center; gap: 2mm; border-block-end-width: 1px; }
+  body[data-print="80mm"] .print-header__logo { block-size: 14mm; }
+}
+@page receipt { size: 80mm auto; margin: 3mm; }
+body[data-print="80mm"] #print-root { page: receipt; }

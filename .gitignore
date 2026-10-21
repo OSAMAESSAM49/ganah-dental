@@ -1,0 +1,24 @@
+# --- Never commit patient data ---
+*.ganah.json
+*.ganah.zip
+ganah-backup-*
+backups/
+*.backup.json
+
+# --- Licensed font files (Thmanyah license forbids redistribution/hosting) ---
+/fonts/
+*.otf
+
+# --- Original brand sources (copies the app uses live in assets/brand) ---
+brand color/
+logo/
+references/
+
+# --- OS / editor junk ---
+.DS_Store
+__MACOSX/
+Thumbs.db
+desktop.ini
+.vscode/
+*.log
+node_modules/

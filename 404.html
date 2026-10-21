@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <title>عيادة جنة</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    // GitHub Pages serves this for unknown paths. Send the user to the app root, which uses
+    // hash routing. Project sites live under /<repo>/; user sites (*.github.io) at "/".
+    (function () {
+      var parts = location.pathname.split('/').filter(Boolean);
+      var isProjectSite = /\.github\.io$/.test(location.hostname) && parts.length > 0;
+      var base = isProjectSite ? '/' + parts[0] + '/' : '/';
+      location.replace(base + '#/');
+    })();
+  </script>
+</head>
+<body style="font-family: sans-serif; padding: 2rem">
+  <p>جارٍ التحويل… <a href="./">اضغط هنا إن لم يتم التحويل</a></p>
+</body>
+</html>

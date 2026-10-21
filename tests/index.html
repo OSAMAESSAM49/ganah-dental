@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>اختبارات عيادة جنة</title>
+  <link rel="stylesheet" href="../css/tokens.css">
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/components.css">
+  <style>
+    body { padding: 2rem; }
+    .t { display: flex; gap: .75rem; padding: .5rem 1rem; border-radius: 12px; }
+    .t--pass::before { content: "✓"; color: var(--c-success); font-weight: 700; }
+    .t--fail { background: var(--c-danger-soft); }
+    .t--fail::before { content: "✗"; color: var(--c-danger); font-weight: 700; }
+    .t pre { margin: .25rem 0 0; white-space: pre-wrap; direction: ltr; text-align: left; font-size: 13px; }
+    h2 { margin-block: 1.5rem .5rem; font-size: 1.1rem; }
+  </style>
+</head>
+<body>
+  <h1>اختبارات الوحدات</h1>
+  <p id="summary" class="muted">جارٍ التشغيل…</p>
+  <div id="results"></div>
+  <script type="module" src="./runner.js"></script>
+</body>
+</html>

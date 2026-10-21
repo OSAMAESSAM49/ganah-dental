@@ -1,0 +1,155 @@
+/**
+ * Hash router (GitHub Pages has no server-side routing): "#/patients/42?tab=chart".
+ *
+ * Route definition:
+ *   { path: '/patients/:id', load: () => import('../modules/patients/file.js'),
+ *     title: 'ملف المريض', permission: ['patients', 'view'], meta: {...} }
+ *
+ * A view module default-exports { title?, render(ctx) }. ctx = { el, params, query, route, signal }.
+ * render may return a cleanup function. `signal` aborts when the user leaves the view, so
+ * listeners added with { signal } are removed automatically.
+ */
+import { emit } from './bus.js';
+
+/** @typedef {{ path: string, load: () => Promise<any>, title?: string, permission?: [string, string], meta?: object }} RouteDef */
+/** @typedef {RouteDef & { regex: RegExp, keys: string[] }} CompiledRoute */
+
+/** @type {CompiledRoute[]} */
+let routes = [];
+/** @type {CompiledRoute|null} */
+let notFound = null;
+let outlet = null;
+let hooks = { beforeEach: null, afterEach: null, onError: null, loading: null };
+let current = { path: null, cleanup: null, controller: null };
+let renderToken = 0;
+let dirtyGuard = null;
+let suppressNext = false;
+
+/** Compiles '/patients/:id' to a RegExp. Exported for tests. */
+export function compilePath(path) {
+  const keys = [];
+  const pattern = path
+    .replace(/\/+$/, '')
+    .replace(/[.+*?^${}()|[\]\\]/g, '\\$&')
+    .replace(/:(\w+)/g, (_, k) => { keys.push(k); return '([^/]+)'; });
+  return { regex: new RegExp(`^${pattern || ''}/?$`), keys };
+}
+
+/** @param {RouteDef[]} defs @param {RouteDef} [fallback] route used when nothing matches */
+export function defineRoutes(defs, fallback) {
+  routes = defs.map((r) => ({ ...r, ...compilePath(r.path) }));
+  notFound = fallback ? { ...fallback, regex: /^$/, keys: [] } : null;
+}
+
+/** Splits "/a/b?x=1" into { path, query }. Exported for tests. */
+export function parseHash(hash) {
+  const h = decodeURI(String(hash || '').replace(/^#/, '')) || '/';
+  const [p, q = ''] = h.split('?');
+  const path = (p.startsWith('/') ? p : '/' + p).replace(/\/+$/, '') || '/';
+  return { path, query: Object.fromEntries(new URLSearchParams(q)) };
+}
+
+/** @returns {{ route: CompiledRoute, params: Record<string,string> } | null} */
+export function matchRoute(path) {
+  for (const route of routes) {
+    const m = route.regex.exec(path);
+    if (m) {
+      const params = {};
+      route.keys.forEach((k, i) => { params[k] = decodeURIComponent(m[i + 1]); });
+      return { route, params };
+    }
+  }
+  return null;
+}
+
+/** Builds a hash href: href('/patients/:id', { id: 5 }) → '#/patients/5'. */
+export function href(path, params = {}, query) {
+  const p = path.replace(/:(\w+)/g, (_, k) => encodeURIComponent(params[k] ?? ''));
+  const q = query ? '?' + new URLSearchParams(query).toString() : '';
+  return '#' + p + q;
+}
+
+/** @param {string} path e.g. '/patients' @param {{ replace?: boolean }} [opts] */
+export function navigate(path, { replace = false } = {}) {
+  const target = '#' + (path.startsWith('/') ? path : '/' + path);
+  if (replace) {
+    history.replaceState(history.state, '', target);
+    handleChange();
+  } else if (location.hash === target) {
+    handleChange(); // same route: re-render
+  } else {
+    location.hash = target;
+  }
+}
+
+export const currentRoute = () => parseHash(location.hash);
+
+/**
+ * Registers a function that returns a confirmation promise when the view has unsaved
+ * changes; pass null to clear. The router asks before leaving.
+ * @param {(() => Promise<boolean>) | null} fn resolves true to allow leaving
+ */
+export function setLeaveGuard(fn) { dirtyGuard = fn; }
+
+/**
+ * Starts listening. hooks.beforeEach(route, params) may return false (block) or a path
+ * string (redirect). hooks.loading(el) renders a loading state.
+ */
+export function startRouter(el, opts = {}) {
+  outlet = el;
+  hooks = { ...hooks, ...opts };
+  window.addEventListener('hashchange', handleChange);
+  handleChange();
+}
+
+async function handleChange() {
+  if (suppressNext) { suppressNext = false; return; }
+  const { path, query } = parseHash(location.hash);
+
+  if (dirtyGuard && current.path !== null && path !== current.path) {
+    const ok = await dirtyGuard();
+    if (!ok) { suppressNext = true; history.back(); return; }
+    dirtyGuard = null;
+  }
+
+  const match = matchRoute(path) ?? (notFound ? { route: notFound, params: {} } : null);
+  if (!match) return;
+
+  if (hooks.beforeEach) {
+    const verdict = await hooks.beforeEach(match.route, match.params, path);
+    if (verdict === false) return;
+    if (typeof verdict === 'string' && verdict !== path) { navigate(verdict, { replace: true }); return; }
+  }
+
+  await renderRoute(match.route, match.params, query, path);
+}
+
+async function renderRoute(route, params, query, path) {
+  const token = ++renderToken;
+  teardown();
+  const controller = new AbortController();
+  current = { path, cleanup: null, controller };
+  dirtyGuard = null;
+
+  hooks.loading?.(outlet);
+  try {
+    const mod = await route.load();
+    if (token !== renderToken) return; // user navigated away meanwhile
+    const view = mod.default ?? mod;
+    const title = view.title ?? route.title ?? '';
+    const cleanup = await view.render({ el: outlet, params, query, route, signal: controller.signal });
+    if (token !== renderToken) { if (typeof cleanup === 'function') cleanup(); return; }
+    current.cleanup = typeof cleanup === 'function' ? cleanup : null;
+    hooks.afterEach?.(route, { title, path, params });
+    emit('route:changed', { path, route });
+  } catch (err) {
+    if (token !== renderToken) return;
+    console.error('[router] failed to render', path, err);
+    hooks.onError?.(outlet, err, () => renderRoute(route, params, query, path));
+  }
+}
+
+function teardown() {
+  current.controller?.abort();
+  try { current.cleanup?.(); } catch (e) { console.error('[router] cleanup failed', e); }
+}

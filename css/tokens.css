@@ -1,0 +1,224 @@
+/*
+ * Design tokens — the single place to change brand colors, type, spacing and radii.
+ * Brand: violet #4A0CD3 (primary, from the logo), violet #7D39EB (secondary),
+ * lime #C6FF33 (accent: only ever behind black text — it is unreadable on white).
+ */
+
+/* ---------- Fonts ----------
+ * Thmanyah's license forbids hosting its files, so it is only used when installed on the
+ * device (local()). Everyone else gets IBM Plex Sans Arabic (SIL OFL), vendored in /vendor. */
+@font-face { font-family: "Thmanyah Local"; font-weight: 400; font-display: swap; src: local("thmanyah sans Regular"), local("thmanyahsans-Regular"); }
+@font-face { font-family: "Thmanyah Local"; font-weight: 500; font-display: swap; src: local("thmanyah sans Medium"), local("thmanyahsans-Medium"); }
+@font-face { font-family: "Thmanyah Local"; font-weight: 600 700; font-display: swap; src: local("thmanyah sans Bold"), local("thmanyahsans-Bold"); }
+@font-face { font-family: "Thmanyah Local"; font-weight: 800 900; font-display: swap; src: local("thmanyah sans Black"), local("thmanyahsans-Black"); }
+
+@font-face { font-family: "IBM Plex Sans Arabic"; font-weight: 400; font-display: swap; src: url("../vendor/fonts/ibm-plex-sans-arabic/ibm-plex-sans-arabic-arabic-400-normal.woff2") format("woff2"); unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0898-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FE74, U+FE76-FEFC; }
+@font-face { font-family: "IBM Plex Sans Arabic"; font-weight: 500; font-display: swap; src: url("../vendor/fonts/ibm-plex-sans-arabic/ibm-plex-sans-arabic-arabic-500-normal.woff2") format("woff2"); unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0898-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FE74, U+FE76-FEFC; }
+@font-face { font-family: "IBM Plex Sans Arabic"; font-weight: 600; font-display: swap; src: url("../vendor/fonts/ibm-plex-sans-arabic/ibm-plex-sans-arabic-arabic-600-normal.woff2") format("woff2"); unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0898-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FE74, U+FE76-FEFC; }
+@font-face { font-family: "IBM Plex Sans Arabic"; font-weight: 700; font-display: swap; src: url("../vendor/fonts/ibm-plex-sans-arabic/ibm-plex-sans-arabic-arabic-700-normal.woff2") format("woff2"); unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0898-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FE74, U+FE76-FEFC; }
+@font-face { font-family: "IBM Plex Sans Arabic"; font-weight: 400; font-display: swap; src: url("../vendor/fonts/ibm-plex-sans-arabic/ibm-plex-sans-arabic-latin-400-normal.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "IBM Plex Sans Arabic"; font-weight: 500; font-display: swap; src: url("../vendor/fonts/ibm-plex-sans-arabic/ibm-plex-sans-arabic-latin-500-normal.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "IBM Plex Sans Arabic"; font-weight: 600; font-display: swap; src: url("../vendor/fonts/ibm-plex-sans-arabic/ibm-plex-sans-arabic-latin-600-normal.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "IBM Plex Sans Arabic"; font-weight: 700; font-display: swap; src: url("../vendor/fonts/ibm-plex-sans-arabic/ibm-plex-sans-arabic-latin-700-normal.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+
+:root {
+  /* Brand (raw) */
+  --brand-violet-900: #2A0780;
+  --brand-violet-700: #3A09A8;
+  --brand-violet-600: #4A0CD3;
+  --brand-violet-500: #5C18E9;
+  --brand-violet-400: #7D39EB;
+  --brand-violet-300: #A57BF5;
+  --brand-violet-200: #CDB8F7;
+  --brand-violet-100: #EDE6FD;
+  --brand-violet-50:  #F6F2FE;
+  --brand-lime:       #C6FF33;
+  --brand-lime-600:   #A8E010;
+  --brand-lime-soft:  #F1FFCC;
+  --brand-black:      #000000;
+  --brand-white:      #FFFFFF;
+
+  /* Typography */
+  --font-sans: "Thmanyah Local", "IBM Plex Sans Arabic", "Segoe UI", Tahoma, system-ui, sans-serif;
+  --fs-xs: 0.8125rem;   /* 13px */
+  --fs-sm: 0.9375rem;   /* 15px */
+  --fs-md: 1.0625rem;   /* 17px — body; large on purpose */
+  --fs-lg: 1.25rem;     /* 20px */
+  --fs-xl: 1.5rem;      /* 24px */
+  --fs-2xl: 2rem;       /* 32px */
+  --fs-3xl: 2.5rem;     /* 40px — KPI hero numbers */
+  --lh-tight: 1.3;
+  --lh-normal: 1.65;    /* Arabic needs generous leading */
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-bold: 700;
+
+  /* Spacing (4px grid) */
+  --sp-1: 0.25rem; --sp-2: 0.5rem; --sp-3: 0.75rem; --sp-4: 1rem;
+  --sp-5: 1.25rem; --sp-6: 1.5rem; --sp-8: 2rem;  --sp-10: 2.5rem; --sp-12: 3rem;
+
+  /* Radii — soft and generous, like the logo mark */
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-pill: 999px;
+
+  /* Sizing */
+  --control-h: 48px;      /* inputs & buttons: big click targets */
+  --control-h-sm: 40px;
+  --touch-min: 44px;
+  --sidebar-w: 272px;
+  --sidebar-w-collapsed: 88px;
+  --topbar-h: 76px;
+  --content-max: 1480px;
+  --frame-gap: 16px;      /* gap around the floating sidebar */
+
+  /* Motion */
+  --ease: cubic-bezier(.2, .7, .2, 1);
+  --dur-fast: 120ms;
+  --dur: 220ms;
+
+  /* Layers */
+  --z-sticky: 10; --z-drawer: 40; --z-modal: 50; --z-toast: 60;
+
+  /* ---------- Semantic colors: light ---------- */
+  color-scheme: light;
+  --c-bg: #F1F0F6;
+  --c-bg-glow: radial-gradient(1200px 600px at 100% -10%, #E9E2FC 0%, transparent 60%),
+               radial-gradient(900px 500px at 0% 110%, #F3FBDD 0%, transparent 55%);
+  --c-surface: #FFFFFF;
+  --c-surface-2: #F7F6FB;
+  --c-surface-sunken: #EFEEF5;
+  --c-surface-inverse: #111018;
+  --c-text-inverse: #FFFFFF;
+  --c-border: #E8E6EF;
+  --c-border-strong: #D3D0DE;
+  --c-text: #111018;
+  --c-text-muted: #636075;
+  --c-text-subtle: #8B8899;
+  --c-text-on-primary: #FFFFFF;
+
+  --c-primary: var(--brand-violet-600);
+  --c-primary-hover: var(--brand-violet-700);
+  --c-primary-soft: var(--brand-violet-100);
+  --c-primary-softer: var(--brand-violet-50);
+  --c-primary-text: var(--brand-violet-600);   /* links / primary text on surfaces */
+  --c-accent: var(--brand-lime);
+  --c-accent-hover: var(--brand-lime-600);
+  --c-accent-text: #000000;
+  --c-focus: var(--brand-violet-400);
+
+  /* Hero card (the one colored KPI tile) */
+  --c-hero-bg: linear-gradient(135deg, #4A0CD3 0%, #6A25F0 100%);
+  --c-hero-fg: #FFFFFF;
+  --c-hero-muted: rgb(255 255 255 / 72%);
+  --c-hero-delta-bg: var(--brand-lime);
+  --c-hero-delta-fg: #000000;
+
+  /* Sidebar */
+  --c-sidebar: #FFFFFF;
+  --c-nav-active-bg: var(--brand-violet-600);
+  --c-nav-active-fg: #FFFFFF;
+
+  /* Selected pill in filter chips */
+  --c-chip-active-bg: #111018;
+  --c-chip-active-fg: #FFFFFF;
+
+  --c-success: #0B7A47;  --c-success-soft: #E2F6EA;
+  --c-warning: #9A5600;  --c-warning-soft: #FFF1D9;
+  --c-danger:  #C1272D;  --c-danger-soft:  #FDE7E7;
+  --c-info:    #1561B8;  --c-info-soft:    #E3EEFC;
+
+  --shadow-sm: 0 1px 2px rgb(17 16 24 / 4%), 0 2px 8px rgb(17 16 24 / 4%);
+  --shadow-md: 0 4px 12px rgb(17 16 24 / 5%), 0 16px 40px rgb(74 12 211 / 6%);
+  --shadow-lg: 0 24px 60px rgb(17 16 24 / 18%);
+  --shadow-primary: 0 10px 30px rgb(74 12 211 / 28%);
+  --overlay: rgb(16 12 34 / 45%);
+}
+
+/* ---------- Semantic colors: dark (charcoal + lime + violet) ---------- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --c-bg: #0E0E11;
+    --c-bg-glow: radial-gradient(1000px 520px at 100% -10%, rgb(125 57 235 / 14%) 0%, transparent 60%),
+                 radial-gradient(800px 460px at 0% 110%, rgb(198 255 51 / 6%) 0%, transparent 55%);
+    --c-surface: #19191E;
+    --c-surface-2: #212127;
+    --c-surface-sunken: #141418;
+    --c-surface-inverse: #F4F4F6;
+    --c-text-inverse: #111018;
+    --c-border: #2A2A31;
+    --c-border-strong: #3A3A43;
+    --c-text: #F4F4F6;
+    --c-text-muted: #A9A8B3;
+    --c-text-subtle: #7F7E8A;
+    --c-primary: var(--brand-violet-400);
+    --c-primary-hover: #9157F0;
+    --c-primary-soft: #2B2142;
+    --c-primary-softer: #221D30;
+    --c-primary-text: #B79AF8;
+    --c-focus: var(--brand-lime);
+    --c-hero-bg: linear-gradient(135deg, #C6FF33 0%, #DDFF85 100%);
+    --c-hero-fg: #0E0E11;
+    --c-hero-muted: rgb(14 14 17 / 65%);
+    --c-hero-delta-bg: #0E0E11;
+    --c-hero-delta-fg: var(--brand-lime);
+    --c-sidebar: #19191E;
+    --c-nav-active-bg: var(--brand-lime);
+    --c-nav-active-fg: #0E0E11;
+    --c-chip-active-bg: var(--brand-lime);
+    --c-chip-active-fg: #0E0E11;
+    --c-success: #6EDB9E;  --c-success-soft: #13301F;
+    --c-warning: #F0B25A;  --c-warning-soft: #33240C;
+    --c-danger:  #F47F7F;  --c-danger-soft:  #3A1618;
+    --c-info:    #7DB5F6;  --c-info-soft:    #10253F;
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 40%);
+    --shadow-md: 0 8px 24px rgb(0 0 0 / 35%);
+    --shadow-lg: 0 24px 60px rgb(0 0 0 / 60%);
+    --shadow-primary: 0 10px 30px rgb(198 255 51 / 12%);
+    --overlay: rgb(0 0 0 / 62%);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --c-bg: #0E0E11;
+  --c-bg-glow: radial-gradient(1000px 520px at 100% -10%, rgb(125 57 235 / 14%) 0%, transparent 60%),
+               radial-gradient(800px 460px at 0% 110%, rgb(198 255 51 / 6%) 0%, transparent 55%);
+  --c-surface: #19191E;
+  --c-surface-2: #212127;
+  --c-surface-sunken: #141418;
+  --c-surface-inverse: #F4F4F6;
+  --c-text-inverse: #111018;
+  --c-border: #2A2A31;
+  --c-border-strong: #3A3A43;
+  --c-text: #F4F4F6;
+  --c-text-muted: #A9A8B3;
+  --c-text-subtle: #7F7E8A;
+  --c-primary: var(--brand-violet-400);
+  --c-primary-hover: #9157F0;
+  --c-primary-soft: #2B2142;
+  --c-primary-softer: #221D30;
+  --c-primary-text: #B79AF8;
+  --c-focus: var(--brand-lime);
+  --c-hero-bg: linear-gradient(135deg, #C6FF33 0%, #DDFF85 100%);
+  --c-hero-fg: #0E0E11;
+  --c-hero-muted: rgb(14 14 17 / 65%);
+  --c-hero-delta-bg: #0E0E11;
+  --c-hero-delta-fg: var(--brand-lime);
+  --c-sidebar: #19191E;
+  --c-nav-active-bg: var(--brand-lime);
+  --c-nav-active-fg: #0E0E11;
+  --c-chip-active-bg: var(--brand-lime);
+  --c-chip-active-fg: #0E0E11;
+  --c-success: #6EDB9E;  --c-success-soft: #13301F;
+  --c-warning: #F0B25A;  --c-warning-soft: #33240C;
+  --c-danger:  #F47F7F;  --c-danger-soft:  #3A1618;
+  --c-info:    #7DB5F6;  --c-info-soft:    #10253F;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 40%);
+  --shadow-md: 0 8px 24px rgb(0 0 0 / 35%);
+  --shadow-lg: 0 24px 60px rgb(0 0 0 / 60%);
+  --shadow-primary: 0 10px 30px rgb(198 255 51 / 12%);
+  --overlay: rgb(0 0 0 / 62%);
+}

@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "ganah-dev",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["tools/serve.mjs", "--port", "5173"],
+      "port": 5173
+    },
+    {
+      "name": "ganah-subpath",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["tools/serve.mjs", "--port", "5174", "--base", "/ganah-dental/"],
+      "port": 5174
+    }
+  ]
+}
