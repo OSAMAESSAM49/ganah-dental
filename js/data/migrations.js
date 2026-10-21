@@ -71,6 +71,17 @@ export const MIGRATIONS = [
       };
     },
   },
+  {
+    version: 5,
+    description: 'Appointments',
+    up(db) {
+      const appts = db.createObjectStore('appointments', { keyPath: 'id' });
+      appts.createIndex('date', 'date');
+      appts.createIndex('patientId', 'patientId');
+      appts.createIndex('doctorId', 'doctorId');
+      appts.createIndex('status', 'status');
+    },
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;

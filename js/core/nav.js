@@ -11,7 +11,7 @@ export const NAV_GROUPS = [
   {
     items: [
       { path: '/', label: 'الرئيسية', icon: 'layout-dashboard', module: 'dashboard' },
-      { path: '/appointments', label: 'المواعيد', icon: 'calendar-days', module: 'appointments', phase: 5 },
+      { path: '/appointments', label: 'المواعيد', icon: 'calendar-days', module: 'appointments' },
       { path: '/patients', label: 'المرضى', icon: 'users', module: 'patients' },
     ],
   },
@@ -63,6 +63,7 @@ export const ROUTES = [
   { path: '/patients/new', title: 'مريض جديد', load: () => import('../modules/patients/form.js'), permission: ['patients', 'create'] },
   { path: '/patients/:id', title: 'ملف المريض', load: () => import('../modules/patients/file.js'), permission: ['patients', 'view'] },
   { path: '/patients/:id/edit', title: 'تعديل بيانات المريض', load: () => import('../modules/patients/form.js'), permission: ['patients', 'edit'] },
+  { path: '/appointments', title: 'المواعيد', load: () => import('../modules/appointments/index.js'), permission: ['appointments', 'view'] },
   { path: '/procedures', title: 'الإجراءات والأسعار', load: () => import('../modules/procedures/index.js'), permission: ['procedures', 'view'] },
   { path: '/settings', title: 'الإعدادات', load: () => import('../modules/settings/index.js'), permission: ['settings', 'view'] },
   { path: '/users', title: 'المستخدمون والصلاحيات', load: () => import('../modules/users/index.js'), permission: ['users', 'view'] },

@@ -15,6 +15,8 @@ import { emptyState } from '../../components/states.js';
 import { toastSuccess } from '../../components/toast.js';
 import { getPatient, deletePatient } from '../../services/patients.js';
 import { medicalBanner } from './medical.js';
+import { nextAppointment } from '../../services/appointments.js';
+import { dayLabel, formatClock } from '../../core/time.js';
 import { patientAvatar } from './list.js';
 
 const TABS = [
@@ -22,7 +24,7 @@ const TABS = [
   { key: 'medical', label: 'التاريخ الطبي', icon: 'heart-pulse', load: () => import('./tab-medical.js') },
   { key: 'chart', label: 'خريطة الأسنان', icon: 'tooth', module: 'chart', load: () => import('./tab-chart.js') },
   { key: 'plan', label: 'خطة العلاج', icon: 'list-checks', module: 'treatment', load: () => import('./tab-plan.js') },
-  { key: 'visits', label: 'الزيارات', icon: 'calendar-days', phase: 5, module: 'appointments' },
+  { key: 'visits', label: 'الزيارات والمواعيد', icon: 'calendar-days', module: 'appointments', load: () => import('./tab-visits.js') },
   { key: 'payments', label: 'المدفوعات', icon: 'receipt', phase: 6, module: 'billing' },
   { key: 'photos', label: 'الصور والأشعة', icon: 'image', load: () => import('./tab-photos.js') },
   { key: 'rx', label: 'الروشتات', icon: 'pill', phase: 8, module: 'prescriptions' },
@@ -41,6 +43,8 @@ export default {
     const tab = tabs.find((t) => t.key === query.tab) ?? tabs[0];
     document.title = `${patient.name} · ${tab.label}`;
 
+    let next = can('appointments', 'view') ? await nextAppointment(patient.id) : null;
+
     const header = () => {
       const wa = toWhatsAppNumber(patient.phone);
       return html`
@@ -54,10 +58,12 @@ export default {
                 ${patient.dob ? html`<span class="badge">${formatAge(patient.dob)}${patient.dobEstimated ? ' تقريبًا' : ''}</span>` : ''}
                 ${patient.gender ? html`<span class="badge">${GENDER_LABELS[patient.gender]}</span>` : ''}
                 ${patient.isDemo ? html`<span class="badge badge--warning">بيانات تجريبية</span>` : ''}
+                ${next ? html`<a class="badge badge--accent" href="${href('/appointments', {}, { view: 'day', date: next.date })}">${ico('calendar-check', { size: 14 })} الموعد القادم: ${dayLabel(next.date)} ${formatClock(next.startMin)}</a>` : ''}
                 ${patient.phone ? html`<span class="muted ltr num">${digits(patient.phone)}</span>` : ''}
               </div>
             </div>
             <div class="pfile-head__actions">
+              ${can('appointments', 'create') ? html`<button type="button" class="btn btn--primary btn--sm" data-book-appt>${ico('calendar-check', { size: 18 })} حجز موعد</button>` : ''}
               ${patient.phone ? html`<a class="btn btn--sm" href="tel:${patient.phone}">${ico('phone', { size: 18 })} اتصال</a>` : ''}
               ${wa ? html`<a class="btn btn--whatsapp btn--sm" href="https://wa.me/${wa}" target="_blank" rel="noopener">${ico('message-circle', { size: 18 })} واتساب</a>` : ''}
               ${can('patients', 'edit') ? html`<a class="btn btn--sm btn--soft" href="${href('/patients/:id/edit', { id: patient.id })}">${ico('pencil', { size: 18 })} تعديل</a>` : ''}
@@ -80,12 +86,22 @@ export default {
 
     // keep header/banner fresh when the record changes (e.g. medical tab saves)
     const off = onEvent('data:changed', async ({ store, id }) => {
+      if (store === 'appointments') {
+        next = await nextAppointment(patient.id);
+        render(el.querySelector('#pf-head'), header());
+        return;
+      }
       if (store !== 'patients' || id !== patient.id) return;
       patient = await getPatient(patient.id);
       if (!patient || patient.deletedAt) return;
       render(el.querySelector('#pf-head'), header());
       render(el.querySelector('#pf-banner'), medicalBanner(patient, { link: href('/patients/:id', { id: patient.id }, { tab: 'medical' }) }));
     });
+
+    on(el, 'click', '[data-book-appt]', async () => {
+      const { openAppointmentForm } = await import('../appointments/appt-form.js');
+      openAppointmentForm({ patientId: patient.id });
+    }, { signal });
 
     on(el, 'click', '[data-more]', (_, b) => openMenu(b, {
       items: [{

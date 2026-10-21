@@ -38,7 +38,7 @@ Approved on 2026-10-21. This file records decisions so later phases stay consist
 2. ✅ Accounts: setup wizard, login (PBKDF2, 310k iterations) with password or PIN, recovery code, roles, the permission matrix with per-user overrides, idle auto-lock, user switching, audit log.
 3. ✅ Patients and medical history, photos & X-rays (stored as Blobs, before/after compare), the procedures catalog (seeded, prices start at 0), global search, and basic backup and restore.
 4. ✅ Dental chart (FDI, SVG, surfaces, history) and treatment plans (Kanban with pointer drag & drop, list, options, quote, done-hooks).
-5. Appointments: calendar views, chairs and doctors, conflict checks, arrival flow, WhatsApp reminders.
+5. ✅ Appointments: day/week/month/list views, chairs and doctors, conflict checks with nearest free slot, arrival flow, WhatsApp reminders, visits tab, live dashboard list.
 6. Billing: invoices, discounts, installments, ledger, receipts on A4 and 80mm paper, daily cash closing.
 7. Inventory and material recipes with automatic deduction, expenses, lab cases.
 8. Follow-ups, WhatsApp templates, prescriptions.
@@ -69,3 +69,11 @@ Approved on 2026-10-21. This file records decisions so later phases stay consist
 - Items: per-tooth procedures become one item per tooth. Money is `itemMath` (piasters, discount by amount or percent, capped at the price). `total` is stored but always recomputed.
 - **Extension point:** `registerDoneHandler({ key, describe, onDone, onUndone })` in `js/services/treatment.js`. The chart handler is built in. Phase 7 adds stock deduction (showing materials in `describe`), and phase 8 adds follow-ups.
 - Drag and drop uses pointer events (mouse, touch and pen), with buttons as the keyboard and accessibility path.
+
+## Phase 5 notes
+- Each appointment stores a local `date` ('YYYY-MM-DD') plus `startMin` and `duration` in minutes, so there are no time-zone issues. The week starts on Saturday (`js/core/time.js`).
+- `findConflicts` counts an overlap when it shares a chair, a doctor or a patient. Only these statuses block a slot: booked, arrived, in chair and done. The booking dialog warns about a conflict and allows an override after confirmation.
+- Schedule settings (chairs, hours per weekday, slot step, default duration, reminder template) live in settings key `schedule` (`js/services/schedule.js`).
+- Reminders are wa.me links that staff send by hand, and `reminderSentAt` records the send. Automatic sending needs a backend (out of scope).
+- Views refresh on `data:changed` for appointments, because dialogs (edit, follow-up) can finish after the details dialog closes.
+- The calendar root class is `.sched`. `.cal` belongs to the date-picker popover.

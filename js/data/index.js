@@ -17,7 +17,8 @@ let adapter = null;
  * @type {{ meta: KeyValueRepository, settings: KeyValueRepository,
  *          users: Repository, roles: Repository, audit: Repository, patients: Repository,
  *          media: Repository, procedureCategories: Repository, procedures: Repository,
- *          toothEvents: Repository, treatmentPlans: Repository, treatmentItems: Repository }}
+ *          toothEvents: Repository, treatmentPlans: Repository, treatmentItems: Repository,
+ *          appointments: Repository }}
  */
 export const repos = /** @type {any} */ ({});
 
@@ -39,6 +40,7 @@ export async function initData({ name = DB_NAME, ...handlers } = {}) {
   repos.toothEvents = new Repository(adapter, 'toothEvents');
   repos.treatmentPlans = new Repository(adapter, 'treatmentPlans');
   repos.treatmentItems = new Repository(adapter, 'treatmentItems');
+  repos.appointments = new Repository(adapter, 'appointments', { softDelete: true });
   return adapter;
 }
 

@@ -107,6 +107,16 @@ export const FIELD_LABELS = {
   tooth: 'السن',
   voided: 'ملغي',
   statusHistory: 'سجل الحالة',
+  date: 'التاريخ',
+  startMin: 'وقت البدء',
+  duration: 'المدة',
+  doctorId: 'الطبيب',
+  chairId: 'الكرسي',
+  procedureNames: 'الإجراءات',
+  reason: 'سبب الزيارة',
+  clinicalNotes: 'ملاحظات الطبيب',
+  reminderSentAt: 'وقت إرسال التذكير',
+  cancelReason: 'سبب الإلغاء',
 };
 
 export const TREATMENT_STATUS = {
@@ -114,6 +124,16 @@ export const TREATMENT_STATUS = {
   in_progress: { label: 'جاري', tone: 'warning' },
   done: { label: 'تم', tone: 'success' },
   cancelled: { label: 'ملغي', tone: '' },
+};
+
+/** Appointment arrival flow: booked → arrived → in_chair → done (or no_show / cancelled). */
+export const APPT_STATUS = {
+  booked: { label: 'محجوز', tone: 'primary', color: '#4A0CD3' },
+  arrived: { label: 'في الانتظار', tone: 'warning', color: '#D97706' },
+  in_chair: { label: 'على الكرسي', tone: 'info', color: '#0284C7' },
+  done: { label: 'انتهى', tone: 'success', color: '#16A34A' },
+  no_show: { label: 'لم يحضر', tone: 'danger', color: '#DC2626' },
+  cancelled: { label: 'ملغي', tone: '', color: '#94A3B8' },
 };
 
 export const PLAN_STATUS = {
