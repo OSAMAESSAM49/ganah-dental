@@ -50,7 +50,7 @@ export function planTotals(items) {
 /**
  * @typedef {{ key: string,
  *   describe?: (item: object) => (string|null),          // shown in the "mark done" confirmation
- *   onDone?: (item: object) => Promise<void>|void,
+ *   onDone?: (item: object, opts?: { consumption?: object[] }) => Promise<void>|void,  // opts from the done dialog
  *   onUndone?: (item: object) => Promise<void>|void }} DoneHandler
  */
 /** @type {DoneHandler[]} */
@@ -231,8 +231,9 @@ export async function updateItem(id, patch) {
 /**
  * Moves an item to a new status, running done-handlers as needed.
  * @param {string} id @param {'planned'|'in_progress'|'done'|'cancelled'} status
+ * @param {{ consumption?: Array<{ itemId: string, qty: number }> }} [opts] confirmed stock lines from the done dialog
  */
-export async function setItemStatus(id, status) {
+export async function setItemStatus(id, status, opts = {}) {
   if (!STATUSES.includes(status)) throw new TreatmentError('حالة غير صحيحة');
   const item = await repos.treatmentItems.require(id);
   if (item.status === status) return item;
@@ -251,7 +252,7 @@ export async function setItemStatus(id, status) {
   if (status === 'in_progress' && !item.sessionsDone) patch.sessionsDone = 0;
   const updated = await repos.treatmentItems.update(id, patch);
 
-  if (status === 'done') for (const h of doneHandlers) await h.onDone?.(updated);
+  if (status === 'done') for (const h of doneHandlers) await h.onDone?.(updated, opts);
   if (item.status === 'done') for (const h of doneHandlers) await h.onUndone?.(updated);
   await refreshPlanCompletion(item.planId);
   return updated;

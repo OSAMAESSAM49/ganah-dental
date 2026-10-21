@@ -5,10 +5,11 @@ import { normalizeDigits } from '../../core/text.js';
 import { parseTeeth, sortTeeth, surfacesText } from '../../core/teeth.js';
 import { CONDITION } from '../../core/chart-conditions.js';
 import { PLAN_STATUS } from '../../core/labels.js';
-import { openModal, confirmDialog } from '../../components/modal.js';
+import { openModal } from '../../components/modal.js';
 import { textField, textareaField } from '../../components/form.js';
 import { printHTML } from '../../components/print.js';
 import { addItems, updateItem, itemMath, describeDone, planTotals } from '../../services/treatment.js';
+import { stockPreview, unitLabel } from '../../services/inventory.js';
 
 const SURFACE_RE = /^[MODBLIFP]*$/i;
 
@@ -149,16 +150,42 @@ export async function editItemDialog(item) {
   }
 }
 
-/** Confirms marking an item done, listing what will happen. */
+/**
+ * Confirms marking an item done: lists the chart effect and the materials that will be
+ * deducted from stock, with quantities the user can correct.
+ * @returns {Promise<null | { consumption: Array<{ itemId: string, qty: number }> }>}
+ */
 export async function confirmDone(item) {
   const effects = describeDone(item);
-  return confirmDialog({
+  const lines = await stockPreview(item);
+  let consumption = lines.map((l) => ({ itemId: l.itemId, qty: l.qty }));
+  const res = await openModal({
     title: `تم «${item.procedureName}»؟`,
-    message: html`
-      <p>سيُسجّل البند كمنتهٍ بتاريخ اليوم.</p>
-      ${effects.length ? html`<ul style="margin: var(--sp-3) 0 0; padding-inline-start: var(--sp-5)">${effects.map((e) => html`<li>${e}</li>`)}</ul>` : ''}`,
-    confirmLabel: 'تم الانتهاء',
+    icon: 'circle-check',
+    body: html`
+      <div class="stack">
+        <p>سيُسجّل البند كمنتهٍ بتاريخ اليوم.</p>
+        ${effects.length ? html`<ul style="margin: 0; padding-inline-start: var(--sp-5)">${effects.map((e) => html`<li>${e}</li>`)}</ul>` : ''}
+        ${lines.length ? html`
+          <div class="stack-sm">
+            <span class="field__label">المواد التي ستُخصم من المخزون (عدّل الكمية الفعلية إن اختلفت)</span>
+            ${lines.map((l, i) => html`<div class="row" style="gap: var(--sp-2)">
+              <span class="grow">${l.name}</span>
+              <input class="input input--ltr" data-cq="${i}" value="${l.qty}" inputmode="decimal" style="inline-size: 100px" aria-label="كمية ${l.name}">
+              <span class="muted text-sm" style="min-inline-size: 44px">${unitLabel(l.unit)}</span>
+              ${l.available < l.qty ? html`<span class="badge badge--warning" title="المتوفر ${l.available}">غير كافٍ</span>` : ''}
+            </div>`)}
+          </div>` : ''}
+      </div>`,
+    actions: [{ label: 'تم الانتهاء', value: 'ok', variant: 'primary' }, { label: 'إلغاء', value: null }],
+    onOpen(d) {
+      d.addEventListener('input', (e) => {
+        const t = /** @type {HTMLInputElement} */ (e.target);
+        if (t.dataset.cq !== undefined) consumption[Number(t.dataset.cq)].qty = Math.max(0, Number(normalizeDigits(t.value).replace(',', '.')) || 0);
+      });
+    },
   });
+  return res === 'ok' ? { consumption } : null;
 }
 
 /* ---------- Quote printing ---------- */

@@ -75,6 +75,9 @@ function cleanProcedure(input) {
     perTooth: !!input.perTooth,
     needsLab: !!input.needsLab,
     notes: String(input.notes ?? '').trim(),
+    recipe: (Array.isArray(input.recipe) ? input.recipe : [])
+      .filter((r) => r?.itemId && Number(r.qty) > 0)
+      .map((r) => ({ itemId: r.itemId, qty: Math.round(Number(r.qty) * 1000) / 1000, per: r.per === 'session' ? 'session' : 'completion' })),
     chartEffect: input.chartEffect === undefined ? inferChartEffect(input.name) : (CONDITION[input.chartEffect] ? input.chartEffect : ''),
   };
 }

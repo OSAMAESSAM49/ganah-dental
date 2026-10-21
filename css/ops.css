@@ -1,0 +1,13 @@
+/* Inventory, expenses and lab screens. */
+
+.bar-row { display: grid; grid-template-columns: minmax(110px, 160px) minmax(0, 1fr) auto; align-items: center; gap: var(--sp-3); inline-size: 100%; padding: var(--sp-1) 0; border: 0; background: none; color: inherit; text-align: start; }
+.bar-row:hover .bar-row__fill { background: var(--c-primary-hover); }
+.bar-row__label { font-weight: var(--fw-medium); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar-row__track { block-size: 12px; border-radius: var(--radius-pill); background: var(--c-surface-sunken); overflow: hidden; }
+.bar-row__fill { display: block; block-size: 100%; border-radius: inherit; background: var(--c-primary); }
+.bar-row__value { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.lab-steps { display: flex; gap: var(--sp-1); align-items: center; flex-wrap: wrap; font-size: var(--fs-xs); }
+.lab-step { padding: 2px 8px; border-radius: var(--radius-pill); background: var(--c-surface-sunken); color: var(--c-text-subtle); }
+.lab-step[data-done] { background: var(--c-success-soft); color: var(--c-success); font-weight: var(--fw-bold); }
+.lab-step[data-current] { background: var(--c-primary); color: #fff; font-weight: var(--fw-bold); }

@@ -17,6 +17,9 @@ export const ENTITY_LABELS = {
   expenses: 'مصروف',
   procedures: 'إجراء',
   procedureCategories: 'تصنيف إجراءات',
+  expenseCategories: 'تصنيف مصروفات',
+  recurringExpenses: 'مصروف شهري ثابت',
+  labCases: 'حالة معمل',
   media: 'صورة / أشعة',
   backup: 'النسخ الاحتياطي',
 };
@@ -127,6 +130,23 @@ export const FIELD_LABELS = {
   appliedCredit: 'رصيد مستخدم',
   voidReason: 'سبب الإلغاء',
   voidedAt: 'تاريخ الإلغاء',
+  unit: 'الوحدة',
+  minQty: 'الحد الأدنى',
+  costPerUnit: 'تكلفة الوحدة',
+  supplier: 'المورد',
+  category: 'الفئة',
+  recipe: 'المواد المستهلكة',
+  description: 'البيان',
+  labName: 'المعمل',
+  workType: 'نوع العمل',
+  shade: 'اللون',
+  sentAt: 'تاريخ الإرسال',
+  expectedAt: 'الموعد المتوقع',
+  receivedAt: 'تاريخ الاستلام',
+  tryInAt: 'تاريخ التجربة',
+  cementedAt: 'تاريخ التركيب',
+  cost: 'التكلفة',
+  dayOfMonth: 'يوم الاستحقاق',
 };
 
 export const TREATMENT_STATUS = {
@@ -134,6 +154,35 @@ export const TREATMENT_STATUS = {
   in_progress: { label: 'جاري', tone: 'warning' },
   done: { label: 'تم', tone: 'success' },
   cancelled: { label: 'ملغي', tone: '' },
+};
+
+/** Stock units (key → Arabic label). */
+export const UNITS = {
+  piece: 'قطعة', pair: 'زوج', box: 'علبة', pack: 'باكيت', g: 'جم', ml: 'مل', drop: 'نقطة',
+  dose: 'جرعة', carpule: 'كاربول', syringe: 'سرنجة', tube: 'أنبوبة', bottle: 'زجاجة', roll: 'رول', sheet: 'ورقة',
+};
+
+export const MOVEMENT_TYPES = {
+  purchase: { label: 'استلام شراء', tone: 'success', sign: 1 },
+  adjust_in: { label: 'تسوية بالزيادة', tone: 'info', sign: 1 },
+  adjust_out: { label: 'تسوية بالنقص', tone: 'warning', sign: -1 },
+  consume: { label: 'استهلاك علاج', tone: 'primary', sign: -1 },
+  return: { label: 'إرجاع استهلاك', tone: 'info', sign: 1 },
+};
+
+export const ADJUST_REASONS = ['جرد', 'تالف', 'انتهت صلاحيته', 'استخدام خارج العلاج', 'خطأ في التسجيل', 'أخرى'];
+
+export const LAB_STATUS = {
+  sent: { label: 'في المعمل', tone: 'warning' },
+  received: { label: 'استُلم من المعمل', tone: 'info' },
+  try_in: { label: 'تمت التجربة', tone: 'primary' },
+  cemented: { label: 'تم التركيب', tone: 'success' },
+  cancelled: { label: 'ملغي', tone: '' },
+};
+
+export const LAB_WORK_TYPES = {
+  crown: 'كراون', bridge: 'كوبري', veneer: 'فينير', denture: 'طقم', partial: 'طقم جزئي', night_guard: 'واقي ليلي',
+  space_maintainer: 'حافظ مسافة', implant_crown: 'تاج على زرعة', other: 'أخرى',
 };
 
 export const PAYMENT_METHODS = {

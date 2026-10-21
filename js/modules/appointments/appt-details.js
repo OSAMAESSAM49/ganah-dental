@@ -140,7 +140,8 @@ export async function openAppointmentDetails(appt) {
           const done = t.closest('[data-item-done]');
           if (done) {
             const item = await repos.treatmentItems.get(done.dataset.itemDone);
-            if (await confirmDone(item)) { await setItemStatus(item.id, 'done'); changed = true; toastSuccess(`تم: ${item.procedureName}`); await refresh(); }
+            const res = await confirmDone(item);
+            if (res) { await setItemStatus(item.id, 'done', res); changed = true; toastSuccess(`تم: ${item.procedureName}`); await refresh(); }
             return;
           }
           if (t.closest('[data-save-notes]')) {

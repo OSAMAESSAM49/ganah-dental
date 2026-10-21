@@ -20,15 +20,15 @@ export const NAV_GROUPS = [
     items: [
       { path: '/followups', label: 'المتابعات', icon: 'bell', module: 'followups', phase: 8 },
       { path: '/prescriptions', label: 'الروشتات', icon: 'pill', module: 'prescriptions', phase: 8 },
-      { path: '/labs', label: 'معامل التركيبات', icon: 'flask-conical', module: 'labs', phase: 7 },
+      { path: '/labs', label: 'معامل التركيبات', icon: 'flask-conical', module: 'labs' },
     ],
   },
   {
     title: 'المالية والمخزون',
     items: [
       { path: '/billing', label: 'الحسابات والفواتير', icon: 'receipt', module: 'billing' },
-      { path: '/expenses', label: 'المصروفات', icon: 'wallet', module: 'expenses', phase: 7 },
-      { path: '/inventory', label: 'المخزون', icon: 'package', module: 'inventory', phase: 7 },
+      { path: '/expenses', label: 'المصروفات', icon: 'wallet', module: 'expenses' },
+      { path: '/inventory', label: 'المخزون', icon: 'package', module: 'inventory' },
       { path: '/reports', label: 'التقارير', icon: 'chart-column', module: 'reports', phase: 9 },
     ],
   },
@@ -65,6 +65,9 @@ export const ROUTES = [
   { path: '/patients/:id/edit', title: 'تعديل بيانات المريض', load: () => import('../modules/patients/form.js'), permission: ['patients', 'edit'] },
   { path: '/appointments', title: 'المواعيد', load: () => import('../modules/appointments/index.js'), permission: ['appointments', 'view'] },
   { path: '/billing', title: 'الحسابات والفواتير', load: () => import('../modules/billing/index.js'), permission: ['billing', 'view'] },
+  { path: '/inventory', title: 'المخزون', load: () => import('../modules/inventory/index.js'), permission: ['inventory', 'view'] },
+  { path: '/expenses', title: 'المصروفات', load: () => import('../modules/expenses/index.js'), permission: ['expenses', 'view'] },
+  { path: '/labs', title: 'معامل التركيبات', load: () => import('../modules/labs/index.js'), permission: ['labs', 'view'] },
   { path: '/procedures', title: 'الإجراءات والأسعار', load: () => import('../modules/procedures/index.js'), permission: ['procedures', 'view'] },
   { path: '/settings', title: 'الإعدادات', load: () => import('../modules/settings/index.js'), permission: ['settings', 'view'] },
   { path: '/users', title: 'المستخدمون والصلاحيات', load: () => import('../modules/users/index.js'), permission: ['users', 'view'] },

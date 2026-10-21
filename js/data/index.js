@@ -18,7 +18,9 @@ let adapter = null;
  *          users: Repository, roles: Repository, audit: Repository, patients: Repository,
  *          media: Repository, procedureCategories: Repository, procedures: Repository,
  *          toothEvents: Repository, treatmentPlans: Repository, treatmentItems: Repository,
- *          appointments: Repository, invoices: Repository, payments: Repository }}
+ *          appointments: Repository, invoices: Repository, payments: Repository,
+ *          inventoryItems, stockBatches, stockMovements, expenseCategories, expenses,
+ *          recurringExpenses, labCases: Repository }}
  */
 export const repos = /** @type {any} */ ({});
 
@@ -43,6 +45,13 @@ export async function initData({ name = DB_NAME, ...handlers } = {}) {
   repos.appointments = new Repository(adapter, 'appointments', { softDelete: true });
   repos.invoices = new Repository(adapter, 'invoices');
   repos.payments = new Repository(adapter, 'payments');
+  repos.inventoryItems = new Repository(adapter, 'inventoryItems', { softDelete: true });
+  repos.stockBatches = new Repository(adapter, 'stockBatches');
+  repos.stockMovements = new Repository(adapter, 'stockMovements');
+  repos.expenseCategories = new Repository(adapter, 'expenseCategories');
+  repos.expenses = new Repository(adapter, 'expenses');
+  repos.recurringExpenses = new Repository(adapter, 'recurringExpenses');
+  repos.labCases = new Repository(adapter, 'labCases', { softDelete: true });
   return adapter;
 }
 

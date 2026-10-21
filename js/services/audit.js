@@ -11,9 +11,12 @@ import { META_FIELDS, SECRET_FIELDS } from '../core/labels.js';
 /** Stores whose changes are audited. Later phases add patients, payments, inventory… */
 export const AUDITED_STORES = new Set([
   'users', 'roles', 'settings',
-  'patients', 'payments', 'invoices', 'installments', 'inventoryItems', 'stockMovements', 'stockBatches',
-  'appointments', 'treatmentItems', 'treatmentPlans', 'expenses', 'procedures', 'procedureCategories', 'media', 'labCases',
+  'patients', 'payments', 'invoices', 'inventoryItems',
+  'appointments', 'treatmentItems', 'treatmentPlans', 'expenses', 'expenseCategories', 'recurringExpenses', 'procedures', 'procedureCategories', 'media', 'labCases',
 ]);
+
+/** Derived cache fields per store that should not produce audit entries on their own. */
+const IGNORED_FIELDS = { inventoryItems: new Set(['qty', 'costPerUnit']), invoices: new Set(['status']) };
 
 const isSecret = (key) => SECRET_FIELDS.has(key) || /hash|salt/i.test(key);
 
@@ -77,7 +80,8 @@ export function installAuditHook() {
   repoHooks.actor = () => currentUser()?.id ?? null;
   repoHooks.afterWrite = async ({ store, action, id, before, after }) => {
     if (store === 'auditLog' || !AUDITED_STORES.has(store)) return;
-    const changes = action === 'update' ? diffRecords(before, after) : [];
+    const ignored = IGNORED_FIELDS[store];
+    const changes = action === 'update' ? diffRecords(before, after).filter((c) => !ignored?.has(c.field)) : [];
     if (action === 'update' && changes.length === 0) return;
     await logEvent({
       action,

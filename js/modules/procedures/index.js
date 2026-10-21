@@ -3,6 +3,8 @@ import { html, ico, render, on, formData, showFieldErrors } from '../../core/dom
 import { formatMoney, toPiasters, piastersToInput, digits, arabicCount } from '../../core/format.js';
 import { normalizeDigits, normalizeArabic } from '../../core/text.js';
 import { CONDITIONS, CONDITION } from '../../core/chart-conditions.js';
+import { listItems, recipeCost, unitLabel } from '../../services/inventory.js';
+import { formatNumber } from '../../core/format.js';
 import { validate, required } from '../../core/validate.js';
 import { can } from '../../core/permissions.js';
 import { openModal, confirmDialog } from '../../components/modal.js';
@@ -23,6 +25,7 @@ export default {
   async render({ el, signal }) {
     const perm = { create: can('procedures', 'create'), edit: can('procedures', 'edit'), del: can('procedures', 'delete') };
     let catalog = [], q = '', showInactive = true;
+    let items = [], itemsById = new Map();
 
     render(el, html`
       <header class="page-header">
@@ -80,7 +83,7 @@ export default {
             ${c.procedures.length ? html`
               <div class="table-wrap" style="box-shadow:none; background: var(--c-surface-2)">
                 <table class="table table--stack">
-                  <thead><tr><th>الإجراء</th><th class="num">السعر</th><th>المدة</th><th>الجلسات</th><th></th></tr></thead>
+                  <thead><tr><th>الإجراء</th><th class="num">السعر</th><th class="num">تكلفة الخامات</th><th>المدة</th><th>الجلسات</th><th></th></tr></thead>
                   <tbody>${c.procedures.map((p, pi) => html`
                     <tr class="proc-row" ${p.active ? '' : html`data-inactive`}>
                       <td data-label="الإجراء"><span class="proc-name"><strong>${p.name}</strong>
@@ -91,6 +94,7 @@ export default {
                           ${p.active ? '' : html`<span class="badge badge--danger">موقوف</span>`}
                         </span></span></td>
                       <td data-label="السعر" class="num">${p.price ? html`<strong>${formatMoney(p.price)}</strong>` : html`<span class="badge badge--warning">بدون سعر</span>`}</td>
+                      <td data-label="تكلفة الخامات" class="num">${p.recipe?.length ? html`${formatMoney(recipeCost(p.recipe, itemsById))}${p.price ? html`<br><span class="subtle text-sm">الربح ${formatMoney(p.price - recipeCost(p.recipe, itemsById))}</span>` : ''}` : html`<span class="subtle">—</span>`}</td>
                       <td data-label="المدة">${arabicCount(p.durationMin, MIN)}</td>
                       <td data-label="الجلسات">${arabicCount(p.sessions, SESS)}</td>
                       <td data-label=""><div class="table__actions">
@@ -108,7 +112,11 @@ export default {
         </section>`)}`);
     };
 
-    const reload = async () => { catalog = await loadCatalog(); draw(); };
+    const reload = async () => {
+      [catalog, items] = await Promise.all([loadCatalog(), can('inventory', 'view') ? listItems() : []]);
+      itemsById = new Map(items.map((i) => [i.id, i]));
+      draw();
+    };
     const findProc = (id) => catalog.flatMap((c) => c.procedures).find((p) => p.id === id);
     const run = async (fn, okMsg) => {
       try { await fn(); if (okMsg) toastSuccess(okMsg); await reload(); } catch (err) { toastError(err.message); }
@@ -117,8 +125,8 @@ export default {
     el.querySelector('#proc-q').addEventListener('input', (e) => { q = /** @type {HTMLInputElement} */ (e.target).value; draw(); }, { signal });
     el.querySelector('#show-inactive').addEventListener('change', (e) => { showInactive = /** @type {HTMLInputElement} */ (e.target).checked; draw(); }, { signal });
 
-    on(el, 'click', '[data-add-proc]', () => procedureDialog(null, catalog).then((saved) => saved && reload()), { signal });
-    on(el, 'click', '[data-edit]', (_, b) => procedureDialog(findProc(b.dataset.edit), catalog).then((saved) => saved && reload()), { signal });
+    on(el, 'click', '[data-add-proc]', () => procedureDialog(null, catalog, items).then((saved) => saved && reload()), { signal });
+    on(el, 'click', '[data-edit]', (_, b) => procedureDialog(findProc(b.dataset.edit), catalog, items).then((saved) => saved && reload()), { signal });
     on(el, 'click', '[data-add-cat]', async () => {
       const name = await askName('تصنيف جديد', '');
       if (name) run(() => createCategory(name), 'تمت إضافة التصنيف');
@@ -171,8 +179,24 @@ async function askName(title, value) {
 }
 
 /** Add / edit procedure. @returns {Promise<boolean>} saved */
-async function procedureDialog(proc, catalog) {
+async function procedureDialog(proc, catalog, items = []) {
   const isNew = !proc;
+  let recipe = (proc?.recipe ?? []).map((r) => ({ ...r }));
+  const byId = new Map(items.map((i) => [i.id, i]));
+  const recipeMarkup = () => html`
+    <div class="stack-sm">
+      <span class="field__label">${ico('package', { size: 18 })} المواد المستهلكة (تُخصم من المخزون عند «تم»)</span>
+      ${recipe.map((r, i) => html`<div class="row" style="gap: var(--sp-2)">
+        <select class="select" data-r-item="${i}" style="flex: 1 1 180px" aria-label="الصنف"><option value="">اختر الصنف…</option>${items.map((it) => html`<option value="${it.id}" ${it.id === r.itemId ? 'selected' : ''}>${it.name}</option>`)}</select>
+        <input class="input input--ltr" data-r-qty="${i}" value="${r.qty ?? ''}" inputmode="decimal" style="inline-size: 90px" aria-label="الكمية">
+        <span class="muted text-sm" style="min-inline-size: 44px">${unitLabel(byId.get(r.itemId)?.unit)}</span>
+        <select class="select" data-r-per="${i}" style="inline-size: auto" aria-label="متى"><option value="completion" ${r.per !== 'session' ? 'selected' : ''}>عند الانتهاء</option><option value="session" ${r.per === 'session' ? 'selected' : ''}>لكل جلسة</option></select>
+        <button type="button" class="btn btn--ghost btn--icon btn--sm" data-r-rm="${i}" aria-label="حذف">${ico('x', { size: 16 })}</button>
+      </div>`)}
+      <div class="row row--between"><button type="button" class="btn btn--sm" data-r-add ${items.length ? '' : 'disabled'}>${ico('plus', { size: 16 })} مادة</button>
+        <span class="muted text-sm">التكلفة التقديرية: <strong>${formatMoney(recipeCost(recipe.filter((r) => r.itemId), byId))}</strong> لكل وحدة</span></div>
+      ${items.length ? '' : html`<p class="subtle text-sm">أضف أصناف المخزون أولًا لربطها بالإجراء.</p>`}
+    </div>`;
   const res = await openModal({
     title: isNew ? 'إجراء جديد' : `تعديل «${proc.name}»`,
     icon: isNew ? 'plus' : 'pencil',
@@ -193,10 +217,32 @@ async function procedureDialog(proc, catalog) {
         </div>
         ${selectField({ name: 'chartEffect', label: 'أثره على خريطة الأسنان عند الانتهاء', value: proc?.chartEffect ?? '', placeholder: 'لا يغيّر الخريطة', hint: 'مثال: الحشو يُسجّل «حشو» على السن والأسطح المختارة', options: CONDITIONS.filter((c) => !['caries', 'fractured', 'extract'].includes(c.key)).map((c) => ({ value: c.key, label: c.label })) })}
         ${textareaField({ name: 'notes', label: 'ملاحظات', value: proc?.notes ?? '', rows: 2 })}
-        <p class="subtle text-sm">${ico('info', { size: 14 })} المواد المستهلكة وتعليمات ما بعد الإجراء ومواعيد المتابعة تُضاف في مراحل لاحقة.</p>
+        ${items.length || recipe.length ? html`<div id="recipe-box">${recipeMarkup()}</div>` : ''}
+        <p class="subtle text-sm">${ico('info', { size: 14 })} تعليمات ما بعد الإجراء ومواعيد المتابعة تُضاف في المرحلة ٨.</p>
       </form>`,
     actions: [{ label: isNew ? 'إضافة' : 'حفظ', value: 'save', variant: 'primary' }, { label: 'إلغاء', value: null }],
-    onOpen(d, close) { const f = d.querySelector('form'); f.addEventListener('submit', (e) => { e.preventDefault(); close('save'); }); f.querySelector(isNew ? '[name=name]' : '[name=price]').focus(); },
+    onOpen(d, close) {
+      const f = d.querySelector('form');
+      const box = () => d.querySelector('#recipe-box');
+      const redraw = () => { if (box()) render(box(), recipeMarkup()); };
+      f.addEventListener('change', (e) => {
+        const t = /** @type {HTMLInputElement} */ (e.target);
+        if (t.dataset.rItem !== undefined) { recipe[Number(t.dataset.rItem)].itemId = t.value; redraw(); }
+        if (t.dataset.rPer !== undefined) recipe[Number(t.dataset.rPer)].per = t.value;
+      });
+      f.addEventListener('input', (e) => {
+        const t = /** @type {HTMLInputElement} */ (e.target);
+        if (t.dataset.rQty !== undefined) recipe[Number(t.dataset.rQty)].qty = Number(normalizeDigits(t.value).replace(',', '.'));
+      });
+      f.addEventListener('click', (e) => {
+        const t = /** @type {HTMLElement} */ (e.target);
+        if (t.closest('[data-r-add]')) { recipe.push({ itemId: '', qty: 1, per: 'completion' }); redraw(); }
+        const rm = t.closest('[data-r-rm]');
+        if (rm) { recipe.splice(Number(rm.dataset.rRm), 1); redraw(); }
+      });
+      f.addEventListener('submit', (e) => { e.preventDefault(); close('save'); });
+      f.querySelector(isNew ? '[name=name]' : '[name=price]').focus();
+    },
     async beforeClose(v, d) {
       if (v !== 'save') return true;
       const f = d.querySelector('form');
@@ -217,6 +263,7 @@ async function procedureDialog(proc, catalog) {
         price: String(data.price).trim() ? toPiasters(data.price) : 0,
         durationMin: Number(normalizeDigits(data.durationMin)),
         sessions: Number(normalizeDigits(data.sessions)),
+        recipe,
       };
       try {
         if (isNew) await createProcedure(input); else await updateProcedure(proc.id, input);

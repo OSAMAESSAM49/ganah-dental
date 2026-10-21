@@ -8,7 +8,8 @@ import { formatMoney, digits, formatDate, arabicCount } from '../../core/format.
 import { can } from '../../core/permissions.js';
 import { href } from '../../core/router.js';
 import { getPref, setPref } from '../../core/prefs.js';
-import { TREATMENT_STATUS, PLAN_STATUS } from '../../core/labels.js';
+import { TREATMENT_STATUS, PLAN_STATUS, LAB_STATUS } from '../../core/labels.js';
+import { labCasesForPatient } from '../../services/labs.js';
 import { surfacesText } from '../../core/teeth.js';
 import { openModal, confirmDialog } from '../../components/modal.js';
 import { openMenu } from '../../components/menu.js';
@@ -32,13 +33,13 @@ const ITEMS = { one: 'بند واحد', two: 'بندان', few: 'بنود', many
 export async function renderTab({ body, patient, query, signal }) {
   const p = patient();
   const perm = { create: can('treatment', 'create'), edit: can('treatment', 'edit'), del: can('treatment', 'delete') };
-  let plans = [], items = [], catalog = [];
+  let plans = [], items = [], catalog = [], labCases = [];
   let planId = query.plan ?? '';
   let view = getPref('planView', 'kanban');
   let showCancelled = false;
 
   const load = async () => {
-    [plans, items] = await Promise.all([listPlans(p.id), listItems(p.id)]);
+    [plans, items, labCases] = await Promise.all([listPlans(p.id), listItems(p.id), can('labs', 'view') ? labCasesForPatient(p.id) : []]);
     if (!plans.length && perm.create) { await ensureActivePlan(p.id); plans = await listPlans(p.id); }
     if (!plans.find((pl) => pl.id === planId)) planId = (plans.find((pl) => pl.status === 'active') ?? plans[0])?.id ?? '';
     if (perm.create && !catalog.length) catalog = await loadCatalog({ includeInactive: false });
@@ -55,6 +56,13 @@ export async function renderTab({ body, patient, query, signal }) {
   const sessionsMarkup = (i) => (i.sessionsPlanned > 1 ? html`<span class="sessions" title="الجلسات ${digits(i.sessionsDone ?? 0)} من ${digits(i.sessionsPlanned)}">${Array.from({ length: i.sessionsPlanned }, (_, k) => html`<span ${k < (i.sessionsDone ?? 0) ? html`data-on` : ''}></span>`)}</span>` : '');
   const teethMarkup = (i) => (i.teeth?.length ? html`<span class="tooth-pills">${i.teeth.map((t) => html`<span class="tooth-pill">${t}${i.surfaces?.length ? html`<small>${surfacesText(t, i.surfaces)}</small>` : ''}</span>`)}</span>` : html`<span class="subtle">عام</span>`);
 
+  const labBadge = (i) => {
+    const lc = labCases.find((c) => c.treatmentItemId === i.id && c.status !== 'cancelled');
+    if (lc) return html`<a class="badge badge--${LAB_STATUS[lc.status].tone}" href="#/labs">${ico('flask-conical', { size: 13 })} ${LAB_STATUS[lc.status].label}</a>`;
+    if (can('labs', 'create') && (i.status === 'planned' || i.status === 'in_progress')) return html`<button type="button" class="btn btn--sm btn--soft" data-to-lab="${i.id}" style="min-block-size: 30px">${ico('flask-conical', { size: 14 })} إرسال للمعمل</button>`;
+    return html`<span class="badge badge--info">${ico('flask-conical', { size: 13 })} معمل</span>`;
+  };
+
   const card = (i) => {
     const active = plan()?.status === 'active' || plan()?.status === 'completed';
     return html`
@@ -64,7 +72,7 @@ export async function renderTab({ body, patient, query, signal }) {
           <span class="tcard__title">${i.procedureName}</span>
           ${priceMarkup(i)}
         </div>
-        <div class="tcard__meta">${teethMarkup(i)} ${sessionsMarkup(i)} ${i.needsLab ? html`<span class="badge badge--info">${ico('flask-conical', { size: 13 })} معمل</span>` : ''}</div>
+        <div class="tcard__meta">${teethMarkup(i)} ${sessionsMarkup(i)} ${i.needsLab ? labBadge(i) : ''}</div>
         ${i.notes ? html`<p class="tcard__notes">${i.notes}</p>` : ''}
         ${i.status === 'done' && i.doneAt ? html`<span class="subtle text-sm">${ico('circle-check', { size: 14 })} ${formatDate(i.doneAt)}</span>` : ''}
         ${perm.edit ? html`<div class="tcard__actions">
@@ -182,9 +190,10 @@ export async function renderTab({ body, patient, query, signal }) {
   const changeStatus = async (id, status) => {
     const item = items.find((i) => i.id === id);
     if (!item || item.status === status) return;
-    if (status === 'done' && !(await confirmDone(item))) { draw(); return; }
+    let opts = {};
+    if (status === 'done') { const res = await confirmDone(item); if (!res) { draw(); return; } opts = res; }
     if (item.status === 'done' && !(await confirmDialog({ title: 'إرجاع البند من «تم»؟', message: 'سيُلغى أثره على خريطة الأسنان.', confirmLabel: 'إرجاع' }))) { draw(); return; }
-    await guard(() => setItemStatus(id, status), status === 'done' ? 'أحسنت! تم تسجيل الانتهاء' : null);
+    await guard(() => setItemStatus(id, status, opts), status === 'done' ? 'أحسنت! تم تسجيل الانتهاء' : null);
   };
 
   /* ---------- events ---------- */
@@ -202,6 +211,10 @@ export async function renderTab({ body, patient, query, signal }) {
       if (complete && await confirmDialog({ title: 'اكتملت كل الجلسات', message: `هل تريد تسجيل «${item.procedureName}» كمنتهٍ الآن؟`, confirmLabel: 'نعم، تم' })) await changeStatus(item.id, 'done');
       else toastSuccess(`الجلسة ${digits(item.sessionsDone)} من ${digits(item.sessionsPlanned)}`);
     } catch (err) { toastError(err.message); }
+  }, { signal });
+  on(body, 'click', '[data-to-lab]', async (_, b) => {
+    const { labCaseDialog } = await import('../labs/index.js');
+    if (await labCaseDialog({ patientId: p.id, treatmentItemId: b.dataset.toLab })) refresh();
   }, { signal });
   on(body, 'click', '[data-toggle-cancelled]', () => { showCancelled = !showCancelled; draw(); }, { signal });
   on(body, 'click', '[data-add-item]', async () => { if (await addItemDialog(plan(), catalog)) { toastSuccess('تمت إضافة الإجراء'); refresh(); } }, { signal });

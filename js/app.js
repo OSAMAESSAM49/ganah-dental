@@ -20,6 +20,8 @@ import { loadSettings, getSettings } from './data/settings.js';
 import { onEvent } from './core/bus.js';
 import { installAuditHook } from './services/audit.js';
 import { isSetupDone, restoreSession, logout } from './services/auth.js';
+import './services/inventory.js'; // registers the stock-deduction done-handler
+import { generateRecurringExpenses } from './services/expenses.js';
 import { pageSkeleton, errorState } from './components/states.js';
 import { toast, toastError } from './components/toast.js';
 
@@ -136,6 +138,9 @@ async function boot() {
   const watchIdle = () => startIdleWatch({ minutes: () => getSettings('app').idleLogoutMinutes, onIdle: lockForIdle });
   onEvent('auth:changed', ({ user }) => (user ? watchIdle() : stopIdleWatch()));
   if (getSession()) watchIdle();
+
+  // Recurring monthly expenses are created when the app opens (no background jobs on a static site).
+  if (setupDone) generateRecurringExpenses().catch((err) => console.warn('[boot] recurring expenses', err));
 
   registerServiceWorker();
   hideSplash();

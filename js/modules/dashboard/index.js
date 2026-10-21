@@ -25,7 +25,7 @@ import { toastSuccess, toastError } from '../../components/toast.js';
 
 const QUICK = { arrived: 'وصل', in_chair: 'على الكرسي', done: 'انتهى' };
 
-const BUILD_PHASE = 6;
+const BUILD_PHASE = 7;
 const TOTAL_PHASES = 10;
 
 function greeting(d = new Date()) {
