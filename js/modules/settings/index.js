@@ -1,9 +1,10 @@
-/** Settings: clinic info, schedule & chairs, appearance & digits, backup / restore / merge / demo data. */
+/** Settings: backup / restore / merge / demo data, cloud sync, clinic info, schedule & chairs, appearance & digits. */
 import { html, ico, render } from '../../core/dom.js';
 import { href } from '../../core/router.js';
 
 const TABS = [
   { key: 'backup', label: 'النسخ الاحتياطي', icon: 'database', load: () => import('./tab-backup.js') },
+  { key: 'cloud', label: 'المزامنة', icon: 'cloud', load: () => import('./tab-cloud.js') },
   { key: 'clinic', label: 'بيانات العيادة', icon: 'house', load: () => import('./tab-clinic.js') },
   { key: 'schedule', label: 'المواعيد والكراسي', icon: 'calendar-days', load: () => import('./tab-schedule.js') },
   { key: 'appearance', label: 'المظهر والأرقام', icon: 'palette', load: () => import('./tab-appearance.js') },

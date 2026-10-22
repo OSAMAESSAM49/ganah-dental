@@ -87,3 +87,6 @@
 
 /* Bare layout: auth screens fill the viewport */
 .app[data-layout="bare"] .content { max-inline-size: none; padding: 0; }
+
+/* Setup: "extra device" alternative under the first step */
+.auth__alt { display: flex; flex-direction: column; gap: var(--sp-2); padding-block-start: var(--sp-4); margin-block-start: var(--sp-2); border-block-start: 1px solid var(--c-border); text-align: center; }

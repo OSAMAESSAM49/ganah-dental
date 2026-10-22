@@ -22,6 +22,7 @@ import { openChangePasswordDialog, openPinDialog } from '../modules/account/dial
 import { attachPatientSearch } from '../components/patient-search.js';
 import { backupStatus } from '../services/backup.js';
 import { collectAlerts } from '../services/alerts.js';
+import { syncStatus } from '../services/cloud-sync.js';
 
 /** @type {HTMLElement} */
 let app;
@@ -80,6 +81,26 @@ function drawNav() {
   if (search) search.hidden = !can('patients', 'view');
   drawBackupCard();
   scheduleBell();
+  drawSync();
+}
+
+/* ---------- Cloud sync status (only on devices linked to the cloud) ---------- */
+
+const SYNC_UI = {
+  syncing: ['refresh-cw', 'جارٍ المزامنة…'], ok: ['cloud', 'متزامن'], offline: ['cloud-off', 'بدون إنترنت — ستتم المزامنة عند عودته'],
+  error: ['cloud-off', 'تعذّرت المزامنة'], auth: ['cloud-off', 'يلزم تسجيل الدخول بحساب العيادة'],
+};
+function drawSync(st = syncStatus()) {
+  const btn = app.querySelector('[data-action="sync"]');
+  if (!btn) return;
+  const ui = SYNC_UI[st.state];
+  btn.hidden = !ui || !getSession();
+  if (!ui) return;
+  btn.dataset.state = st.state;
+  const label = `${ui[1]}${st.pending ? ` · ${st.pending} تعديل لم يُرفع` : ''}`;
+  btn.title = label;
+  btn.setAttribute('aria-label', `المزامنة: ${label}`);
+  render(btn, html`${ico(ui[0], { size: 20 })}${st.pending && st.state !== 'syncing' ? html`<span class="icon-btn__badge"></span>` : ''}`);
 }
 
 /* ---------- Top-bar bell: the same alerts as the dashboard panel ---------- */
@@ -181,6 +202,7 @@ export function mountShell(root) {
         </div>
         <div class="topbar__spacer"></div>
         <div class="topbar__actions">
+          <button type="button" class="icon-btn sync-btn" data-action="sync" hidden></button>
           <button type="button" class="icon-btn" data-action="theme" aria-live="polite">${themeButton()}</button>
           <button type="button" class="icon-btn" data-action="notifications" aria-label="التنبيهات" aria-haspopup="menu">
             ${ico('bell', { size: 20 })}
@@ -222,6 +244,7 @@ export function mountShell(root) {
         break;
       }
       case 'notifications': openBell(el); break;
+      case 'sync': navigate('/settings?tab=cloud'); break;
       case 'user-menu': openUserMenu(el); break;
     }
   });
@@ -230,6 +253,7 @@ export function mountShell(root) {
   onEvent('auth:changed', () => drawNav());
   onEvent('data:changed', ({ store, id }) => { if (store === 'meta' && id === 'lastBackupAt') drawBackupCard(); if (store !== 'auditLog') scheduleBell(); });
   onEvent('settings:changed', ({ key }) => { if (key === 'clinic') drawBrand(); });
+  onEvent('sync:status', drawSync);
 
   return /** @type {HTMLElement} */ (app.querySelector('#main'));
 }

@@ -1,5 +1,7 @@
 /**
  * First-run setup wizard: 1) clinic info  2) Admin account  3) recovery code.
+ * Or, for an extra device of a clinic already on the cloud: sign in with the clinic account
+ * and download its data (users and settings included).
  * Shown only while meta.setupDone is false (the router guard enforces this).
  */
 import { html, ico, render, formData, showFieldErrors } from '../../core/dom.js';
@@ -7,10 +9,12 @@ import { validate, required, phone as phoneRule } from '../../core/validate.js';
 import { navigate } from '../../core/router.js';
 import { imageFileToDataURL } from '../../core/image.js';
 import { textField, passwordField, enhancePasswordFields } from '../../components/form.js';
-import { toastError, toastSuccess } from '../../components/toast.js';
+import { toast, toastError, toastSuccess } from '../../components/toast.js';
 import { DEFAULT_CLINIC } from '../../data/settings.js';
 import { completeSetup, validatePassword, validatePin, validateUsername, passwordStrength, normalizeUsername } from '../../services/auth.js';
 import { authLayout, recoveryCodeBox, printRecoveryCode } from '../auth/shared.js';
+import { cloudForm, readCloudForm } from '../settings/tab-cloud.js';
+import { joinCloud } from '../../services/cloud-sync.js';
 
 const STEPS = ['بيانات العيادة', 'حساب المدير', 'رمز الاسترداد'];
 
@@ -25,7 +29,8 @@ export default {
     const state = { step: 0, clinic: { ...DEFAULT_CLINIC }, admin: { displayName: '', title: 'د.', username: '', isDoctor: true }, recoveryCode: '' };
 
     const draw = () => {
-      if (state.step === 0) drawClinic();
+      if (state.step === 'join') drawJoin();
+      else if (state.step === 0) drawClinic();
       else if (state.step === 1) drawAdmin();
       else drawRecovery();
       el.querySelector('input:not([type=hidden]), button')?.focus();
@@ -59,7 +64,12 @@ export default {
             <span class="field__hint">يظهر على الفواتير والروشتات المطبوعة.</span>
           </div>
           <div class="form-actions"><button class="btn btn--primary btn--block" type="submit">التالي ${ico('arrow-left', { size: 20 })}</button></div>
-        </form>`));
+        </form>
+        <div class="auth__alt">
+          <span class="muted text-sm">العيادة مستخدمة البرنامج بالفعل على جهاز آخر؟</span>
+          <button type="button" class="btn btn--soft btn--block" data-join>${ico('cloud', { size: 20 })} ربط هذا الجهاز كجهاز إضافي</button>
+        </div>`));
+      el.querySelector('[data-join]').addEventListener('click', () => { state.step = 'join'; draw(); }, { signal });
 
       const form = /** @type {HTMLFormElement} */ (el.querySelector('#f-clinic'));
       el.querySelector('#logo-input').addEventListener('change', async (e) => {
@@ -82,6 +92,39 @@ export default {
         state.clinic = { ...state.clinic, ...data, shortName: data.shortName.trim() || data.name.trim() };
         state.step = 1;
         draw();
+      }, { signal });
+    };
+
+    /* Extra device: download the clinic's data from the cloud */
+    const drawJoin = () => {
+      render(el, authLayout(html`
+        <div>
+          <h1 class="auth__title">ربط جهاز إضافي</h1>
+          <p class="auth__sub">ادخل بحساب العيادة على السحابة (نفس الحساب المربوط على الجهاز الأساسي). ستُنزَّل كل بيانات العيادة على هذا الجهاز، وبعدها يدخل كل موظف بحسابه المعتاد.</p>
+        </div>
+        ${cloudForm('ربط وتنزيل البيانات')}
+        <button type="button" class="link-btn" data-back>${ico('arrow-right', { size: 18 })} رجوع لإعداد عيادة جديدة</button>`));
+      const form = /** @type {HTMLFormElement} */ (el.querySelector('form'));
+      enhancePasswordFields(form, undefined, signal);
+      el.querySelector('[data-back]').addEventListener('click', () => { state.step = 0; draw(); }, { signal });
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const creds = readCloudForm(form);
+        if (!creds) return;
+        const btn = form.querySelector('[type=submit]');
+        btn.setAttribute('aria-busy', 'true');
+        const busy = toast('جارٍ تنزيل بيانات العيادة… لا تغلق الصفحة', { duration: 0 });
+        try {
+          await joinCloud(creds.email, creds.password);
+          busy();
+          toastSuccess('تم ربط الجهاز. سجّل الدخول بحسابك.');
+          setTimeout(() => { navigate('/login', { replace: true }); location.reload(); }, 800);
+        } catch (err) {
+          busy();
+          btn.removeAttribute('aria-busy');
+          console.error(err);
+          toastError(err.message || 'تعذّر الربط');
+        }
       }, { signal });
     };
 

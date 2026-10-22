@@ -30,6 +30,7 @@ export const ENTITY_LABELS = {
   stockBatches: 'تشغيلة مخزون',
   auditLog: 'سجل العمليات',
   demo: 'بيانات تجريبية',
+  sync: 'المزامنة السحابية',
 };
 
 export const AUDIT_ACTION_LABELS = {
@@ -51,6 +52,8 @@ export const AUDIT_ACTION_LABELS = {
   backup_merge: 'دمج نسخة من جهاز آخر',
   demo_create: 'إضافة بيانات تجريبية',
   demo_remove: 'حذف البيانات التجريبية',
+  sync_connect: 'ربط الجهاز بالسحابة',
+  sync_join: 'ربط جهاز إضافي بالسحابة',
 };
 
 export const AUDIT_ACTION_TONES = {
@@ -58,7 +61,7 @@ export const AUDIT_ACTION_TONES = {
   login: '', logout: '', login_failed: 'warning', lock: '',
   password_reset: 'warning', password_change: 'info', recovery_used: 'danger',
   recovery_regenerated: 'warning', setup: 'primary',
-  backup_export: 'success', backup_restore: 'danger', backup_merge: 'warning', demo_create: 'info', demo_remove: 'warning',
+  backup_export: 'success', backup_restore: 'danger', backup_merge: 'warning', demo_create: 'info', demo_remove: 'warning', sync_connect: 'primary', sync_join: 'primary',
 };
 
 export const FIELD_LABELS = {
@@ -270,4 +273,4 @@ export const REFERRAL_SOURCES = {
 /** Fields never shown or stored in audit diffs. */
 export const SECRET_FIELDS = new Set(['password', 'pin', 'recovery']);
 /** Bookkeeping fields that are not interesting in a diff. */
-export const META_FIELDS = new Set(['id', 'createdAt', 'updatedAt', 'createdBy', 'updatedBy', 'deletedBy', 'lastLoginAt', 'searchText']);
+export const META_FIELDS = new Set(['id', 'createdAt', 'updatedAt', 'createdBy', 'updatedBy', 'deletedBy', 'lastLoginAt', 'searchText', '_rev']);

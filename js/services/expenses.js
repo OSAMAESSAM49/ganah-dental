@@ -154,6 +154,8 @@ export async function generateRecurringExpenses(today = todayISO()) {
       const exists = (await repos.expenses.findBy('refId', `${r.id}:${month}`)).length;
       if (!exists) {
         await repos.expenses.create({
+          // Fixed id: every synced device generates the same record for the month, not a duplicate.
+          id: `recurring:${r.id}:${month}`,
           categoryId: r.categoryId, amount: r.amount, date, description: r.description, method: 'cash',
           source: 'recurring', refId: `${r.id}:${month}`, recurringId: r.id, receiptMediaId: null, userName: 'تلقائي',
         });

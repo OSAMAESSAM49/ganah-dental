@@ -297,3 +297,9 @@
 .boot__inner { display: flex; flex-direction: column; align-items: center; gap: var(--sp-4); color: var(--c-text-muted); }
 .boot__inner .brand-mark { inline-size: 76px; block-size: 76px; border-radius: 22px; animation: boot-pulse 1.4s var(--ease) infinite; }
 @keyframes boot-pulse { 50% { transform: scale(.92); } }
+
+/* Cloud sync status in the top bar */
+.sync-btn[data-state="ok"] { color: var(--c-success); }
+.sync-btn[data-state="syncing"] .icon { animation: spin 1.2s linear infinite; }
+.sync-btn[data-state="offline"] { color: var(--c-warning); }
+.sync-btn[data-state="error"], .sync-btn[data-state="auth"] { color: var(--c-danger); }

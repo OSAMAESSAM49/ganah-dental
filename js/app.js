@@ -23,6 +23,7 @@ import { isSetupDone, restoreSession, logout } from './services/auth.js';
 import './services/inventory.js'; // registers the stock-deduction done-handler
 import './services/followups.js'; // registers the follow-up scheduling done-handler
 import { generateRecurringExpenses } from './services/expenses.js';
+import { startCloudSync } from './services/cloud-sync.js';
 import { pageSkeleton, errorState } from './components/states.js';
 import { toast, toastError } from './components/toast.js';
 
@@ -97,6 +98,8 @@ async function boot() {
   }
 
   installAuditHook();
+  // Start tracking + syncing before anything else writes (only on devices linked to the cloud).
+  startCloudSync();
   const settings = await loadSettings();
   setDigitStyle(settings.app.digitStyle);
   requestPersistentStorage().catch(() => {});
