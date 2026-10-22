@@ -123,3 +123,15 @@ Approved on 2026-10-21. This file records decisions so later phases stay consist
   - `removeDemoData` hard-deletes it all, including the related audit entries, recomputes stock, and resets the counters to the last real number.
 - The alerts list (`services/alerts.js`) feeds both the dashboard panel and the top-bar bell (red dot plus a menu). The bell refreshes on route and data changes, debounced.
 - The "coming soon" placeholder module and the `phase` flags were removed now that every screen exists.
+
+## Cloud sync (after phase 10)
+- Supabase project `edepsudqcrzjodjlkagc` (eu-west-1). One generic table `public.records (clinic_id, store, id, data jsonb, deleted, client_updated_at, device_id, server_updated_at)` plus `clinics` and `clinic_members`. The membership check `private.is_member` sits in a schema the API does not expose. `push_records` upserts and keeps the newest `client_updated_at`. Images go to the private bucket `media` at `<clinic>/<store>/<id>/<n>.<ext>`. Schema: `supabase/schema.sql`.
+- `js/data/tracking.js` wraps the adapter: every committed write (repositories, transactions, direct adapter calls) is reported, and each record gets `_rev`, a strictly increasing ISO stamp per device. `meta` never syncs (counters, setupDone, lastBackupAt). `adapter.raw` writes without tracking.
+- `js/services/sync.js` (pure engine, injectable api/state) works like this:
+  - Each round pushes first, then pulls.
+  - The outbox keeps keys only; push reads the current record (missing → tombstone stamped with the local delete time).
+  - Pull re-reads the last 60 s, because late commits can carry older server stamps, then applies a row when it is newer than the local `_rev`.
+  - Number clashes on patients.fileNo, invoices.number and payments.receiptNo (and users.username) are settled the same way on every device: the earlier `createdAt` keeps the number, the other gets the next one and is pushed again. Counters move past every number seen.
+- `js/services/cloud.js` talks to Supabase with plain fetch (auth password grant + refresh, PostgREST, Storage). The session lives in localStorage only. `js/services/cloud-sync.js` schedules rounds (start, every 60 s, 4 s after a write, on online/visible) and publishes `sync:status`.
+- Joining as an extra device wipes the local synced stores (seeded catalog included, avoiding duplicates) and pulls everything. Connecting a "main" device requires an empty cloud.
+- Recurring expenses now use fixed ids (`recurring:<template>:<YYYY-MM>`) so devices do not duplicate them.
