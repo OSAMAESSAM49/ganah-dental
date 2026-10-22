@@ -61,3 +61,27 @@
   .print-subtitle { margin-block: -2mm 4mm; color: #444; font-size: 10pt; }
   .print-table .print-total td { background: #F4F0FE !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* Dashboard: day navigator */
+.day-nav { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); margin-block-end: var(--sp-5); padding: var(--sp-2) var(--sp-3); border-radius: var(--radius-xl); background: var(--c-surface); }
+.day-nav__label { display: flex; flex-direction: column; align-items: center; min-inline-size: 170px; line-height: 1.3; }
+.day-nav__pick { margin-inline-start: auto; }
+.day-nav__pick .field { margin: 0; flex-direction: row; align-items: center; gap: var(--sp-2); }
+.day-nav__pick .field__label { white-space: nowrap; margin: 0; font-size: var(--fs-sm); color: var(--c-text-muted); }
+.day-nav__pick .date-field { inline-size: 190px; }
+@media (max-width: 599px) {
+  .day-nav__label { flex: 1; min-inline-size: 0; }
+  .day-nav__pick { margin-inline-start: 0; flex: 1 1 100%; }
+  .day-nav__pick .date-field { inline-size: auto; flex: 1; }
+}
+
+/* Dashboard: day's invoices */
+.count-badge { display: inline-grid; place-items: center; min-inline-size: 24px; block-size: 24px; padding-inline: 6px; margin-inline-start: var(--sp-1); border-radius: var(--radius-pill); background: var(--c-danger); color: #fff; font-size: var(--fs-xs); font-weight: var(--fw-bold); vertical-align: middle; font-variant-numeric: tabular-nums; }
+.inv-list { display: flex; flex-direction: column; gap: var(--sp-2); margin: 0; padding: 0; list-style: none; }
+.inv-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); padding: var(--sp-3); border-radius: var(--radius-lg); background: var(--c-surface-2); }
+.inv-row--new { border-inline-start: 3px solid var(--c-danger); }
+.inv-row__main { flex: 1 1 160px; min-inline-size: 0; display: flex; flex-direction: column; gap: 2px; }
+.inv-row__end { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+.sys-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.sys-list .list__item { background: rgb(127 127 127 / 12%); }
+.dash-cards-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--sp-2) var(--sp-4); }

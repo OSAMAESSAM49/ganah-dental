@@ -22,3 +22,6 @@ desktop.ini
 .vscode/
 *.log
 node_modules/
+
+# --- Local previews ---
+.claude/*.jpg

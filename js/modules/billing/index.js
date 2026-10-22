@@ -6,7 +6,7 @@ import { html, ico, render, on } from '../../core/dom.js';
 import { formatMoney, formatDate, formatDateTime, digits, todayISO, parseDateInput, toISODate, toDate } from '../../core/format.js';
 import { PAYMENT_METHODS, INVOICE_STATUS } from '../../core/labels.js';
 import { normalizeArabic } from '../../core/text.js';
-import { can } from '../../core/permissions.js';
+import { can, ownsOrAdmin } from '../../core/permissions.js';
 import { href } from '../../core/router.js';
 import { onEvent } from '../../core/bus.js';
 import { repos } from '../../data/index.js';
@@ -124,7 +124,7 @@ export default {
           { key: 'amount', label: 'المبلغ', num: true, render: (p) => html`<strong>${p.voided ? html`<s>${formatMoney(p.amount)}</s>` : formatMoney(p.amount)}</strong>` },
           { key: 'a', label: '', render: (p) => html`<div class="table__actions">
             <button type="button" class="btn btn--icon btn--sm" data-print-pay="${p.id}" aria-label="طباعة الإيصال">${ico('printer', { size: 18 })}</button>
-            ${can('billing', 'delete') && !p.voided ? html`<button type="button" class="btn btn--ghost btn--icon btn--sm" data-void-pay="${p.id}" aria-label="إلغاء">${ico('circle-x', { size: 18 })}</button>` : ''}</div>` },
+            ${can('billing', 'delete') && !p.voided && ownsOrAdmin(p) ? html`<button type="button" class="btn btn--ghost btn--icon btn--sm" data-void-pay="${p.id}" aria-label="إلغاء">${ico('circle-x', { size: 18 })}</button>` : ''}</div>` },
         ],
       });
     };

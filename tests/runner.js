@@ -24,7 +24,7 @@ export const assert = {
   },
 };
 
-const FILES = ['./text.test.js', './format.test.js', './validate.test.js', './dom.test.js', './router.test.js', './data.test.js', './auth.test.js', './patients.test.js', './chart.test.js', './appointments.test.js', './billing.test.js', './inventory.test.js', './followups.test.js', './reports.test.js', './backup.test.js', './sync.test.js'];
+const FILES = ['./text.test.js', './format.test.js', './validate.test.js', './dom.test.js', './router.test.js', './data.test.js', './auth.test.js', './patients.test.js', './chart.test.js', './appointments.test.js', './billing.test.js', './inventory.test.js', './followups.test.js', './reports.test.js', './backup.test.js', './sync.test.js', './ownership.test.js'];
 
 async function run() {
   for (const f of FILES) await import(f);

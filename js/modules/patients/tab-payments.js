@@ -2,7 +2,7 @@
 import { html, ico, render, on } from '../../core/dom.js';
 import { formatMoney, formatDate, formatDateTime, digits } from '../../core/format.js';
 import { PAYMENT_METHODS, INVOICE_STATUS } from '../../core/labels.js';
-import { can } from '../../core/permissions.js';
+import { can, ownsOrAdmin } from '../../core/permissions.js';
 import { onEvent } from '../../core/bus.js';
 import { openMenu } from '../../components/menu.js';
 import { emptyState } from '../../components/states.js';
@@ -64,7 +64,7 @@ export async function renderTab({ body, patient, signal }) {
         <div class="row" style="gap: var(--sp-1)">
           ${perm.create && (inv.status === 'open' || inv.status === 'partial') ? html`<button type="button" class="btn btn--accent btn--sm" data-pay-inv="${inv.id}">${ico('banknote', { size: 16 })} سداد</button>` : ''}
           <button type="button" class="btn btn--icon btn--sm" data-print-inv="${inv.id}" aria-label="طباعة الفاتورة">${ico('printer', { size: 18 })}</button>
-          ${perm.create || perm.void ? html`<button type="button" class="btn btn--icon btn--sm" data-inv-menu="${inv.id}" aria-label="خيارات" aria-haspopup="menu">${ico('ellipsis-vertical', { size: 18 })}</button>` : ''}
+          ${(perm.create || perm.void) && ownsOrAdmin(inv) ? html`<button type="button" class="btn btn--icon btn--sm" data-inv-menu="${inv.id}" aria-label="خيارات" aria-haspopup="menu">${ico('ellipsis-vertical', { size: 18 })}</button>` : ''}
         </div>
       </div>
       <div class="card__body">
@@ -94,7 +94,7 @@ export async function renderTab({ body, patient, signal }) {
         <td data-label="المبلغ" class="num"><strong>${pay.voided ? html`<s>${formatMoney(pay.amount)}</s>` : formatMoney(pay.amount)}</strong></td>
         <td data-label=""><div class="table__actions">
           <button type="button" class="btn btn--icon btn--sm" data-print-pay="${pay.id}" aria-label="طباعة الإيصال">${ico('printer', { size: 18 })}</button>
-          ${perm.void && !pay.voided ? html`<button type="button" class="btn btn--ghost btn--icon btn--sm" data-void-pay="${pay.id}" aria-label="إلغاء الإيصال">${ico('circle-x', { size: 18 })}</button>` : ''}
+          ${perm.void && !pay.voided && ownsOrAdmin(pay) ? html`<button type="button" class="btn btn--ghost btn--icon btn--sm" data-void-pay="${pay.id}" aria-label="إلغاء الإيصال">${ico('circle-x', { size: 18 })}</button>` : ''}
         </div></td>
       </tr>`)}</tbody>
     </table></div>` : html`<div class="card">${emptyState({ icon: 'banknote', title: 'لا توجد مدفوعات بعد' })}</div>`);

@@ -13,7 +13,7 @@ import { openMenu } from '../../components/menu.js';
 import { confirmDialog } from '../../components/modal.js';
 import { emptyState } from '../../components/states.js';
 import { toastSuccess } from '../../components/toast.js';
-import { getPatient, deletePatient } from '../../services/patients.js';
+import { getPatient, deletePatient, canChangePatient } from '../../services/patients.js';
 import { medicalBanner } from './medical.js';
 import { nextAppointment } from '../../services/appointments.js';
 import { dayLabel, formatClock } from '../../core/time.js';
@@ -44,6 +44,8 @@ export default {
     document.title = `${patient.name} · ${tab.label}`;
 
     let next = can('appointments', 'view') ? await nextAppointment(patient.id) : null;
+    // Patients with invoices: only the Admin or whoever registered them may edit or delete.
+    let changeable = await canChangePatient(patient);
 
     const header = () => {
       const wa = toWhatsAppNumber(patient.phone);
@@ -66,8 +68,8 @@ export default {
               ${can('appointments', 'create') ? html`<button type="button" class="btn btn--primary btn--sm" data-book-appt>${ico('calendar-check', { size: 18 })} حجز موعد</button>` : ''}
               ${patient.phone ? html`<a class="btn btn--sm" href="tel:${patient.phone}">${ico('phone', { size: 18 })} اتصال</a>` : ''}
               ${wa ? html`<a class="btn btn--whatsapp btn--sm" href="https://wa.me/${wa}" target="_blank" rel="noopener">${ico('message-circle', { size: 18 })} واتساب</a>` : ''}
-              ${can('patients', 'edit') ? html`<a class="btn btn--sm btn--soft" href="${href('/patients/:id/edit', { id: patient.id })}">${ico('pencil', { size: 18 })} تعديل</a>` : ''}
-              ${can('patients', 'delete') ? html`<button type="button" class="btn btn--sm btn--icon" data-more aria-label="المزيد" aria-haspopup="menu">${ico('ellipsis-vertical', { size: 18 })}</button>` : ''}
+              ${can('patients', 'edit') && changeable ? html`<a class="btn btn--sm btn--soft" href="${href('/patients/:id/edit', { id: patient.id })}">${ico('pencil', { size: 18 })} تعديل</a>` : ''}
+              ${can('patients', 'delete') && changeable ? html`<button type="button" class="btn btn--sm btn--icon" data-more aria-label="المزيد" aria-haspopup="menu">${ico('ellipsis-vertical', { size: 18 })}</button>` : ''}
             </div>
           </div>
         </section>`;
@@ -86,6 +88,11 @@ export default {
 
     // keep header/banner fresh when the record changes (e.g. medical tab saves)
     const off = onEvent('data:changed', async ({ store, id }) => {
+      if (store === 'invoices') {
+        changeable = await canChangePatient(patient);
+        render(el.querySelector('#pf-head'), header());
+        return;
+      }
       if (store === 'appointments') {
         next = await nextAppointment(patient.id);
         render(el.querySelector('#pf-head'), header());

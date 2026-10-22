@@ -9,6 +9,7 @@ import { normalizeArabic, normalizeDigits } from '../core/text.js';
 import { normalizeEgyptPhone } from '../core/validate.js';
 import { toDate, toISODate } from '../core/format.js';
 import { emptyMedical } from '../core/medical.js';
+import { ownsOrAdmin } from '../core/permissions.js';
 
 export const FILE_PREFIX = 'G-';
 
@@ -110,6 +111,7 @@ export async function createPatient(input) {
 
 export async function updatePatient(id, input) {
   const current = await repos.patients.require(id);
+  await assertCanChange(current, 'تعديل');
   const data = clean({ ...current, ...input });
   if (!data.name) throw new Error('اسم المريض مطلوب');
   return repos.patients.update(id, { ...data, searchText: buildSearchText({ ...current, ...data }) });
@@ -133,7 +135,23 @@ export async function updateMedical(id, medical) {
   });
 }
 
-export const deletePatient = (id) => repos.patients.remove(id);
+/** Patients who have invoices: only the Admin or whoever registered them may edit or delete. */
+async function assertCanChange(patient, verb) {
+  if (ownsOrAdmin(patient)) return;
+  const { hasInvoices } = await import('./billing.js');
+  if (await hasInvoices(patient.id)) throw new Error(`${verb} بيانات مريض عليه فواتير متاح لمدير النظام أو لمن سجّله فقط`);
+}
+
+/** Whether the signed-in user may edit / delete this patient (for hiding buttons). */
+export async function canChangePatient(patient) {
+  try { await assertCanChange(patient, 'تعديل'); return true; } catch { return false; }
+}
+
+export async function deletePatient(id) {
+  const current = await repos.patients.require(id);
+  await assertCanChange(current, 'حذف');
+  return repos.patients.remove(id);
+}
 export const restorePatient = (id) => repos.patients.restore(id);
 
 /** Number of patients registered in the current month. */

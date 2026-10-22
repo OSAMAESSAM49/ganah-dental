@@ -11,7 +11,7 @@ import { dateField, enhanceDateFields } from '../../components/date-field.js';
 import { confirmDialog } from '../../components/modal.js';
 import { toastSuccess, toastError } from '../../components/toast.js';
 import { emptyState } from '../../components/states.js';
-import { createPatient, updatePatient, updateMedical, getPatient, findByPhone, dobFromAge } from '../../services/patients.js';
+import { createPatient, updatePatient, updateMedical, getPatient, findByPhone, dobFromAge, canChangePatient } from '../../services/patients.js';
 import { medicalFields, readMedical, sameMedical } from './medical.js';
 import { patientAvatar } from './list.js';
 
@@ -21,6 +21,10 @@ export default {
     const patient = isNew ? null : await getPatient(params.id);
     if (!isNew && (!patient || patient.deletedAt)) {
       render(el, html`<div class="card">${emptyState({ icon: 'search', title: 'المريض غير موجود', actions: html`<a class="btn btn--primary" href="#/patients">قائمة المرضى</a>` })}</div>`);
+      return;
+    }
+    if (!isNew && !(await canChangePatient(patient))) {
+      render(el, html`<div class="card">${emptyState({ icon: 'lock', title: 'لا يمكنك تعديل بيانات هذا المريض', hint: 'المريض عليه فواتير، وتعديل بياناته متاح لمدير النظام أو لمن سجّله فقط.', actions: html`<a class="btn btn--primary" href="${href('/patients/:id', { id: patient.id })}">ملف المريض</a>` })}</div>`);
       return;
     }
     const p = patient ?? { name: '', gender: '', medical: {} };

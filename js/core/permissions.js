@@ -130,3 +130,14 @@ export function can(module, action = 'view') {
 }
 
 export const isAdmin = () => getSession()?.user?.roleId === ADMIN_ROLE_ID;
+
+/**
+ * Invoices, receipts and patients who have invoices may only be voided, edited or deleted
+ * by the Admin or by the user who entered them. With nobody signed in (background work,
+ * tests) the services' own rules apply.
+ */
+export function ownsOrAdmin(record) {
+  const s = getSession();
+  if (!s) return true;
+  return s.user?.roleId === ADMIN_ROLE_ID || (!!record?.createdBy && record.createdBy === s.user?.id);
+}

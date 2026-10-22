@@ -17,6 +17,7 @@
 import { repos, nextCounter } from '../data/index.js';
 import { newId } from '../data/repository.js';
 import { currentUser } from '../core/session.js';
+import { ownsOrAdmin } from '../core/permissions.js';
 import { todayISO, toISODate } from '../core/format.js';
 import { itemMath } from './treatment.js';
 import { logEvent } from './audit.js';
@@ -245,6 +246,7 @@ export async function voidPayment(id, reason) {
   if (!reason?.trim()) throw new BillingError('اكتب سبب الإلغاء');
   const p = await repos.payments.require(id);
   if (p.voided) return p;
+  if (!ownsOrAdmin(p)) throw new BillingError('إلغاء الإيصال متاح لمدير النظام أو لمن سجّله فقط');
   const me = currentUser();
   const updated = await repos.payments.update(id, { voided: true, voidReason: reason.trim(), voidedAt: new Date().toISOString(), voidedBy: me?.displayName ?? null });
   if (p.invoiceId) await refreshInvoiceStatus(p.invoiceId);
@@ -259,6 +261,7 @@ export async function voidInvoice(id, reason) {
   if (!reason?.trim()) throw new BillingError('اكتب سبب الإلغاء');
   const inv = await repos.invoices.require(id);
   if (inv.status === 'void') return inv;
+  if (!ownsOrAdmin(inv)) throw new BillingError('إلغاء الفاتورة متاح لمدير النظام أو لمن أصدرها فقط');
   const me = currentUser();
   for (const l of inv.lines) if (l.treatmentItemId) await repos.treatmentItems.update(l.treatmentItemId, { invoiceId: null });
   const payments = (await repos.payments.findBy('invoiceId', id)).filter((p) => !p.voided);
@@ -269,6 +272,7 @@ export async function voidInvoice(id, reason) {
 /** Replaces the installment plan of an invoice (must sum to what is left to pay). */
 export async function setInstallments(invoiceId, installments) {
   const inv = await repos.invoices.require(invoiceId);
+  if (!ownsOrAdmin(inv)) throw new BillingError('تعديل الفاتورة متاح لمدير النظام أو لمن أصدرها فقط');
   const state = invoiceState(inv, await repos.payments.findBy('invoiceId', invoiceId));
   const covered = invoiceInstallments(inv, state.paid).filter((i) => i.covered > 0);
   const clean = installments.filter((i) => i.amount > 0).map((i) => ({ id: i.id ?? newId(), dueDate: i.dueDate, amount: Math.round(i.amount) }));
@@ -278,6 +282,41 @@ export async function setInstallments(invoiceId, installments) {
   const keptSum = keep.reduce((n, i) => n + i.amount, 0);
   await logEvent({ action: 'update', entity: 'invoices', entityId: invoiceId, summary: `تعديل أقساط ${formatInvoiceNo(inv.number)}` });
   return repos.invoices.update(invoiceId, { installments: [...keep, ...clean], installmentsBase: state.paid - keptSum });
+}
+
+/* ---------- One day's billing (dashboard card) ---------- */
+
+/**
+ * What needs collecting for a day: invoices dated that day with what is left on each, and
+ * patients whose treatment was completed that day but has no invoice yet.
+ * `due` counts both (the number shown on the card).
+ */
+export async function dayBilling(day) {
+  const invoices = [];
+  for (const inv of await repos.invoices.list({ index: 'date', range: { eq: day } })) {
+    if (inv.status === 'void') continue;
+    invoices.push({ invoice: inv, ...invoiceState(inv, await repos.payments.findBy('invoiceId', inv.id)) });
+  }
+  const byPatient = new Map();
+  for (const it of await repos.treatmentItems.list({ index: 'status', range: { eq: 'done' } })) {
+    if (it.invoiceId || !it.doneAt || toISODate(new Date(it.doneAt)) !== day) continue;
+    const g = byPatient.get(it.patientId) ?? { patientId: it.patientId, items: [], value: 0 };
+    g.items.push(it);
+    g.value += itemMath(it).total;
+    byPatient.set(it.patientId, g);
+  }
+  const uninvoiced = [];
+  for (const g of byPatient.values()) {
+    const p = await repos.patients.get(g.patientId, { includeDeleted: true });
+    if (p && !p.deletedAt) uninvoiced.push({ ...g, patientName: p.name });
+  }
+  invoices.sort((a, b) => b.invoice.number - a.invoice.number);
+  return { invoices, uninvoiced, due: uninvoiced.length + invoices.filter((i) => i.remaining > 0).length };
+}
+
+/** True when the patient has at least one invoice that is not void. */
+export async function hasInvoices(patientId) {
+  return (await repos.invoices.findBy('patientId', patientId)).some((i) => i.status !== 'void');
 }
 
 /* ---------- Clinic-wide reports ---------- */

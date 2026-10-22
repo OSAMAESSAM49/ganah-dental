@@ -1,4 +1,5 @@
 /** Users list + add/edit dialog with per-user permission overrides. */
+import { DASHBOARD_CARDS } from '../../core/dashboard-cards.js';
 import { html, ico, render, on, formData, showFieldErrors } from '../../core/dom.js';
 import { initials } from '../../core/text.js';
 import { formatDateTime, digits } from '../../core/format.js';
@@ -210,6 +211,16 @@ async function openUserDialog(user, roles) {
           </fieldset>
         </div>
         <div id="grid-slot">${gridSection()}</div>
+        <details class="card card--flat" ${Array.isArray(user?.dashboardCards) ? 'open' : ''}>
+          <summary class="card__body row row--between" style="cursor:pointer; padding-block: var(--sp-4)">
+            <span class="stack-sm"><strong>كروت الشاشة الرئيسية</strong>
+            <span class="muted text-sm">اختر ما يظهر لهذا المستخدم في الصفحة الرئيسية. الكارت يظهر فقط إذا كانت لديه صلاحية القسم الخاص به.</span></span>
+            ${ico('chevron-down')}
+          </summary>
+          <div class="card__body dash-cards-pick" style="padding-block-start: 0">
+            ${DASHBOARD_CARDS.map((c) => html`<label class="check"><input type="checkbox" data-dash-card value="${c.key}" ${!Array.isArray(user?.dashboardCards) || user.dashboardCards.includes(c.key) ? 'checked' : ''}> ${c.label}</label>`)}
+          </div>
+        </details>
       </form>`,
     actions: [{ label: isNew ? 'إضافة المستخدم' : 'حفظ التعديلات', value: 'save', variant: 'primary' }, { label: 'إلغاء', value: null }],
     onOpen(d, close) {
@@ -250,12 +261,14 @@ async function openUserDialog(user, roles) {
       });
       if (!showFieldErrors(form, errors)) return false;
       const displayName = [data.title.trim(), data.displayName.trim()].filter(Boolean).join(' ');
+      const picked = [...form.querySelectorAll('[data-dash-card]:checked')].map((i) => /** @type {HTMLInputElement} */ (i).value);
+      const dashboardCards = picked.length === DASHBOARD_CARDS.length ? null : picked;
       try {
         if (isNew) {
           const created = await createUser({ displayName, title: data.title, username: data.username, password: data.password, pin: data.pin || undefined, roleId: data.roleId, isDoctor: data.isDoctor, color: data.color });
-          if (countOverrides(overrides)) await updateUser(created.id, { permOverrides: overrides });
+          if (countOverrides(overrides) || dashboardCards) await updateUser(created.id, { permOverrides: overrides, dashboardCards });
         } else {
-          await updateUser(user.id, { displayName, title: data.title.trim(), roleId: data.roleId, isDoctor: data.isDoctor, color: data.color, permOverrides: data.roleId === ADMIN_ROLE_ID ? {} : overrides });
+          await updateUser(user.id, { displayName, title: data.title.trim(), roleId: data.roleId, isDoctor: data.isDoctor, color: data.color, permOverrides: data.roleId === ADMIN_ROLE_ID ? {} : overrides, dashboardCards });
         }
         return true;
       } catch (err) {

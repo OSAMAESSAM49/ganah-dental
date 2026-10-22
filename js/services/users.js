@@ -66,12 +66,13 @@ export async function createUser(input) {
  * Updates profile/role/permissions (not secrets).
  * @param {string} id
  * @param {Partial<{ displayName: string, title: string, roleId: string, isDoctor: boolean,
- *                   color: string, active: boolean, permOverrides: object }>} patch
+ *                   color: string, active: boolean, permOverrides: object,
+ *                   dashboardCards: string[]|null }>} patch   dashboardCards: null = every card
  */
 export async function updateUser(id, patch) {
   const me = currentUser();
   const user = await repos.users.require(id);
-  const allowed = ['displayName', 'title', 'roleId', 'isDoctor', 'color', 'active', 'permOverrides'];
+  const allowed = ['displayName', 'title', 'roleId', 'isDoctor', 'color', 'active', 'permOverrides', 'dashboardCards'];
   const clean = Object.fromEntries(Object.entries(patch).filter(([k]) => allowed.includes(k)));
   if ('displayName' in clean && !String(clean.displayName).trim()) throw new RuleError('الاسم مطلوب');
 

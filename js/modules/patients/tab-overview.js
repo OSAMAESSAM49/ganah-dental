@@ -7,9 +7,11 @@ import { can } from '../../core/permissions.js';
 import { repos } from '../../data/index.js';
 import { listPatientMedia, urlPool } from '../../services/media.js';
 import { medicalSummary } from './medical.js';
+import { canChangePatient } from '../../services/patients.js';
 
 export async function renderTab({ body, patient }) {
   const p = patient();
+  const changeable = await canChangePatient(p);
   const pool = urlPool();
   const [media, creator] = await Promise.all([
     listPatientMedia(p.id),
@@ -21,7 +23,7 @@ export async function renderTab({ body, patient }) {
     <div class="bento">
       <section class="card span-7">
         <div class="card__header"><div class="card__heading"><h2 class="card__title">البيانات الشخصية</h2></div>
-          ${can('patients', 'edit') ? html`<a class="round-btn" href="${href('/patients/:id/edit', { id: p.id })}" aria-label="تعديل البيانات">${ico('pencil', { size: 18 })}</a>` : ''}</div>
+          ${can('patients', 'edit') && changeable ? html`<a class="round-btn" href="${href('/patients/:id/edit', { id: p.id })}" aria-label="تعديل البيانات">${ico('pencil', { size: 18 })}</a>` : ''}</div>
         <div class="card__body">
           <dl class="dl">
             <dt>رقم الملف</dt><dd class="ltr">${digits(p.fileNo)}</dd>
