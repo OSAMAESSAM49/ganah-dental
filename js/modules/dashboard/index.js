@@ -200,11 +200,8 @@ export default {
 
           ${show('patientsList') ? html`<section class="card ${show('invoices') ? 'span-8' : 'span-12'}" aria-labelledby="today-title">
             <div class="card__header">
-              <div class="card__heading">
-                <h2 class="card__title" id="today-title">مرضى ${word}</h2>
-                <p class="card__subtitle">سجّل الوصول والدخول للكرسي والانتهاء بضغطة واحدة</p>
-              </div>
-              <div class="chips" role="group" aria-label="تصفية" id="today-filter"></div>
+              <div class="card__heading"><h2 class="card__title" id="today-title">مرضى ${word}</h2></div>
+              <select class="select input--pill today-filter" id="today-filter" aria-label="تصفية مرضى ${word}"></select>
             </div>
             <div class="card__body" id="today-list"></div>
           </section>` : ''}
@@ -255,7 +252,7 @@ export default {
     const drawList = (d) => {
       const all = d.appts;
       const groups = [['all', 'الكل', all], ['arrived', 'في الانتظار', all.filter((a) => a.status === 'arrived')], ['in_chair', 'على الكرسي', all.filter((a) => a.status === 'in_chair')], ['booked', 'لم يصل بعد', all.filter((a) => a.status === 'booked')]];
-      render(el.querySelector('#today-filter'), html`${groups.map(([k, label, list]) => html`<button type="button" class="chip" data-tfilter="${k}" aria-pressed="${String(filter === k)}">${label} <span class="chip__count">${digits(list.length)}</span></button>`)}`);
+      render(el.querySelector('#today-filter'), html`${groups.map(([k, label, list]) => html`<option value="${k}" ${filter === k ? 'selected' : ''}>${label} (${digits(list.length)})</option>`)}`);
       const list = groups.find(([k]) => k === filter)[2];
       render(el.querySelector('#today-list'), list.length ? html`<ul class="list">${list.map((a) => {
         const st = APPT_STATUS[a.status];
@@ -283,7 +280,7 @@ export default {
       if (d && d !== day) navigate(d === today ? '/' : `/?day=${d}`);
     }, { signal });
     on(el, 'submit', '#day-pick', (e) => e.preventDefault(), { signal });
-    on(el, 'click', '[data-tfilter]', (_, b) => { filter = b.dataset.tfilter; drawList(data); }, { signal });
+    on(el, 'change', '#today-filter', (_, sel) => { filter = /** @type {HTMLSelectElement} */ (sel).value; drawList(data); }, { signal });
     on(el, 'click', '[data-book]', () => openAppointmentForm(day >= today ? { date: day } : {}), { signal });
     on(el, 'click', '[data-appt]', (_, b) => { const a = data.appts.find((x) => x.id === b.dataset.appt); if (a) openAppointmentDetails(a); }, { signal });
     on(el, 'click', '[data-quick]', async (_, b) => {

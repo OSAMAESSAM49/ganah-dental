@@ -85,3 +85,4 @@
 .sys-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
 .sys-list .list__item { background: rgb(127 127 127 / 12%); }
 .dash-cards-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--sp-2) var(--sp-4); }
+.today-filter { inline-size: auto; min-inline-size: 150px; }

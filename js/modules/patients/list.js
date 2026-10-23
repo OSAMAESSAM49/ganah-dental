@@ -1,4 +1,8 @@
-/** Patients list: fast search (name / phone / file no), filters, sorting, trash. */
+/**
+ * Patients list: fast search (name / phone / file no), filters, sorting, trash.
+ * Wide screens show a table; phones show one card per patient with only the name and phone
+ * (tap the phone to copy it, tap the card for the other details).
+ */
 import { html, ico, render, on } from '../../core/dom.js';
 import { initials } from '../../core/text.js';
 import { formatDate, digits, formatAge, arabicCount, todayISO, toISODate } from '../../core/format.js';
@@ -8,6 +12,7 @@ import { medicalAlerts } from '../../core/medical.js';
 import { can } from '../../core/permissions.js';
 import { href } from '../../core/router.js';
 import { mountTable } from '../../components/table.js';
+import { emptyState } from '../../components/states.js';
 import { confirmDialog } from '../../components/modal.js';
 import { toastSuccess, toastError } from '../../components/toast.js';
 import { allPatients, searchPatients, restorePatient, ageYears } from '../../services/patients.js';
@@ -18,6 +23,61 @@ const PATIENT_COUNT = { one: 'مريض واحد', two: 'مريضان', few: 'م�
 export const patientAvatar = (p, cls = '') => (p.photo
   ? html`<span class="avatar ${cls}"><img src="${p.photo}" alt=""></span>`
   : html`<span class="avatar ${cls} ${p.gender === 'female' ? 'avatar--c-danger' : 'avatar--c-info'}">${initials(p.name) || ico('user', { size: 22 })}</span>`);
+
+/** Copies a phone number; works without the async clipboard API too. */
+export async function copyPhone(phone) {
+  try { await navigator.clipboard.writeText(phone); }
+  catch {
+    const ta = Object.assign(document.createElement('textarea'), { value: phone });
+    ta.style.cssText = 'position:fixed;opacity:0';
+    document.body.append(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+  }
+  toastSuccess(`تم نسخ الرقم ${digits(phone)}`);
+}
+
+const phoneButton = (p) => html`<button type="button" class="phone-copy ltr num" data-copy-phone="${p.phone}" aria-label="نسخ رقم ${p.name}" title="اضغط لنسخ الرقم">${digits(p.phone)} ${ico('copy', { size: 16 })}</button>`;
+
+function alertBadge(p) {
+  const a = medicalAlerts(p);
+  if (a.critical.length) return html`<span class="badge badge--danger" title="${a.critical.join('، ')}">${ico('triangle-alert', { size: 14 })} ${a.critical[0]}${a.critical.length > 1 ? ` +${digits(a.critical.length - 1)}` : ''}</span>`;
+  if (a.caution.length) return html`<span class="badge badge--warning" title="${a.caution.join('، ')}">${a.caution[0]}</span>`;
+  return html`<span class="subtle">—</span>`;
+}
+
+/** One patient card (phones). Details stay folded until the card is tapped. */
+const patientCard = (p) => {
+  const wa = toWhatsAppNumber(p.phone);
+  const critical = medicalAlerts(p).critical.length;
+  return html`<li class="pcard" data-pcard="${p.id}">
+    <div class="pcard__head" data-pcard-toggle role="button" tabindex="0" aria-expanded="false" aria-controls="pcd-${p.id}">
+      ${patientAvatar(p)}
+      <span class="pcard__text">
+        <span class="pcard__name">${p.name}${critical ? html` <span class="pcard__alert" title="تنبيه طبي">${ico('triangle-alert', { size: 16 })}</span>` : ''}</span>
+        ${p.phone ? phoneButton(p) : html`<span class="subtle text-sm">لا يوجد رقم</span>`}
+      </span>
+      <span class="pcard__chev" aria-hidden="true">${ico('chevron-down', { size: 18 })}</span>
+    </div>
+    <div class="pcard__details" id="pcd-${p.id}" hidden>
+      <dl class="dl">
+        <dt>رقم الملف</dt><dd class="ltr">${digits(p.fileNo)}</dd>
+        <dt>العمر</dt><dd>${p.dob ? formatAge(p.dob) : '—'}${p.gender ? ` · ${GENDER_LABELS[p.gender]}` : ''}</dd>
+        <dt>تنبيهات</dt><dd>${alertBadge(p)}</dd>
+        <dt>المصدر</dt><dd>${REFERRAL_SOURCES[p.referralSource] ?? '—'}</dd>
+        <dt>تاريخ التسجيل</dt><dd>${formatDate(p.createdAt)}</dd>
+      </dl>
+      <div class="row">
+        ${p.deletedAt
+          ? html`<button type="button" class="btn btn--soft btn--sm" data-restore="${p.id}">${ico('refresh-cw', { size: 16 })} استعادة</button>`
+          : html`<a class="btn btn--primary btn--sm" href="${href('/patients/:id', { id: p.id })}">${ico('user-round', { size: 16 })} فتح الملف</a>`}
+        ${p.phone ? html`<a class="btn btn--sm" href="tel:${p.phone}">${ico('phone', { size: 16 })} اتصال</a>` : ''}
+        ${wa ? html`<a class="btn btn--whatsapp btn--sm" href="https://wa.me/${wa}" target="_blank" rel="noopener">${ico('message-circle', { size: 16 })} واتساب</a>` : ''}
+      </div>
+    </div>
+  </li>`;
+};
 
 export default {
   title: 'المرضى',
@@ -62,7 +122,8 @@ export default {
           ...(canDelete ? [['trash', 'المحذوفون']] : [])].map(([k, label]) => html`
           <button type="button" class="chip" data-filter="${k}" aria-pressed="${String(state.filter === k)}">${k === 'trash' ? ico('trash-2', { size: 16 }) : ''}${label}</button>`)}
       </div>
-      <div id="ptable"></div>
+      <div id="ptable" class="plist-table"></div>
+      <ul id="pcards" class="pcard-list" aria-label="قائمة المرضى"></ul>
       <div class="row" style="justify-content:center; margin-block-start: var(--sp-4)"><button type="button" class="btn" id="pmore" hidden>عرض المزيد</button></div>`);
 
     const table = mountTable(el.querySelector('#ptable'), {
@@ -78,16 +139,11 @@ export default {
           </span>` },
         { key: 'phone', label: 'الموبايل', render: (p) => (p.phone ? html`
           <span class="row" style="gap: var(--sp-2); flex-wrap: nowrap">
-            <span class="ltr num">${digits(p.phone)}</span>
+            ${phoneButton(p)}
             ${toWhatsAppNumber(p.phone) ? html`<a class="btn btn--whatsapp btn--icon btn--sm" href="https://wa.me/${toWhatsAppNumber(p.phone)}" target="_blank" rel="noopener" aria-label="واتساب ${p.name}">${ico('message-circle', { size: 18 })}</a>` : ''}
           </span>` : html`<span class="muted">—</span>`) },
         { key: 'age', label: 'العمر', render: (p) => html`${p.dob ? formatAge(p.dob) : '—'}${p.dobEstimated ? html` <span class="subtle text-sm">تقريبًا</span>` : ''}${p.gender ? html` · <span class="muted">${GENDER_LABELS[p.gender]}</span>` : ''}` },
-        { key: 'alerts', label: 'تنبيهات', render: (p) => {
-          const a = medicalAlerts(p);
-          if (a.critical.length) return html`<span class="badge badge--danger" title="${a.critical.join('، ')}">${ico('triangle-alert', { size: 14 })} ${a.critical[0]}${a.critical.length > 1 ? ` +${digits(a.critical.length - 1)}` : ''}</span>`;
-          if (a.caution.length) return html`<span class="badge badge--warning" title="${a.caution.join('، ')}">${a.caution[0]}</span>`;
-          return html`<span class="subtle">—</span>`;
-        } },
+        { key: 'alerts', label: 'تنبيهات', render: alertBadge },
         { key: 'source', label: 'المصدر', render: (p) => REFERRAL_SOURCES[p.referralSource] ?? html`<span class="subtle">—</span>` },
         { key: 'createdAt', label: 'تاريخ التسجيل', render: (p) => (p.deletedAt
           ? html`<button type="button" class="btn btn--soft btn--sm" data-restore="${p.id}">${ico('refresh-cw', { size: 16 })} استعادة</button>`
@@ -121,6 +177,9 @@ export default {
       }
       current = rows;
       table.update(rows.slice(0, state.shown));
+      render(el.querySelector('#pcards'), rows.length
+        ? html`${rows.slice(0, state.shown).map(patientCard)}`
+        : html`<li class="card">${emptyState({ icon: 'users', title: 'لا يوجد مرضى مطابقون', hint: 'جرّب كلمة بحث أخرى، أو أضف مريضًا جديدًا.' })}</li>`);
       el.querySelector('#pmore').hidden = rows.length <= state.shown;
       el.querySelector('#pcount').textContent = rows.length ? arabicCount(rows.length, PATIENT_COUNT) : 'لا يوجد مرضى';
       syncUrl();
@@ -156,6 +215,18 @@ export default {
       state.shown = PAGE;
       el.querySelectorAll('[data-filter]').forEach((c) => c.setAttribute('aria-pressed', String(c === chip)));
       refresh();
+    }, { signal });
+    on(el, 'click', '[data-copy-phone]', (e, b) => { e.stopPropagation(); copyPhone(b.dataset.copyPhone); }, { signal });
+    const toggleCard = (head) => {
+      const details = head.parentElement.querySelector('.pcard__details');
+      details.hidden = !details.hidden;
+      head.setAttribute('aria-expanded', String(!details.hidden));
+      head.parentElement.classList.toggle('pcard--open', !details.hidden);
+    };
+    on(el, 'click', '[data-pcard-toggle]', (e, head) => { if (!(/** @type {HTMLElement} */ (e.target)).closest('button, a')) toggleCard(head); }, { signal });
+    on(el, 'keydown', '[data-pcard-toggle]', (e, head) => {
+      const k = /** @type {KeyboardEvent} */ (e).key;
+      if ((k === 'Enter' || k === ' ') && e.target === head) { e.preventDefault(); toggleCard(head); }
     }, { signal });
     on(el, 'click', '[data-restore]', async (e, b) => {
       e.stopPropagation();

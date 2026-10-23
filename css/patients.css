@@ -128,3 +128,27 @@
 .order-btns { display: inline-flex; gap: 2px; }
 .icon--up { transform: rotate(180deg); }
 .icon--rot { transform: rotate(90deg); }
+
+/* Patients: table on wide screens, one card per patient on phones */
+.pcard-list { display: none; flex-direction: column; gap: var(--sp-2); margin: 0; padding: 0; list-style: none; }
+@media (max-width: 767px) {
+  .plist-table { display: none; }
+  .pcard-list { display: flex; }
+}
+.pcard { border-radius: var(--radius-lg); background: var(--c-surface); overflow: hidden; }
+.pcard__head { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4); cursor: pointer; min-block-size: 64px; }
+.pcard__head:focus-visible { outline: 2px solid var(--c-focus); outline-offset: -2px; }
+.pcard__text { flex: 1; min-inline-size: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.pcard__name { font-weight: var(--fw-bold); line-height: 1.35; overflow-wrap: anywhere; }
+.pcard__chev { color: var(--c-text-subtle); transition: transform .2s; flex-shrink: 0; }
+.pcard--open .pcard__chev { transform: rotate(180deg); }
+.pcard__alert { color: var(--c-danger); vertical-align: middle; }
+.pcard--open { box-shadow: 0 0 0 2px var(--c-primary-soft); }
+.pcard__details { padding: 0 var(--sp-4) var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-3); border-block-start: 1px solid var(--c-border); padding-block-start: var(--sp-3); }
+.pcard__details[hidden] { display: none; }
+.phone-copy { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 0; border-radius: var(--radius-pill); background: var(--c-surface-2); color: inherit; font: inherit; font-weight: var(--fw-medium); cursor: copy; flex-shrink: 0; }
+.phone-copy:hover { background: var(--c-primary-softer); }
+.phone-copy .icon { opacity: .6; }
+@media (max-width: 767px) {
+  #psource, #psort { flex: 1 1 calc(50% - var(--sp-2)); min-inline-size: 0 !important; }
+}
