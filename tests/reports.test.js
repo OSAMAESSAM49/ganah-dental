@@ -88,3 +88,17 @@ describe('reports (temporary database)', () => {
     }
   });
 });
+
+describe('cloud usage estimate (pure)', () => {
+  test('free space → roughly how many more patients fit', async () => {
+    const { summarizeUsage, FREE_DB_BYTES } = await import('../js/components/cloud-usage.js');
+    const u = summarizeUsage({ db_bytes: 11818675, patients: 2, records: 265, records_bytes: 230056, storage_bytes: 0 });
+    assert.equal(u.perPatient, 80 * 1024, 'few patients → default 80 KB each');
+    assert.equal(u.morePatients, Math.floor((FREE_DB_BYTES - 11818675) / (80 * 1024)));
+    assert.ok(u.dbPct > 0.02 && u.dbPct < 0.03);
+    // A clinic with its own history uses its real average when it is larger.
+    const big = summarizeUsage({ db_bytes: 300 * 1024 * 1024, patients: 2000, records: 90000, records_bytes: 200 * 1024 * 1024, storage_bytes: 0 });
+    assert.equal(big.perPatient, Math.round((200 * 1024 * 1024 * 1.4) / 2000));
+    assert.equal(summarizeUsage({ db_bytes: FREE_DB_BYTES + 5, patients: 1, records: 1, records_bytes: 1, storage_bytes: 0 }).morePatients, 0, 'never negative');
+  });
+});

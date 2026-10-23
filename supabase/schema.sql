@@ -108,3 +108,21 @@ create policy "members update media" on storage.objects for update to authentica
 
 -- 5. The clinic itself (one row) ---------------------------------------------------------------
 insert into public.clinics (name) select 'عيادة جنة لطب الفم والأسنان' where not exists (select 1 from public.clinics);
+
+-- 6. Usage for the app's "system status" (members only; reads what RLS already lets them see)
+create or replace function public.cloud_usage(p_clinic uuid) returns jsonb
+language plpgsql stable security invoker set search_path = public as $$
+begin
+  if not private.is_member(p_clinic) then
+    raise exception 'not a member of this clinic' using errcode = '42501';
+  end if;
+  return jsonb_build_object(
+    'db_bytes', pg_database_size(current_database()),
+    'records', (select count(*) from public.records where clinic_id = p_clinic and not deleted),
+    'patients', (select count(*) from public.records where clinic_id = p_clinic and store = 'patients' and not deleted and coalesce(data->>'deletedAt', '') = ''),
+    'records_bytes', (select coalesce(sum(pg_column_size(r.*)), 0) from public.records r where r.clinic_id = p_clinic),
+    'storage_bytes', (select coalesce(sum((o.metadata->>'size')::bigint), 0) from storage.objects o where o.bucket_id = 'media' and (storage.foldername(o.name))[1] = p_clinic::text)
+  );
+end $$;
+revoke all on function public.cloud_usage(uuid) from public, anon;
+grant execute on function public.cloud_usage(uuid) to authenticated;

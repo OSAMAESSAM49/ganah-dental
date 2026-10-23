@@ -6,7 +6,7 @@
  * Each card shows only when the user may view its module and the Admin has not hidden it
  * for that user (core/dashboard-cards.js).
  */
-import { html, ico, render, on } from '../../core/dom.js';
+import { html, ico, render, on, toElement } from '../../core/dom.js';
 import { formatBytes, formatMoney, digits, todayISO, toISODate, parseDateInput } from '../../core/format.js';
 import { getAdapter, repos } from '../../data/index.js';
 import { getSettings } from '../../data/settings.js';
@@ -21,6 +21,7 @@ import { expensesTotal } from '../../services/expenses.js';
 import { collectAlerts } from '../../services/alerts.js';
 import { financialReport, presetRange, change } from '../../services/reports.js';
 import { cloudEnabled } from '../../services/cloud-sync.js';
+import { usageItem, loadUsage, cachedUsage } from '../../components/cloud-usage.js';
 import { mountChart, wireCharts } from '../../components/chart.js';
 import { allPatients } from '../../services/patients.js';
 import { listDay, setAppointmentStatus, NEXT_STEPS } from '../../services/appointments.js';
@@ -229,7 +230,8 @@ export default {
                 <li class="list__item">${ico('database', { size: 20 })}<div class="list__main"><span class="list__title">قاعدة البيانات</span><span class="list__meta muted">إصدار المخطط ${digits(d.system.dbVersion)}</span></div><span class="badge badge--success">تعمل</span></li>
                 <li class="list__item">${ico('lock', { size: 20 })}<div class="list__main"><span class="list__title">تخزين دائم</span><span class="list__meta muted">${d.system.persisted ? 'المتصفح لن يحذف البيانات تلقائيًا' : 'ثبّت التطبيق لضمان عدم حذف البيانات'}</span></div><span class="badge ${d.system.persisted ? 'badge--success' : 'badge--warning'}">${d.system.persisted ? 'مفعّل' : 'غير مضمون'}</span></li>
                 <li class="list__item">${ico('download', { size: 20 })}<div class="list__main"><span class="list__title">العمل بدون إنترنت</span><span class="list__meta muted">${d.system.offline ? 'كل ملفات التطبيق محفوظة على الجهاز' : 'سيكون جاهزًا بعد إعادة التحميل'}</span></div><span class="badge ${d.system.offline ? 'badge--success' : 'badge--info'}">${d.system.offline ? 'جاهز' : 'يُجهَّز'}</span></li>
-                <li class="list__item">${ico('save', { size: 20 })}<div class="list__main"><span class="list__title">المساحة المستخدمة</span><span class="list__meta muted">${d.system.quota ? `من ${formatBytes(d.system.quota)} متاحة` : 'غير معروفة'}</span></div><span class="bold">${formatBytes(d.system.usage)}</span></li>
+                <li class="list__item">${ico('save', { size: 20 })}<div class="list__main"><span class="list__title">مساحة هذا الجهاز</span><span class="list__meta muted">بيانات البرنامج في متصفح هذا الجهاز${d.system.quota ? ` · المتاح ${formatBytes(d.system.quota)}` : ''}</span></div><span class="bold">${formatBytes(d.system.usage)}</span></li>
+                ${cloudEnabled() ? usageItem({ usage: cachedUsage(), stale: false }) : ''}
               </ul>
             </div>
           </aside>` : ''}
@@ -247,6 +249,9 @@ export default {
         }, signal);
       }
       if (show('patientsList')) drawList(d);
+      // Cloud usage needs the internet: fill it in after the page is shown.
+      const slot = el.querySelector('[data-cloud-usage]');
+      if (slot) loadUsage().then((u) => { if (!signal.aborted && slot.isConnected) slot.replaceWith(toElement(usageItem(u))); });
     };
 
     const drawList = (d) => {

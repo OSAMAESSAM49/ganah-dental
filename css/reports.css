@@ -86,3 +86,11 @@
 .sys-list .list__item { background: rgb(127 127 127 / 12%); }
 .dash-cards-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--sp-2) var(--sp-4); }
 .today-filter { inline-size: auto; min-inline-size: 150px; }
+.progress--success .progress__bar { background: var(--c-success); }
+.progress--warning .progress__bar { background: var(--c-warning); }
+.progress--danger .progress__bar { background: var(--c-danger); }
+.sys-list .cloud-usage { grid-column: 1 / -1; align-items: flex-start; }
+.cloud-usage .list__main { gap: 4px; }
+.cloud-usage .progress { display: block; margin-block: 2px; }
+.card--inverse .cloud-usage .progress { background: rgb(127 127 127 / 30%); }
+.cloud-usage .progress__bar { display: block; min-inline-size: 4px; }

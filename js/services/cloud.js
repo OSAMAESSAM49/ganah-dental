@@ -109,4 +109,6 @@ export const supabaseApi = {
   isEmpty: async () => !(await call(`/rest/v1/records?select=id&clinic_id=eq.${clinic()}&limit=1`))?.length,
   upload: (path, blob) => call(`/storage/v1/object/media/${objectPath(path)}`, { method: 'POST', body: blob, headers: { 'x-upsert': 'true', 'Content-Type': blob.type || 'application/octet-stream' } }),
   download: async (path) => (await call(`/storage/v1/object/authenticated/media/${objectPath(path)}`, { raw: true })).blob(),
+  /** Database and image storage used (supabase/schema.sql → cloud_usage). */
+  usage: () => call('/rest/v1/rpc/cloud_usage', { method: 'POST', body: { p_clinic: clinic() } }),
 };
