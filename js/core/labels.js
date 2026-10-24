@@ -52,6 +52,7 @@ export const AUDIT_ACTION_LABELS = {
   backup_merge: 'دمج نسخة من جهاز آخر',
   demo_create: 'إضافة بيانات تجريبية',
   demo_remove: 'حذف البيانات التجريبية',
+  patients_export: 'تصدير بيانات كل المرضى',
   sync_connect: 'ربط الجهاز بالسحابة',
   sync_join: 'ربط جهاز إضافي بالسحابة',
 };
@@ -61,7 +62,7 @@ export const AUDIT_ACTION_TONES = {
   login: '', logout: '', login_failed: 'warning', lock: '',
   password_reset: 'warning', password_change: 'info', recovery_used: 'danger',
   recovery_regenerated: 'warning', setup: 'primary',
-  backup_export: 'success', backup_restore: 'danger', backup_merge: 'warning', demo_create: 'info', demo_remove: 'warning', sync_connect: 'primary', sync_join: 'primary',
+  backup_export: 'success', backup_restore: 'danger', backup_merge: 'warning', demo_create: 'info', demo_remove: 'warning', sync_connect: 'primary', sync_join: 'primary', patients_export: 'warning',
 };
 
 export const FIELD_LABELS = {

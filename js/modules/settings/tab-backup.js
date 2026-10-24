@@ -88,6 +88,25 @@ export async function renderTab({ body, signal }) {
         </section>
         ${admin ? html`<section class="card span-12">
           <div class="card__header"><div class="card__heading">
+            <h2 class="card__title">${ico('file-spreadsheet', { size: 20 })} تصدير بيانات كل المرضى</h2>
+            <p class="card__subtitle">ملف واحد فيه كل ما سُجّل عن كل مريض، للاحتفاظ به للظروف (لمدير النظام فقط)</p>
+          </div></div>
+          <div class="card__body stack">
+            <p>يشمل: بيانات المريض والتاريخ الطبي، والمواعيد بكل تفاصيلها وملاحظات الطبيب، والعلاجات وخطط العلاج، والفواتير والمدفوعات والأرصدة، والروشتات والمتابعات وحالات المعمل.</p>
+            <ul class="stack-sm" style="margin:0; padding-inline-start: var(--sp-5)">
+              <li><strong>Excel:</strong> ورقة لكل نوع (المرضى، المواعيد، العلاجات، الفواتير…)، وفي كل صف رقم الملف واسم المريض للبحث والتصفية.</li>
+              <li><strong>PDF:</strong> صفحة أو أكثر لكل مريض فيها كل بياناته. تفتح نافذة الطباعة، فاختر «حفظ بتنسيق PDF».</li>
+            </ul>
+            <label class="check"><input type="checkbox" id="arch-deleted"> تضمين المرضى المحذوفين</label>
+            <div class="row">
+              <button type="button" class="btn btn--primary" data-arch="xlsx">${ico('file-spreadsheet')} تنزيل Excel</button>
+              <button type="button" class="btn" data-arch="pdf">${ico('printer')} PDF / طباعة</button>
+            </div>
+            <p class="muted text-sm">${ico('lock', { size: 14 })} الملف فيه بيانات طبية ومالية سرية: احفظه في مكان آمن ولا ترسله لأحد. كل تصدير يُسجَّل في سجل العمليات.</p>
+          </div>
+        </section>` : ''}
+        ${admin ? html`<section class="card span-12">
+          <div class="card__header"><div class="card__heading">
             <h2 class="card__title">${ico('sparkles', { size: 20 })} بيانات تجريبية</h2>
             <p class="card__subtitle">لتجربة البرنامج وتدريب الفريق قبل إدخال المرضى الحقيقيين</p>
           </div></div>
@@ -114,6 +133,19 @@ export async function renderTab({ body, signal }) {
       toastError('تعذّر إنشاء النسخة الاحتياطية');
       btn.removeAttribute('aria-busy');
     }
+  }, { signal });
+
+  on(body, 'click', '[data-arch]', async (_, btn) => {
+    const includeDeleted = /** @type {HTMLInputElement} */ (body.querySelector('#arch-deleted')).checked;
+    btn.setAttribute('aria-busy', 'true');
+    const busy = toast('جارٍ تجهيز بيانات كل المرضى…', { duration: 0 });
+    try {
+      const { exportArchiveExcel, printArchive } = await import('./archive-export.js');
+      const n = btn.dataset.arch === 'xlsx' ? await exportArchiveExcel({ includeDeleted }) : await printArchive({ includeDeleted });
+      busy();
+      toastSuccess(btn.dataset.arch === 'xlsx' ? `تم تنزيل ملف Excel لـ ${digits(n)} مريض` : `جاهز للطباعة: ${digits(n)} مريض — اختر «حفظ بتنسيق PDF»`);
+    } catch (err) { busy(); console.error(err); toastError(err.message || 'تعذّر التصدير'); }
+    finally { btn.removeAttribute('aria-busy'); }
   }, { signal });
 
   on(body, 'click', '[data-demo-add]', async (_, btn) => {

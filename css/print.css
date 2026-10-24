@@ -90,3 +90,14 @@ body[data-print="a5"] #print-root { page: rx; }
 
   .print-instructions { white-space: pre-line; font-size: 12pt; line-height: 1.9; }
 }
+
+/* Full patient archive: one section per patient */
+@media print {
+  .arch-cover { margin-block-end: 6mm; padding: 4mm; border: 1px solid #bbb; border-radius: 2mm; font-size: 10pt; }
+  .arch-cover p { margin: 0 0 1mm; }
+  .arch-patient { break-before: page; }
+  .arch-patient__name { font-size: 13pt; font-weight: 700; margin-block-end: 2mm; border-block-end: 2px solid #4A0CD3; padding-block-end: 1mm; }
+  .arch-med { margin: 0 0 2mm; font-size: 9.5pt; }
+  .arch-patient .print-table { font-size: 8.5pt; }
+  .arch-patient .print-table th, .arch-patient .print-table td { padding: 1mm 1.5mm; }
+}
