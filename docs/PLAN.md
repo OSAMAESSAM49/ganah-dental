@@ -135,3 +135,8 @@ Approved on 2026-10-21. This file records decisions so later phases stay consist
 - `js/services/cloud.js` talks to Supabase with plain fetch (auth password grant + refresh, PostgREST, Storage). The session lives in localStorage only. `js/services/cloud-sync.js` schedules rounds (start, every 60 s, 4 s after a write, on online/visible) and publishes `sync:status`.
 - Joining as an extra device wipes the local synced stores (seeded catalog included, avoiding duplicates) and pulls everything. Connecting a "main" device requires an empty cloud.
 - Recurring expenses now use fixed ids (`recurring:<template>:<YYYY-MM>`) so devices do not duplicate them.
+
+## Custom domain (2026-10-24)
+- The live site is https://dentoganah.com (DNS at Spaceship: GitHub Pages A/AAAA records, `www` CNAME, and a TXT verification record). The repo root has a `CNAME` file created by GitHub, so pull before pushing. The old github.io URL 301-redirects to the domain.
+- HTTPS must stay enforced: `crypto.subtle` (PBKDF2 sign-in), `crypto.randomUUID` and the service worker only work in a secure context.
+- A new origin means new IndexedDB and localStorage on every device. Devices rejoin through "extra device" (cloud) or restore a backup.
