@@ -148,7 +148,7 @@ export async function openAppointmentDetails(appt) {
           }
           if (t.closest('[data-quick-add]')) {
             const { openQuickTreatment } = await import('./quick-treatment.js');
-            if (await openQuickTreatment(a)) { changed = true; await refresh(); }
+            if (await openQuickTreatment({ patientId: a.patientId, appt: a })) { changed = true; await refresh(); }
             return;
           }
           const start = t.closest('[data-item-start]');

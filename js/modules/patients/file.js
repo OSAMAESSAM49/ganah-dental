@@ -66,6 +66,7 @@ export default {
               </div>
             </div>
             <div class="pfile-head__actions">
+              ${can('treatment', 'create') && !patient.deletedAt ? html`<button type="button" class="btn btn--primary btn--sm" data-quick-add>${ico('tooth', { size: 18 })} إضافة إجراء</button>` : ''}
               ${can('appointments', 'create') ? html`<button type="button" class="btn btn--primary btn--sm" data-book-appt>${ico('calendar-check', { size: 18 })} حجز موعد</button>` : ''}
               ${patient.phone ? html`<a class="btn btn--sm" href="tel:${patient.phone}">${ico('phone', { size: 18 })} اتصال</a>` : ''}
               ${wa ? html`<a class="btn btn--whatsapp btn--sm" href="https://wa.me/${wa}" target="_blank" rel="noopener">${ico('message-circle', { size: 18 })} واتساب</a>` : ''}
@@ -111,6 +112,12 @@ export default {
       openAppointmentForm({ patientId: patient.id });
     }, { signal });
 
+    // Chart + procedure in one window (fewest taps); the open tab then shows the new work.
+    on(el, 'click', '[data-quick-add]', async () => {
+      const { openQuickTreatment } = await import('../appointments/quick-treatment.js');
+      if (await openQuickTreatment({ patientId: patient.id })) await showTab();
+    }, { signal });
+
     on(el, 'click', '[data-more]', (_, b) => openMenu(b, {
       items: [{
         label: 'حذف ملف المريض', icon: 'trash-2', danger: true,
@@ -128,10 +135,17 @@ export default {
       }],
     }), { signal });
 
-    const body = el.querySelector('#pf-body');
     let cleanup = null;
     const mod = await tab.load();
-    cleanup = await mod.renderTab({ ...ctx, body, patient: () => patient });
+    /** (Re)draws the open tab on a fresh element, so no listeners are left behind. */
+    const showTab = async () => {
+      if (typeof cleanup === 'function') cleanup();
+      const old = el.querySelector('#pf-body');
+      const body = /** @type {HTMLElement} */ (old.cloneNode(false));
+      old.replaceWith(body);
+      cleanup = await mod.renderTab({ ...ctx, body, patient: () => patient });
+    };
+    await showTab();
     return () => { off(); if (typeof cleanup === 'function') cleanup(); };
   },
 };

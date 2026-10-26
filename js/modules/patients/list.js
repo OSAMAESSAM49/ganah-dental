@@ -71,7 +71,8 @@ const patientCard = (p) => {
       <div class="row">
         ${p.deletedAt
           ? html`<button type="button" class="btn btn--soft btn--sm" data-restore="${p.id}">${ico('refresh-cw', { size: 16 })} استعادة</button>`
-          : html`<a class="btn btn--primary btn--sm" href="${href('/patients/:id', { id: p.id })}">${ico('user-round', { size: 16 })} فتح الملف</a>`}
+          : html`<a class="btn btn--primary btn--sm" href="${href('/patients/:id', { id: p.id })}">${ico('user-round', { size: 16 })} فتح الملف</a>
+            ${can('treatment', 'create') ? html`<button type="button" class="btn btn--accent btn--sm" data-quick-add="${p.id}">${ico('tooth', { size: 16 })} إضافة إجراء</button>` : ''}`}
         ${p.phone ? html`<a class="btn btn--sm" href="tel:${p.phone}">${ico('phone', { size: 16 })} اتصال</a>` : ''}
         ${wa ? html`<a class="btn btn--whatsapp btn--sm" href="https://wa.me/${wa}" target="_blank" rel="noopener">${ico('message-circle', { size: 16 })} واتساب</a>` : ''}
       </div>
@@ -223,6 +224,10 @@ export default {
       head.setAttribute('aria-expanded', String(!details.hidden));
       head.parentElement.classList.toggle('pcard--open', !details.hidden);
     };
+    on(el, 'click', '[data-quick-add]', async (_, b) => {
+      const { openQuickTreatment } = await import('../appointments/quick-treatment.js');
+      await openQuickTreatment({ patientId: b.dataset.quickAdd });
+    }, { signal });
     on(el, 'click', '[data-pcard-toggle]', (e, head) => { if (!(/** @type {HTMLElement} */ (e.target)).closest('button, a')) toggleCard(head); }, { signal });
     on(el, 'keydown', '[data-pcard-toggle]', (e, head) => {
       const k = /** @type {KeyboardEvent} */ (e).key;

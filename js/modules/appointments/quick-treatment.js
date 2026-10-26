@@ -1,11 +1,12 @@
 /**
- * Quick "add procedure" from an appointment: the patient's dental chart and the procedure
- * list in one window. Tap teeth (or a surface), pick the procedure, «إضافة» — the item joins
+ * Quick "add procedure" — from an appointment or straight from a patient (file / list card):
+ * the patient's dental chart and the procedure list in one window. Tap teeth (or a surface), pick the procedure, «إضافة» — the item joins
  * the active treatment plan, is linked to this visit, and (by default) starts right away so
  * its charge shows in the day's invoices. «إضافة وإجراء آخر» keeps the window open.
+ * Opened from a patient, the work is linked to their visit today if they have one.
  */
 import { html, ico, render } from '../../core/dom.js';
-import { formatMoney, digits } from '../../core/format.js';
+import { formatMoney, digits, todayISO } from '../../core/format.js';
 import { sortTeeth, toothName, DENTITIONS } from '../../core/teeth.js';
 import { CONDITION } from '../../core/chart-conditions.js';
 import { repos } from '../../data/index.js';
@@ -18,13 +19,23 @@ import { loadCatalog } from '../../services/procedures.js';
 import { getPatient } from '../../services/patients.js';
 import { defaultDentition } from '../patients/tab-chart.js';
 
+/** The patient's visit today (not cancelled / no-show), if any. */
+async function visitToday(patientId) {
+  const today = todayISO();
+  return (await repos.appointments.findBy('patientId', patientId))
+    .filter((a) => a.date === today && a.status !== 'cancelled' && a.status !== 'no_show')
+    .sort((a, b) => a.startMin - b.startMin)[0] ?? null;
+}
+
 /**
- * @param {object} appt the appointment the work belongs to
+ * @param {{ patientId: string, appt?: object|null }} target  appt: the visit the work belongs to
+ *   (omitted → today's visit of the patient, when there is one)
  * @returns {Promise<number>} how many items were added
  */
-export async function openQuickTreatment(appt) {
-  const patient = await getPatient(appt.patientId);
-  const [{ state }, catalog, items, plans] = await Promise.all([getChart(appt.patientId), loadCatalog({ includeInactive: false }), listItems(appt.patientId), listPlans(appt.patientId)]);
+export async function openQuickTreatment({ patientId, appt }) {
+  appt = appt === undefined ? await visitToday(patientId) : appt;
+  const patient = await getPatient(patientId);
+  const [{ state }, catalog, items, plans] = await Promise.all([getChart(patientId), loadCatalog({ includeInactive: false }), listItems(patientId), listPlans(patientId)]);
   const all = catalog.flatMap((c) => c.procedures);
   const ui = { dentition: defaultDentition(patient), selected: new Set(), surfaces: new Set(), procedureId: '', start: true };
   let planned = plannedByTooth(items, plans);
@@ -67,15 +78,17 @@ export async function openQuickTreatment(appt) {
     if (!p) { toastError('اختر الإجراء'); d.querySelector('#qt-proc').focus(); return false; }
     if (p.perTooth && !teeth.length) { toastError('هذا الإجراء لكل سن: اختر السن من الخريطة'); return false; }
     try {
-      const plan = await ensureActivePlan(appt.patientId);
+      const plan = await ensureActivePlan(patientId);
       const surfaces = CONDITION[p.chartEffect]?.surface ? [...ui.surfaces] : [];
       const created = await addItems(plan.id, { procedure: p, teeth, surfaces });
-      const cur = await repos.appointments.get(appt.id, { includeDeleted: true });
-      await repos.appointments.update(appt.id, {
-        treatmentItemIds: [...(cur.treatmentItemIds ?? []), ...created.map((i) => i.id)],
-        procedureIds: [...new Set([...(cur.procedureIds ?? []), p.id])],
-        procedureNames: [...new Set([...(cur.procedureNames ?? []), p.name])],
-      });
+      if (appt) {
+        const cur = await repos.appointments.get(appt.id, { includeDeleted: true });
+        await repos.appointments.update(appt.id, {
+          treatmentItemIds: [...(cur.treatmentItemIds ?? []), ...created.map((i) => i.id)],
+          procedureIds: [...new Set([...(cur.procedureIds ?? []), p.id])],
+          procedureNames: [...new Set([...(cur.procedureNames ?? []), p.name])],
+        });
+      }
       if (ui.start) for (const i of created) await setItemStatus(i.id, 'in_progress');
       added += created.length;
       toastSuccess(`أُضيف «${p.name}»${teeth.length ? ` على ${teeth.join('، ')}` : ''}${ui.start ? ' وبدأ العلاج' : ''}`);
@@ -84,7 +97,7 @@ export async function openQuickTreatment(appt) {
   };
 
   await openModal({
-    title: `إضافة إجراء — ${patient?.name ?? appt.patientName}`,
+    title: `إضافة إجراء — ${patient?.name ?? appt?.patientName ?? ''}`,
     icon: 'tooth',
     size: 'lg',
     body,
@@ -128,7 +141,7 @@ export async function openQuickTreatment(appt) {
       if (v === 'add') return true;
       // keep the window open for the next procedure
       ui.selected.clear(); ui.surfaces.clear(); ui.procedureId = '';
-      planned = plannedByTooth(await listItems(appt.patientId), await listPlans(appt.patientId));
+      planned = plannedByTooth(await listItems(patientId), await listPlans(patientId));
       /** @type {HTMLSelectElement} */ (d.querySelector('#qt-proc')).value = '';
       render(d.querySelector('#qt-chart'), chart());
       render(d.querySelector('#qt-sel'), selection());
