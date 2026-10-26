@@ -73,3 +73,11 @@
 .chip__count:empty { display: none; }
 .appt-block--short { flex-direction: row; align-items: center; gap: var(--sp-2); padding-block: 2px; }
 .appt-block--short .appt-block__name { font-size: var(--fs-xs); }
+
+/* Quick "add procedure" from an appointment */
+.qt { display: flex; flex-direction: column; gap: var(--sp-3); }
+.qt__chart { direction: ltr; max-block-size: 52vh; overflow: auto; border-radius: var(--radius-lg); background: var(--c-surface-2); padding: var(--sp-2); }
+.qt__chart .odo { inline-size: 100%; block-size: auto; min-inline-size: 560px; }
+.qt__sel { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); min-block-size: 32px; }
+.qt__teeth { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: var(--radius-pill); background: var(--c-primary-soft); color: var(--c-primary-text); font-weight: var(--fw-bold); }
+.qt__price { margin-inline-start: auto; }

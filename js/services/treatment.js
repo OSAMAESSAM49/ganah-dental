@@ -217,7 +217,7 @@ export async function addItems(planId, { procedure, teeth = [], surfaces = [], u
 /** Edits price/discount/teeth/sessions/notes (not status — use setItemStatus). */
 export async function updateItem(id, patch) {
   const item = await repos.treatmentItems.require(id);
-  if (item.status === 'done' && ('unitPrice' in patch || 'qty' in patch || 'discountValue' in patch) && item.invoiceId) {
+  if (item.invoiceId && ('unitPrice' in patch || 'qty' in patch || 'discountValue' in patch || 'discountType' in patch)) {
     throw new TreatmentError('هذا البند تمت فوترته؛ عدّل الفاتورة بدلًا من ذلك.');
   }
   const allowed = ['teeth', 'surfaces', 'unitPrice', 'qty', 'discountType', 'discountValue', 'sessionsPlanned', 'sessionsDone', 'notes', 'doctorId'];
@@ -241,7 +241,10 @@ export async function setItemStatus(id, status, opts = {}) {
   if ((status === 'in_progress' || status === 'done') && plan.status !== 'active' && plan.status !== 'completed') {
     throw new TreatmentError('هذه خطة بديلة لم يعتمدها المريض بعد. اعتمدها أولًا لبدء العلاج.');
   }
-  if (item.invoiceId && item.status === 'done') throw new TreatmentError('هذا البند تمت فوترته ولا يمكن تغيير حالته.');
+  // An invoiced item may still go from "in progress" to "done", but never back or cancelled.
+  if (item.invoiceId && (item.status === 'done' || status === 'planned' || status === 'cancelled')) {
+    throw new TreatmentError('هذا البند تمت فوترته ولا يمكن تغيير حالته. ألغِ الفاتورة أولًا إذا لزم.');
+  }
 
   const patch = {
     status,

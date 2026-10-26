@@ -133,7 +133,7 @@ export default {
     const invoicesCard = (b) => {
       const outstanding = b.invoices.reduce((n, i) => n + i.remaining, 0) + b.uninvoiced.reduce((n, g) => n + g.value, 0);
       const canCollect = can('billing', 'create');
-      return html`<section class="card span-4" aria-labelledby="inv-title">
+      return html`<section class="card span-4" aria-labelledby="inv-title" data-dash="invoices">
         <div class="card__header">
           <div class="card__heading">
             <h2 class="card__title" id="inv-title">فواتير ${word} ${b.due ? html`<span class="count-badge" aria-label="${digits(b.due)} بانتظار الدفع">${digits(b.due)}</span>` : ''}</h2>
@@ -184,7 +184,7 @@ export default {
         </nav>
 
         <div class="bento">
-          ${show('appointments') ? html`<article class="card card--hero span-3">
+          ${show('appointments') ? html`<article class="card card--hero span-3" data-dash="appointments">
             <div class="kpi">
               <div class="kpi__head">
                 <span class="kpi__icon">${ico('calendar-check', { size: 22 })}</span>

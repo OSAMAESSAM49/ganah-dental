@@ -78,4 +78,39 @@ describe('dashboard cards, ownership rules and day billing (temporary database)'
       await deleteDatabase(name);
     }
   });
+test('treatment is charged from the moment it starts', async () => {
+    const { initData, repos } = await import('../js/data/index.js');
+    const { deleteDatabase } = await import('../js/data/idb.js');
+    const { loadSettings } = await import('../js/data/settings.js');
+    const billing = await import('../js/services/billing.js');
+    const patients = await import('../js/services/patients.js');
+    const treatment = await import('../js/services/treatment.js');
+    const { todayISO } = await import('../js/core/format.js');
+    const name = `ganah-test-${crypto.randomUUID()}`;
+    const adapter = await initData({ name });
+    try {
+      await loadSettings();
+      const p = await patients.createPatient({ name: 'مريض جاري', phone: '01013131313' });
+      const proc = (await repos.procedures.list()).find((x) => x.name === 'كشف');
+      const plan = await treatment.ensureActivePlan(p.id);
+      const [ti] = await treatment.addItems(plan.id, { procedure: proc, unitPrice: 25000 });
+      assert.equal((await billing.uninvoicedItems(p.id)).length, 0, 'planned work is not charged');
+
+      await treatment.setItemStatus(ti.id, 'in_progress');
+      assert.equal((await billing.uninvoicedItems(p.id)).length, 1, 'started work is charged');
+      const day = await billing.dayBilling(todayISO());
+      assert.equal(day.uninvoiced.length, 1);
+      assert.equal(day.uninvoiced[0].value, 25000);
+
+      await billing.createInvoice({ patientId: p.id, itemIds: [ti.id] });
+      const fails = async (fn) => { try { await fn(); return false; } catch { return true; } };
+      assert.ok(await fails(() => treatment.setItemStatus(ti.id, 'planned')), 'invoiced work cannot go back to planned');
+      assert.ok(await fails(() => treatment.updateItem(ti.id, { unitPrice: 1 })), 'invoiced price is locked');
+      await treatment.setItemStatus(ti.id, 'done');
+      assert.equal((await repos.treatmentItems.get(ti.id)).status, 'done', 'invoiced work can still be finished');
+    } finally {
+      adapter.close();
+      await deleteDatabase(name);
+    }
+  });
 });

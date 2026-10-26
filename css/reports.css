@@ -94,3 +94,9 @@
 .cloud-usage .progress { display: block; margin-block: 2px; }
 .card--inverse .cloud-usage .progress { background: rgb(127 127 127 / 30%); }
 .cloud-usage .progress__bar { display: block; min-inline-size: 4px; }
+
+/* Phones: today's invoices right after the appointments card (less scrolling at reception) */
+@media (max-width: 767px) {
+  .bento > [data-dash="appointments"] { order: -2; }
+  .bento > [data-dash="invoices"] { order: -1; }
+}

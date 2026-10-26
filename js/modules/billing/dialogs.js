@@ -13,7 +13,7 @@ import { textareaField } from '../../components/form.js';
 import { toastSuccess, toastError } from '../../components/toast.js';
 import { searchPatients, getPatient } from '../../services/patients.js';
 import {
-  uninvoicedItems, patientAccount, createInvoice, recordPayment, voidPayment, voidInvoice, setInstallments,
+  uninvoicedItems, chargeAt, patientAccount, createInvoice, recordPayment, voidPayment, voidInvoice, setInstallments,
   lineFromItem, invoiceTotals, splitInstallments, invoiceInstallments, formatInvoiceNo,
 } from '../../services/billing.js';
 import { patientAvatar } from '../patients/list.js';
@@ -71,11 +71,11 @@ export async function openInvoiceDialog(patientId, { preselect = null } = {}) {
 
   const itemsMarkup = () => html`
     ${items.length ? html`<div class="stack-sm">
-      <span class="field__label">بنود منتهية لم تُفوتر</span>
+      <span class="field__label">علاجات بدأت أو انتهت ولم تُفوتر</span>
       ${items.map((i) => html`<label class="check" style="justify-content: space-between; inline-size: 100%; padding: var(--sp-2) var(--sp-3); border-radius: var(--radius-md); background: var(--c-surface-2)">
-        <span class="row" style="gap: var(--sp-2)"><input type="checkbox" data-item="${i.id}" ${st.selected.has(i.id) ? 'checked' : ''}> ${i.procedureName} ${i.teeth?.length ? html`<span class="ltr subtle">${i.teeth.join(',')}</span>` : ''} <span class="subtle text-sm">${formatDate(i.doneAt)}</span></span>
+        <span class="row" style="gap: var(--sp-2)"><input type="checkbox" data-item="${i.id}" ${st.selected.has(i.id) ? 'checked' : ''}> ${i.procedureName} ${i.teeth?.length ? html`<span class="ltr subtle">${i.teeth.join(',')}</span>` : ''} <span class="subtle text-sm">${formatDate(chargeAt(i))}${i.status === 'in_progress' ? ' · جاري' : ''}</span></span>
         <strong>${formatMoney(lineFromItem(i).total)}</strong></label>`)}
-    </div>` : html`<p class="muted">لا توجد بنود منتهية لم تُفوتر. يمكنك إضافة بند يدوي.</p>`}
+    </div>` : html`<p class="muted">لا توجد علاجات لم تُفوتر. يمكنك إضافة بند يدوي.</p>`}
     <div class="stack-sm">
       ${st.extra.map((l, i) => html`<div class="row">
         <input class="input grow" data-extra-desc="${i}" value="${l.description}" placeholder="البيان (مثال: كشف)" aria-label="البيان">

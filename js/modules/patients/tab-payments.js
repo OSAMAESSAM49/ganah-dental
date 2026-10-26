@@ -26,7 +26,7 @@ export async function renderTab({ body, patient, signal }) {
           <div class="totals__item"><div class="totals__label">إجمالي الفواتير</div><div class="totals__value">${formatMoney(acc.billed)}</div></div>
           <div class="totals__item"><div class="totals__label">إجمالي المدفوع</div><div class="totals__value">${formatMoney(acc.paid)}</div></div>
           ${acc.credit ? html`<div class="totals__item"><div class="totals__label">رصيد دائن (مقدم)</div><div class="totals__value">${formatMoney(acc.credit)}</div></div>` : ''}
-          ${unbilled.length ? html`<div class="totals__item"><div class="totals__label">أعمال منتهية لم تُفوتر</div><div class="totals__value">${formatMoney(unbilledTotal)}</div></div>` : ''}
+          ${unbilled.length ? html`<div class="totals__item"><div class="totals__label">علاجات لم تُفوتر</div><div class="totals__value">${formatMoney(unbilledTotal)}</div></div>` : ''}
         </div>
 
         ${unbilled.length && perm.create ? html`

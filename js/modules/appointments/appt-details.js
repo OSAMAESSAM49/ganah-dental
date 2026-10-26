@@ -56,6 +56,8 @@ export async function openAppointmentDetails(appt) {
   const chairs = Object.fromEntries(activeChairs().map((c) => [c.id, c.name]));
   const doctor = a.doctorId ? await repos.users.get(a.doctorId, { includeDeleted: true }) : null;
 
+  // Doctors / Admin add work straight from the visit (fewest taps: button → tooth → procedure → add).
+  const canAddWork = () => can('treatment', 'create') && !['cancelled', 'no_show'].includes(a.status);
   const linkedItems = async () => (await Promise.all((a.treatmentItemIds ?? []).map((id) => repos.treatmentItems.get(id)))).filter(Boolean);
 
   const bodyMarkup = async () => {
@@ -88,13 +90,19 @@ export async function openAppointmentDetails(appt) {
             ${PREVIOUS[a.status] ? html`<button type="button" class="btn btn--ghost btn--sm" data-step="${PREVIOUS[a.status]}">${ico('refresh-cw', { size: 16 })} تراجع إلى «${APPT_STATUS[PREVIOUS[a.status]].label}»</button>` : ''}
           </div>` : ''}
 
-        ${items.length ? html`
+        ${items.length || canAddWork() ? html`
           <div class="stack-sm">
-            <span class="field__label">${ico('list-checks', { size: 18 })} بنود خطة العلاج في هذه الزيارة</span>
-            ${items.map((i) => html`<div class="row row--between" style="gap: var(--sp-2)">
+            <div class="row row--between">
+              <span class="field__label" style="margin:0">${ico('list-checks', { size: 18 })} العلاج في هذه الزيارة</span>
+              ${canAddWork() ? html`<button type="button" class="btn btn--primary btn--sm" data-quick-add>${ico('tooth', { size: 18 })} إضافة إجراء</button>` : ''}
+            </div>
+            ${items.length ? items.map((i) => html`<div class="row row--between" style="gap: var(--sp-2)">
               <span>${i.procedureName} ${i.teeth?.length ? html`<span class="ltr subtle">${i.teeth.join(',')}</span>` : ''} <span class="badge badge--${TREATMENT_STATUS[i.status].tone}">${TREATMENT_STATUS[i.status].label}</span></span>
-              ${can('treatment', 'edit') && (i.status === 'planned' || i.status === 'in_progress') && (a.status === 'in_chair' || a.status === 'done') ? html`<button type="button" class="btn btn--accent btn--sm" data-item-done="${i.id}">${ico('check', { size: 16 })} تم</button>` : ''}
-            </div>`)}
+              <span class="row" style="gap: var(--sp-2)">
+                ${can('treatment', 'edit') && i.status === 'planned' && a.status !== 'cancelled' && a.status !== 'no_show' ? html`<button type="button" class="btn btn--soft btn--sm" data-item-start="${i.id}">${ico('arrow-left', { size: 16 })} بدء</button>` : ''}
+                ${can('treatment', 'edit') && (i.status === 'planned' || i.status === 'in_progress') && (a.status === 'in_chair' || a.status === 'done') ? html`<button type="button" class="btn btn--accent btn--sm" data-item-done="${i.id}">${ico('check', { size: 16 })} تم</button>` : ''}
+              </span>
+            </div>`) : html`<p class="muted text-sm" style="margin:0">لم يُضف علاج لهذه الزيارة بعد.</p>`}
           </div>` : ''}
 
         ${(a.status === 'in_chair' || a.status === 'done') && can('patients', 'edit') ? html`
@@ -135,6 +143,19 @@ export async function openAppointmentDetails(appt) {
             else await setAppointmentStatus(a.id, s);
             changed = true;
             toastSuccess(`${a.patientName}: ${APPT_STATUS[s].label}`);
+            await refresh();
+            return;
+          }
+          if (t.closest('[data-quick-add]')) {
+            const { openQuickTreatment } = await import('./quick-treatment.js');
+            if (await openQuickTreatment(a)) { changed = true; await refresh(); }
+            return;
+          }
+          const start = t.closest('[data-item-start]');
+          if (start) {
+            await setItemStatus(start.dataset.itemStart, 'in_progress');
+            changed = true;
+            toastSuccess('بدأ العلاج — ظهر الحساب في «فواتير اليوم»');
             await refresh();
             return;
           }

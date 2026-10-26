@@ -19,7 +19,7 @@ import { loadCatalog } from '../../services/procedures.js';
 import { ageYears } from '../../services/patients.js';
 
 /** Default dentition from age: under 6 primary, 6–12 mixed, otherwise adult. */
-function defaultDentition(p) {
+export function defaultDentition(p) {
   const age = ageYears(p);
   if (age === null) return 'adult';
   if (age < 6) return 'primary';

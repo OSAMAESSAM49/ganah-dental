@@ -107,10 +107,19 @@ export function lineFromItem(item) {
 
 /* ---------- Queries ---------- */
 
+/** Treatment is billable from the moment it starts (in progress) — not only once done. */
+export const isBillable = (i) => (i.status === 'in_progress' || i.status === 'done') && !i.invoiceId;
+
+/** When an item's charge landed: the day it was started (or completed, if it never was "in progress"). */
+export function chargeAt(item) {
+  const started = (item.statusHistory ?? []).find((h) => h.status === 'in_progress')?.at;
+  return started ?? item.doneAt ?? item.updatedAt ?? '';
+}
+
 export async function uninvoicedItems(patientId) {
   return (await repos.treatmentItems.findBy('patientId', patientId))
-    .filter((i) => i.status === 'done' && !i.invoiceId)
-    .sort((a, b) => (a.doneAt ?? '').localeCompare(b.doneAt ?? ''));
+    .filter(isBillable)
+    .sort((a, b) => chargeAt(a).localeCompare(chargeAt(b)));
 }
 
 /** Everything about one patient's money: invoices with state, payments, totals, ledger. */
@@ -152,7 +161,7 @@ export async function createInvoice(input) {
     const it = await repos.treatmentItems.require(id);
     if (it.patientId !== patient.id) throw new BillingError('بند لا يخص هذا المريض');
     if (it.invoiceId) throw new BillingError(`«${it.procedureName}» تمت فوترته بالفعل`);
-    if (it.status !== 'done') throw new BillingError(`«${it.procedureName}» لم ينتهِ بعد`);
+    if (it.status !== 'done' && it.status !== 'in_progress') throw new BillingError(`«${it.procedureName}» لم يبدأ بعد`);
     items.push(it);
   }
   const lines = [
@@ -288,7 +297,7 @@ export async function setInstallments(invoiceId, installments) {
 
 /**
  * What needs collecting for a day: invoices dated that day with what is left on each, and
- * patients whose treatment was completed that day but has no invoice yet.
+ * patients whose treatment was started (or completed) that day but has no invoice yet.
  * `due` counts both (the number shown on the card).
  */
 export async function dayBilling(day) {
@@ -298,8 +307,8 @@ export async function dayBilling(day) {
     invoices.push({ invoice: inv, ...invoiceState(inv, await repos.payments.findBy('invoiceId', inv.id)) });
   }
   const byPatient = new Map();
-  for (const it of await repos.treatmentItems.list({ index: 'status', range: { eq: 'done' } })) {
-    if (it.invoiceId || !it.doneAt || toISODate(new Date(it.doneAt)) !== day) continue;
+  for (const it of await repos.treatmentItems.list()) {
+    if (!isBillable(it) || !chargeAt(it) || toISODate(new Date(chargeAt(it))) !== day) continue;
     const g = byPatient.get(it.patientId) ?? { patientId: it.patientId, items: [], value: 0 };
     g.items.push(it);
     g.value += itemMath(it).total;
