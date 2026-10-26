@@ -101,8 +101,12 @@ export async function ensureActivePlan(patientId) {
   const plans = await listPlans(patientId);
   const active = plans.find((p) => p.status === 'active');
   if (active) return active;
-  return repos.treatmentPlans.create({ patientId, name: plans.length ? 'خطة جديدة' : 'الخطة الرئيسية', status: 'active', notes: '', order: plans.length });
+  const own = plans.filter((p) => !isImportedHistory(p));
+  return repos.treatmentPlans.create({ patientId, name: own.length ? 'خطة جديدة' : 'الخطة الرئيسية', status: 'active', notes: '', order: own.length });
 }
+
+/** The completed "history" plan the Dentolize import adds (not a plan the clinic made). */
+export const isImportedHistory = (plan) => String(plan.id).startsWith('dz-plan-');
 
 /**
  * @param {string} patientId

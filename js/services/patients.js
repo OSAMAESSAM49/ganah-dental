@@ -16,10 +16,13 @@ export const FILE_PREFIX = 'G-';
 /** 7 → "G-00007". Exported for tests. */
 export const formatFileNo = (n) => `${FILE_PREFIX}${String(n).padStart(5, '0')}`;
 
-/** Text used for search: name, phones, file number (normalized). Exported for tests. */
+/**
+ * Text used for search: name, phones, file number (normalized), and the number from the
+ * previous system (legacyFileNo, set by the Dentolize import). Exported for tests.
+ */
 export function buildSearchText(p) {
   const fileDigits = String(p.fileNo ?? '').replace(/\D/g, '');
-  return normalizeArabic([p.name, p.phone, p.phone2, p.fileNo, fileDigits, String(Number(fileDigits) || '')].filter(Boolean).join(' '));
+  return normalizeArabic([p.name, p.phone, p.phone2, p.fileNo, fileDigits, String(Number(fileDigits) || ''), p.legacyFileNo].filter(Boolean).join(' '));
 }
 
 /** Estimated DOB (1 January) from an age in years. */
@@ -57,7 +60,7 @@ export async function searchPatients(query, { limit = 50, list } = {}) {
     if (!text.includes(q) && !(qDigits.length >= 3 && text.includes(qDigits))) continue;
     let score = 3;
     const name = normalizeArabic(p.name);
-    if (qDigits && (String(Number(String(p.fileNo).replace(/\D/g, ''))) === qDigits || normalizeEgyptPhone(p.phone) === normalizeEgyptPhone(q))) score = 0;
+    if (qDigits && (String(Number(String(p.fileNo).replace(/\D/g, ''))) === qDigits || p.legacyFileNo === qDigits || normalizeEgyptPhone(p.phone) === normalizeEgyptPhone(q))) score = 0;
     else if (name.startsWith(q)) score = 1;
     else if (name.split(' ').some((w) => w.startsWith(q))) score = 2;
     scored.push({ p, score });

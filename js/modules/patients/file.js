@@ -57,6 +57,7 @@ export default {
               <h1 class="pfile-head__name">${patient.name}</h1>
               <div class="pfile-head__meta">
                 <span class="badge badge--dark ltr">${digits(patient.fileNo)}</span>
+                ${patient.legacyFileNo ? html`<span class="badge" title="رقم الملف في البرنامج القديم">قديم <span class="ltr">#${digits(patient.legacyFileNo)}</span></span>` : ''}
                 ${patient.dob ? html`<span class="badge">${formatAge(patient.dob)}${patient.dobEstimated ? ' تقريبًا' : ''}</span>` : ''}
                 ${patient.gender ? html`<span class="badge">${GENDER_LABELS[patient.gender]}</span>` : ''}
                 ${patient.isDemo ? html`<span class="badge badge--warning">بيانات تجريبية</span>` : ''}

@@ -27,6 +27,7 @@ export async function renderTab({ body, patient }) {
         <div class="card__body">
           <dl class="dl">
             <dt>رقم الملف</dt><dd class="ltr">${digits(p.fileNo)}</dd>
+            ${p.legacyFileNo ? html`<dt>رقم الملف القديم</dt><dd class="ltr">#${digits(p.legacyFileNo)}</dd>` : ''}
             <dt>النوع</dt><dd>${GENDER_LABELS[p.gender] ?? dash}</dd>
             <dt>تاريخ الميلاد</dt><dd>${p.dob ? html`${formatDate(p.dob)}${p.dobEstimated ? html` <span class="subtle">(تقريبي)</span>` : ''}` : dash}</dd>
             <dt>الموبايل</dt><dd>${p.phone ? html`<span class="ltr">${digits(p.phone)}</span>` : dash}</dd>

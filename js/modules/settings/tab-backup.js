@@ -107,6 +107,23 @@ export async function renderTab({ body, signal }) {
         </section>` : ''}
         ${admin ? html`<section class="card span-12">
           <div class="card__header"><div class="card__heading">
+            <h2 class="card__title">${ico('upload', { size: 20 })} استيراد من Dentolize</h2>
+            <p class="card__subtitle">نقل المرضى والمواعيد والفواتير والمدفوعات والمصروفات من البرنامج القديم (لمدير النظام فقط)</p>
+          </div></div>
+          <div class="card__body stack">
+            <ol class="stack-sm" style="margin:0; padding-inline-start: var(--sp-5)">
+              <li>من Dentolize صدّر كل ملفات Excel (المرضى، المواعيد، الفواتير، المدفوعات، المصروفات) <strong>في نفس الوقت</strong>، ويُفضّل بعد آخر يوم عمل عليه.</li>
+              <li>اختر كل الملفات مرة واحدة. ستظهر مراجعة بالأعداد ومطابقة الحسابات قبل أي حفظ.</li>
+              <li>الاستيراد مرة ثانية آمن: ما تم نقله من قبل لا يتكرر.</li>
+            </ol>
+            <label class="btn btn--primary" style="align-self: flex-start">${ico('file-spreadsheet')} اختيار ملفات Dentolize
+              <input type="file" id="dz-files" accept=".xlsx" multiple hidden>
+            </label>
+            <p class="muted text-sm">${ico('lock', { size: 14 })} الملفات تُقرأ على هذا الجهاز فقط ولا تُرفع لأي مكان غير قاعدة بيانات العيادة.</p>
+          </div>
+        </section>` : ''}
+        ${admin ? html`<section class="card span-12">
+          <div class="card__header"><div class="card__heading">
             <h2 class="card__title">${ico('sparkles', { size: 20 })} بيانات تجريبية</h2>
             <p class="card__subtitle">لتجربة البرنامج وتدريب الفريق قبل إدخال المرضى الحقيقيين</p>
           </div></div>
@@ -169,6 +186,14 @@ export async function renderTab({ body, signal }) {
     if (t.id === 'remind-days') {
       await updateSettings('app', { backupReminderDays: Number(t.value) });
       toastSuccess('تم حفظ موعد التذكير');
+      return;
+    }
+    if (t.id === 'dz-files') {
+      const files = [...(t.files ?? [])];
+      t.value = '';
+      if (!files.length) return;
+      const { runDentolizeImport } = await import('./dentolize-import.js');
+      if (await runDentolizeImport(files)) await draw();
       return;
     }
     if (t.id !== 'restore-file' && t.id !== 'merge-file') return;

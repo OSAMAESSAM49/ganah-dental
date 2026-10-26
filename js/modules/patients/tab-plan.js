@@ -18,7 +18,7 @@ import { toastSuccess, toastError } from '../../components/toast.js';
 import { emptyState } from '../../components/states.js';
 import { loadCatalog } from '../../services/procedures.js';
 import {
-  listPlans, listItems, ensureActivePlan, createPlan, updatePlan, choosePlan, setPlanStatus, deletePlan,
+  listPlans, listItems, ensureActivePlan, isImportedHistory, createPlan, updatePlan, choosePlan, setPlanStatus, deletePlan,
   setItemStatus, addSession, deleteItem, itemMath, planTotals,
 } from '../../services/treatment.js';
 import { addItemDialog, editItemDialog, confirmDone, printQuote } from './plan-dialogs.js';
@@ -41,7 +41,8 @@ export async function renderTab({ body, patient, query, signal }) {
 
   const load = async () => {
     [plans, items, labCases] = await Promise.all([listPlans(p.id), listItems(p.id), can('labs', 'view') ? labCasesForPatient(p.id) : []]);
-    if (!plans.length && perm.create) { await ensureActivePlan(p.id); plans = await listPlans(p.id); }
+    // No plan yet (or only the history imported from Dentolize): start the main plan.
+    if (plans.every(isImportedHistory) && perm.create) { await ensureActivePlan(p.id); plans = await listPlans(p.id); }
     if (!plans.find((pl) => pl.id === planId)) planId = (plans.find((pl) => pl.status === 'active') ?? plans[0])?.id ?? '';
     if (perm.create && !catalog.length) catalog = await loadCatalog({ includeInactive: false });
   };
