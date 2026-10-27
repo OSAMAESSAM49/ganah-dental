@@ -65,7 +65,10 @@ export default {
     /* ---------- Invoices ---------- */
     const invoicesTab = async () => {
       const [invoices, payments] = await Promise.all([repos.invoices.list({ index: 'date', range: { gte: st.from, lte: st.to } }), repos.payments.list()]);
-      const rows = invoices.map((i) => ({ ...i, ...invoiceState(i, payments) }))
+      // Group once: each invoice then looks at its own payments only (not all of them).
+      const byInvoice = new Map();
+      for (const p of payments) if (p.invoiceId) (byInvoice.get(p.invoiceId) ?? byInvoice.set(p.invoiceId, []).get(p.invoiceId)).push(p);
+      const rows = invoices.map((i) => ({ ...i, ...invoiceState(i, byInvoice.get(i.id) ?? []) }))
         .filter((i) => (!st.status || i.status === st.status) && (!st.q || normalizeArabic(`${i.patientName} ${formatInvoiceNo(i.number)}`).includes(normalizeArabic(st.q))))
         .sort((a, b) => b.number - a.number);
       const live = rows.filter((r) => r.status !== 'void');
@@ -253,7 +256,14 @@ export default {
     on(body, 'click', '[data-void-pay]', async (_, b) => { const p = await repos.payments.get(b.dataset.voidPay); if (p) voidPaymentFlow(p); }, { signal });
     on(body, 'click', '[data-print-closing]', (_, b) => choosePrintSize(b, (size) => printClosing(st.day, size)), { signal });
 
-    const off = onEvent('data:changed', ({ store }) => { if (store === 'invoices' || store === 'payments') draw(); });
+    // One redraw per burst of changes (a sync pull or an invoice with its payment).
+    let changeTimer;
+    const offChanges = onEvent('data:changed', ({ store }) => {
+      if (store !== 'invoices' && store !== 'payments') return;
+      clearTimeout(changeTimer);
+      changeTimer = setTimeout(draw, 300);
+    });
+    const off = () => { offChanges(); clearTimeout(changeTimer); };
     await draw();
     return off;
   },

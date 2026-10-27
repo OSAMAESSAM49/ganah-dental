@@ -133,6 +133,7 @@ export default {
       <div class="row" style="justify-content:center; margin-block-start: var(--sp-4)"><button type="button" class="btn" id="pmore" hidden>عرض المزيد</button></div>`);
 
     const table = mountTable(el.querySelector('#ptable'), {
+      pageSize: Infinity, // «عرض المزيد» below covers both layouts
       signal,
       caption: 'قائمة المرضى',
       rows: [],

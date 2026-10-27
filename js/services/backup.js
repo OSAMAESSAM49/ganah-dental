@@ -18,7 +18,10 @@ import { currentUser } from '../core/session.js';
 import { getSettings } from '../data/settings.js';
 import { logEvent } from './audit.js';
 import { buildSearchText } from './patients.js';
-import { zipSync, unzipSync, strToU8, strFromU8 } from '../../vendor/fflate/fflate.js';
+/** @type {any} */
+let zipLib = null;
+/** Loads the zip library the first time a backup is made or read. */
+export const loadZip = async () => (zipLib ??= await import('../../vendor/fflate/fflate.js'));
 
 export const BACKUP_APP = 'ganah-dental';
 export const BACKUP_FORMAT = 2;
@@ -126,6 +129,7 @@ export async function buildBackup({ onStore, files } = {}) {
 
 /** The whole database as a .zip Blob (backup.json + image files). */
 export async function buildBackupZip(onStore) {
+  const { zipSync, strToU8 } = await loadZip();
   const files = new Map();
   const backup = await buildBackup({ onStore, files });
   /** @type {Record<string, [Uint8Array, { level: number }]>} */
@@ -212,10 +216,12 @@ export function parseBackup(text) {
 }
 
 /**
- * Parses a backup .zip (bytes). Exported for tests.
+ * Parses a backup .zip (bytes), once loadZip() has run. Exported for tests.
  * @param {Uint8Array} bytes
  */
 export function parseBackupZip(bytes) {
+  if (!zipLib) throw new Error('call loadZip() first');
+  const { unzipSync, strFromU8 } = zipLib;
   let entries;
   try { entries = unzipSync(bytes); } catch { throw new BackupError('ملف الضغط تالف أو غير مكتمل.'); }
   if (!entries['backup.json']) throw new BackupError('هذا الملف المضغوط ليس نسخة احتياطية من برنامج عيادة جنة.');
@@ -231,6 +237,7 @@ export async function readBackupFile(file) {
   if (file.size > 2 * 1024 * 1024 * 1024) throw new BackupError('الملف كبير جدًا');
   const bytes = new Uint8Array(await file.arrayBuffer());
   const isZip = bytes[0] === 0x50 && bytes[1] === 0x4b; // "PK"
+  if (isZip) await loadZip();
   return isZip ? parseBackupZip(bytes) : parseBackup(new TextDecoder().decode(bytes));
 }
 

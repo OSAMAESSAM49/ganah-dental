@@ -104,27 +104,33 @@ export default {
     let filter = 'all';
 
     /* ---------- data ---------- */
-    const load = async () => {
+    /**
+     * Loads the cards' data. After a change only the cards that read the changed stores are
+     * worked out again; the rest keep what `prev` had (a payment doesn't redo the calendar).
+     * @param {Set<string>|null} changed null = everything
+     */
+    const load = async (changed = null, prev = {}) => {
+      const needs = (...stores) => !changed || stores.some((s) => changed.has(s));
       // Fresh copy: the Admin may have changed this user's cards (possibly on another device).
-      me = currentUser() ? await repos.users.get(currentUser().id) : null;
-      const d = {};
-      if (show('appointments') || show('patientsList')) {
+      if (needs('users') || !me) me = currentUser() ? await repos.users.get(currentUser().id) : null;
+      const d = { ...prev };
+      if ((show('appointments') || show('patientsList')) && (needs('appointments', 'patients') || !prev.appts)) {
         d.appts = (await listDay(day)).filter((a) => a.status !== 'cancelled');
         d.patientsById = new Map((await allPatients()).map((p) => [p.id, p]));
       }
-      if (show('collections') || show('net')) {
+      if ((show('collections') || show('net')) && (needs('payments', 'expenses') || prev.collections === undefined)) {
         const [cur, prev, exp, expPrev] = await Promise.all([paymentsBetween(day, day), paymentsBetween(weekAgo, weekAgo), expensesTotal(day, day), expensesTotal(weekAgo, weekAgo)]);
         d.collections = sum(cur); d.collectionsPrev = sum(prev); d.paymentsCount = cur.length;
         d.expenses = exp; d.net = d.collections - exp; d.netPrev = d.collectionsPrev - expPrev;
       }
-      if (show('newPatients')) {
+      if (show('newPatients') && (needs('patients') || prev.newPatients === undefined)) {
         const all = await allPatients();
         d.newPatients = all.filter((p) => localDay(p.createdAt) === day).length;
         d.newPrev = all.filter((p) => localDay(p.createdAt) === weekAgo).length;
       }
-      if (show('invoices')) d.billing = await dayBilling(day);
+      if (show('invoices') && (needs('invoices', 'payments', 'treatmentItems', 'appointments', 'patients') || !prev.billing)) d.billing = await dayBilling(day);
       if (show('alerts')) d.alerts = await collectAlerts(can('settings', 'edit') ? await backupStatus() : null);
-      if (show('trend')) d.trend = (await financialReport(...presetRange('last12', today))).series;
+      if (show('trend') && (needs('payments', 'expenses') || !prev.trend)) d.trend = (await financialReport(...presetRange('last12', today))).series;
       if (show('system')) d.system = await systemStatus();
       return d;
     };
@@ -317,15 +323,19 @@ export default {
     // reception collecting a payment…) update the cards within a moment.
     const RELEVANT = new Set(['appointments', 'invoices', 'payments', 'treatmentItems', 'patients', 'expenses', 'followUps', 'inventoryItems', 'labCases', 'users']);
     let timer = 0;
+    let pending = new Set();
     const refresh = async () => {
       if (signal.aborted) return;
       // Never repaint under an open dialog: try again once it is closed.
       if (document.querySelector('dialog[open]')) { timer = setTimeout(refresh, 800); return; }
-      data = await load();
+      const changed = pending;
+      pending = new Set();
+      data = await load(changed, data);
       if (!signal.aborted) paint(data);
     };
     const off = onEvent('data:changed', ({ store }) => {
       if (!RELEVANT.has(store)) return;
+      pending.add(store);
       clearTimeout(timer);
       timer = setTimeout(refresh, 400);
     });

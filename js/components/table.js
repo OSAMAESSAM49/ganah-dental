@@ -4,6 +4,7 @@
  * Column: { key, label, sortable?, num?, render?(row) → SafeHTML|string, value?(row) → sort value }
  */
 import { html, ico, on, render } from '../core/dom.js';
+import { digits } from '../core/format.js';
 import { normalizeArabic } from '../core/text.js';
 import { emptyState } from './states.js';
 
@@ -37,11 +38,20 @@ export function searchRows(rows, query, fields) {
  * @param {HTMLElement} el
  * @param {{ columns: any[], rows: any[], caption?: string, rowHref?: (row) => string,
  *           sort?: { key: string, dir: 'asc'|'desc' }, empty?: Parameters<typeof emptyState>[0],
- *           signal?: AbortSignal }} opts
+ *           pageSize?: number, signal?: AbortSignal }} opts
+ *   Long tables show pageSize rows (default 100) and a «عرض المزيد» button.
  */
 export function mountTable(el, opts) {
   let rows = opts.rows;
   let sort = opts.sort ?? null;
+  const pageSize = opts.pageSize ?? 100;
+  let limit = pageSize;
+  // Mounting again into the same element replaces the previous table's listeners.
+  /** @type {any} */ (el).__table?.abort();
+  const ac = new AbortController();
+  /** @type {any} */ (el).__table = ac;
+  opts.signal?.addEventListener('abort', () => ac.abort(), { once: true });
+  const signal = ac.signal;
 
   const draw = () => {
     if (!rows.length) {
@@ -49,7 +59,8 @@ export function mountTable(el, opts) {
       return;
     }
     const col = sort && opts.columns.find((c) => c.key === sort.key);
-    const shown = col ? sortRows(rows, col, sort.dir) : rows;
+    const sorted = col ? sortRows(rows, col, sort.dir) : rows;
+    const shown = sorted.slice(0, limit);
     render(el, html`
       <div class="table-wrap">
         <table class="table table--stack">
@@ -58,9 +69,9 @@ export function mountTable(el, opts) {
             ${opts.columns.map((c) => {
               const active = sort?.key === c.key;
               const aria = active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none';
-              return html`<th scope="col" class="${c.num ? 'num' : ''}">
+              return html`<th scope="col" class="${c.num ? 'num' : ''}" ${c.sortable ? html`aria-sort="${aria}"` : ''}>
                 ${c.sortable
-                  ? html`<button type="button" class="table__sort" data-sort="${c.key}" aria-sort="${aria}">${c.label} ${ico('arrow-up-down', { size: 14 })}</button>`
+                  ? html`<button type="button" class="table__sort" data-sort="${c.key}">${c.label} ${ico('arrow-up-down', { size: 14 })}</button>`
                   : c.label}
               </th>`;
             })}
@@ -72,22 +83,26 @@ export function mountTable(el, opts) {
               </tr>`)}
           </tbody>
         </table>
-      </div>`);
+      </div>
+      ${sorted.length > limit ? html`<div class="row" style="justify-content:center; margin-block-start: var(--sp-3)">
+        <button type="button" class="btn" data-table-more>عرض المزيد (${digits(sorted.length - limit)} متبقٍ)</button></div>` : ''}`);
   };
+
+  on(el, 'click', '[data-table-more]', () => { limit += pageSize; draw(); }, { signal });
 
   on(el, 'click', '[data-sort]', (_, btn) => {
     const key = btn.dataset.sort;
     sort = { key, dir: sort?.key === key && sort.dir === 'asc' ? 'desc' : 'asc' };
     draw();
     el.querySelector(`[data-sort="${CSS.escape(key)}"]`)?.focus();
-  }, { signal: opts.signal });
+  }, { signal });
 
   if (opts.rowHref) {
     const go = (tr) => { location.hash = tr.dataset.href.replace(/^#/, ''); };
-    on(el, 'click', 'tr[data-href]', (e, tr) => { if (!(/** @type {HTMLElement} */ (e.target)).closest('a,button,input')) go(tr); }, { signal: opts.signal });
-    on(el, 'keydown', 'tr[data-href]', (e, tr) => { if (/** @type {KeyboardEvent} */ (e).key === 'Enter') go(tr); }, { signal: opts.signal });
+    on(el, 'click', 'tr[data-href]', (e, tr) => { if (!(/** @type {HTMLElement} */ (e.target)).closest('a,button,input')) go(tr); }, { signal });
+    on(el, 'keydown', 'tr[data-href]', (e, tr) => { if (/** @type {KeyboardEvent} */ (e).key === 'Enter') go(tr); }, { signal });
   }
 
   draw();
-  return { update(next) { rows = next; draw(); } };
+  return { update(next) { rows = next; if (rows.length <= pageSize) limit = pageSize; draw(); } };
 }

@@ -18,7 +18,6 @@ import { toast } from '../components/toast.js';
 import { openMenu } from '../components/menu.js';
 import { confirmDialog, openModal } from '../components/modal.js';
 import { logout } from '../services/auth.js';
-import { openChangePasswordDialog, openPinDialog } from '../modules/account/dialogs.js';
 import { attachPatientSearch } from '../components/patient-search.js';
 import { backupStatus } from '../services/backup.js';
 import { collectAlerts } from '../services/alerts.js';
@@ -209,8 +208,8 @@ function openUserMenu(anchor) {
     header: html`<div class="menu__header">${avatar(s.user)}<div class="menu__header-text"><strong>${s.user.displayName}</strong><small>${s.role?.name ?? ''} · <span class="ltr">${s.user.username}</span></small></div></div>`,
     items: [
       { label: 'تبديل المستخدم', icon: 'users', onSelect: () => signOut({ switchUser: true }) },
-      { label: 'تغيير كلمة المرور', icon: 'key-round', onSelect: () => openChangePasswordDialog() },
-      { label: s.user.hasPin ? 'تغيير الرمز السريع' : 'تعيين رمز سريع (PIN)', icon: 'lock', onSelect: () => openPinDialog() },
+      { label: 'تغيير كلمة المرور', icon: 'key-round', onSelect: async () => (await import('../modules/account/dialogs.js')).openChangePasswordDialog() },
+      { label: s.user.hasPin ? 'تغيير الرمز السريع' : 'تعيين رمز سريع (PIN)', icon: 'lock', onSelect: async () => (await import('../modules/account/dialogs.js')).openPinDialog() },
       { label: `المظهر: ${THEME_LABELS[getTheme()]}`, icon: 'palette', onSelect: () => { const t = cycleTheme(); toast(`المظهر: ${THEME_LABELS[t]}`, { duration: 1800 }); document.querySelectorAll('[data-action="theme"]').forEach((b) => render(b, themeButton())); } },
       'sep',
       { label: 'تسجيل الخروج', icon: 'log-out', danger: true, onSelect: () => signOut() },

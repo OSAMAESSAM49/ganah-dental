@@ -150,12 +150,23 @@ export default {
       draw();
     };
 
-    on(el, 'input', '#rq', (_, i) => { st.q = i.value; draw(); }, { signal });
+    let qTimer;
+    on(el, 'input', '#rq', (_, i) => { clearTimeout(qTimer); qTimer = setTimeout(() => { st.q = i.value; draw(); }, 200); }, { signal });
     on(el, 'click', '[data-new]', () => (tab === 'list' ? prescriptionDialog() : tab === 'medicines' ? medicineDialog(null) : templateDialog(null)), { signal });
     on(el, 'click', '[data-edit-med]', (_, b) => medicineDialog(medicines.find((m) => m.id === b.dataset.editMed)), { signal });
-    on(el, 'click', '[data-toggle-med]', (_, b) => { const m = medicines.find((x) => x.id === b.dataset.toggleMed); setMedicineActive(m.id, m.active === false); }, { signal });
+    on(el, 'click', '[data-toggle-med]', async (_, b) => {
+      const m = medicines.find((x) => x.id === b.dataset.toggleMed);
+      const on = m.active === false;
+      await setMedicineActive(m.id, on);
+      toastSuccess(on ? `عاد «${m.name}» لقائمة الأدوية` : `أُوقف «${m.name}» — لن يظهر عند كتابة روشتة`);
+    }, { signal });
     on(el, 'click', '[data-edit-tpl]', (_, b) => templateDialog(templates.find((t) => t.id === b.dataset.editTpl)), { signal });
-    on(el, 'click', '[data-toggle-tpl]', (_, b) => { const t = templates.find((x) => x.id === b.dataset.toggleTpl); setRxTemplateActive(t.id, t.active === false); }, { signal });
+    on(el, 'click', '[data-toggle-tpl]', async (_, b) => {
+      const t = templates.find((x) => x.id === b.dataset.toggleTpl);
+      const on = t.active === false;
+      await setRxTemplateActive(t.id, on);
+      toastSuccess(on ? `تم تفعيل قالب «${t.name}»` : `أُوقف قالب «${t.name}»`);
+    }, { signal });
     on(el, 'click', '[data-print]', async (_, b) => { const r = rows.find((x) => x.id === b.dataset.print); printPrescription(r, await getPatient(r.patientId)); }, { signal });
     on(el, 'click', '[data-rx-menu]', (_, b) => {
       const r = rows.find((x) => x.id === b.dataset.rxMenu);

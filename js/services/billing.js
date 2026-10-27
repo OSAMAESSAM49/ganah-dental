@@ -451,9 +451,10 @@ export async function outstandingBalances() {
 /** Installments across all open invoices with their state (for the installments tab and alerts). */
 export async function allInstallments(today = todayISO()) {
   const invoices = (await repos.invoices.list()).filter((i) => i.status !== 'void' && i.status !== 'paid' && i.installments?.length);
+  const paymentsOf = await Promise.all(invoices.map((inv) => repos.payments.findBy('invoiceId', inv.id)));
   const out = [];
-  for (const inv of invoices) {
-    const state = invoiceState(inv, await repos.payments.findBy('invoiceId', inv.id));
+  for (const [n, inv] of invoices.entries()) {
+    const state = invoiceState(inv, paymentsOf[n]);
     for (const ins of invoiceInstallments(inv, state.paid, today)) {
       if (ins.status !== 'paid') out.push({ ...ins, invoice: inv, remainingOnInstallment: ins.amount - ins.covered });
     }

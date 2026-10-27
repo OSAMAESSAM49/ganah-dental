@@ -84,6 +84,7 @@ export default {
     let rows = [], offset = 0, q = '', hasMore = false;
 
     const table = mountTable(el.querySelector('#audit-table'), {
+      pageSize: Infinity, // pages itself (from the database)
       signal,
       caption: 'سجل العمليات',
       empty: { icon: 'scroll-text', title: 'لا توجد عمليات في هذه الفترة', hint: 'غيّر نطاق التاريخ أو المرشحات.' },

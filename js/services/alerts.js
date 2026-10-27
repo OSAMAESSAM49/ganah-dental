@@ -3,6 +3,9 @@
  * the modules the signed-in user can view. Each alert links to the screen that resolves it.
  */
 import { can } from '../core/permissions.js';
+import { currentUser } from '../core/session.js';
+import { onEvent } from '../core/bus.js';
+import { todayISO } from '../core/format.js';
 import { digits, formatMoney } from '../core/format.js';
 import { followUpCounts } from './followups.js';
 import { allInstallments } from './billing.js';
@@ -13,8 +16,25 @@ import { backupStatus } from './backup.js';
 
 /** @typedef {{ icon: string, tone: 'danger'|'warning'|'info', title: string, sub: string, link: string }} Alert */
 
+/* The bell and the dashboard ask for the same list: work it out once and reuse it until
+   something it depends on changes (or the user or the day does). */
+const SOURCES = new Set(['followUps', 'invoices', 'payments', 'appointments', 'labCases', 'inventoryItems', 'stockBatches', 'stockMovements', 'meta', 'users']);
+let cache = null; // { key, promise }
+onEvent('data:changed', ({ store }) => { if (SOURCES.has(store)) cache = null; });
+onEvent('auth:changed', () => { cache = null; });
+
 /** Most urgent first. @param {object|null} [backup] backupStatus() result if already loaded @returns {Promise<Alert[]>} */
-export async function collectAlerts(backup) {
+export function collectAlerts(backup) {
+  const key = `${currentUser()?.id ?? ''}|${todayISO()}`;
+  if (cache?.key !== key) {
+    const promise = computeAlerts(backup);
+    cache = { key, promise };
+    promise.catch(() => { if (cache?.promise === promise) cache = null; });
+  }
+  return cache.promise;
+}
+
+async function computeAlerts(backup) {
   if (backup === undefined) backup = can('settings', 'edit') ? await backupStatus() : null;
   const out = [];
   if (backup?.due) out.push({ icon: 'database', tone: 'warning', title: 'حان وقت النسخ الاحتياطي', sub: backup.lastAt ? `آخر نسخة منذ ${digits(backup.days)} يوم` : 'لم تؤخذ أي نسخة بعد', link: '#/settings?tab=backup' });
