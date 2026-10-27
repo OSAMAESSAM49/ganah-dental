@@ -218,7 +218,7 @@ export function planImport(sheets, ctx) {
   const report = {
     patients: { added: 0, merged: 0, already: 0, nameOnly: 0, badPhones: 0 },
     appointments: { added: 0, already: 0, skipped: 0, upcoming: 0 },
-    invoices: { added: 0, already: 0, lines: 0, mismatches: [], dentolizeTotal: 0, total: 0, dentolizeRemaining: 0, remaining: 0 },
+    invoices: { added: 0, already: 0, lines: 0, mismatches: [], dentolizeTotal: 0, total: 0, dentolizeRemaining: 0, remaining: 0, owed: [], fixed: 0 },
     payments: { added: 0, already: 0, onAccount: 0, fromBalance: 0, voided: 0, total: 0, unmatched: 0 },
     expenses: { added: 0, already: 0, total: 0, paidTotal: 0 },
     income: { count: 0, total: 0 },
@@ -336,7 +336,9 @@ export function planImport(sheets, ctx) {
     if (cur && (r['الإجراءات العلاجية'] != null || r['Procedure Price'] != null)) cur.lines.push(r);
   }
   const invByDz = new Map(ex.invoices.filter((i) => String(i.id).startsWith('dz-inv-')).map((i) => [i.id.slice(7), i]));
+  const importedBefore = new Map(invByDz);
   const newInvoices = [];
+  const fixedInvoices = [];
   for (const { row, lines } of invoices) {
     const dz = str(row['رقم الملف']);
     const p = patientOf(row);
@@ -344,7 +346,19 @@ export function planImport(sheets, ctx) {
     const dentolizeTotal = piasters(row['المجموع']);
     report.invoices.dentolizeTotal += dentolizeTotal;
     report.invoices.dentolizeRemaining += piasters(row['المطلوب دفعه']);
-    if (ids.invoices.has(id) || invByDz.has(dz)) { report.invoices.already++; continue; }
+    if (ids.invoices.has(id) || invByDz.has(dz)) {
+      report.invoices.already++;
+      // Earlier imports booked a total Dentolize had lowered (no discount recorded) as a
+      // discount; the clinic says the patient still owes it. Running the import again puts it back.
+      const old = importedBefore.get(dz);
+      const recorded = piasters(row['خصم']);
+      const oldLines = (old?.lines ?? []).reduce((n, l) => n + l.total, 0);
+      if (old && old.status !== 'void' && old.discountType === 'amount' && old.discountValue > recorded && old.discountValue === oldLines - dentolizeTotal && !fixedInvoices.some((f) => f.id === old.id)) {
+        fixedInvoices.push({ ...old, discountValue: recorded, updatedAt: now });
+        report.invoices.owed.push({ dz, amount: old.discountValue - recorded });
+      }
+      continue;
+    }
     if (!p) continue;
     const created = row['تم الإنشاء'];
     const createdISO = wallToISO(created) ?? now;
@@ -375,8 +389,11 @@ export function planImport(sheets, ctx) {
     const fee = piasters(row['رسوم التشخيص']);
     if (fee > 0) invLines.push({ treatmentItemId: null, description: 'رسوم كشف', teeth: [], qty: 1, unitPrice: fee, discount: 0, total: fee });
     const lineSum = invLines.reduce((n, l) => n + l.total, 0);
-    // Dentolize sometimes lowered the total without recording a discount: its total wins.
-    const discount = Math.max(piasters(row['خصم']), lineSum - dentolizeTotal);
+    // Only the discount Dentolize recorded counts. When it lowered the total below the lines
+    // without one, the difference stays owed by the patient (the clinic's rule).
+    const discount = piasters(row['خصم']);
+    const owed = Math.max(0, lineSum - discount - dentolizeTotal);
+    if (owed) report.invoices.owed.push({ dz, amount: owed });
     // No lines (e.g. an opening-balance invoice) or lines that don't add up: one balancing line.
     const want = dentolizeTotal + discount;
     if (want > lineSum) {
@@ -390,8 +407,8 @@ export function planImport(sheets, ctx) {
       installments: [], installmentsBase: 0, notes, status: 'open', voidReason: '',
     }, createdISO, by);
     const { total } = invoiceTotals(inv);
-    if (total !== dentolizeTotal) report.invoices.mismatches.push({ dz, kind: 'total', dentolize: dentolizeTotal, here: total });
-    inv._dentolizeRemaining = piasters(row['المطلوب دفعه']);
+    if (total !== dentolizeTotal + owed) report.invoices.mismatches.push({ dz, kind: 'total', dentolize: dentolizeTotal, here: total });
+    inv._dentolizeRemaining = piasters(row['المطلوب دفعه']) + owed;
     newInvoices.push(inv);
     invByDz.set(dz, inv);
     report.invoices.lines += invLines.length;
@@ -469,9 +486,11 @@ export function planImport(sheets, ctx) {
     if (st.remaining !== inv._dentolizeRemaining) report.invoices.mismatches.push({ dz: inv.notes.match(/#(\d+)/)?.[1], kind: 'remaining', dentolize: inv._dentolizeRemaining, here: st.remaining });
     delete inv._dentolizeRemaining;
   }
-  writes.invoices = newInvoices;
+  for (const inv of fixedInvoices) inv.status = invoiceState(inv, byInvoice.get(inv.id) ?? []).status;
+  writes.invoices = [...newInvoices, ...fixedInvoices];
   writes.payments = newPayments;
   report.invoices.added = newInvoices.length;
+  report.invoices.fixed = fixedInvoices.length;
 
   /* Appointments. */
   const doctorByUser = (name) => ctx.doctorFor(str(name));

@@ -83,11 +83,12 @@ describe('Dentolize import', () => {
     assert.equal(ap.find((a) => a.status === 'cancelled').cancelReason, 'ظرف طارئ');
 
     const inv5 = plan.writes.invoices.find((i) => i.notes.startsWith('Dentolize #5'));
-    assert.equal(inv5.discountValue, 5000, 'Dentolize total (600) wins over the lines (650)');
+    assert.equal(inv5.discountValue, 0, 'Dentolize lowered the total (650 → 600) with no discount recorded: not a discount');
+    assert.deepEqual(r.invoices.owed, [{ dz: '5', amount: 5000 }], 'the 50 stays owed by the patient');
     assert.deepEqual(inv5.lines[0].teeth, [26]);
     assert.equal(inv5.status, 'partial');
-    assert.equal(r.invoices.total, r.invoices.dentolizeTotal);
-    assert.equal(r.invoices.remaining, r.invoices.dentolizeRemaining);
+    assert.equal(r.invoices.total, r.invoices.dentolizeTotal + 5000);
+    assert.equal(r.invoices.remaining, r.invoices.dentolizeRemaining + 5000);
     assert.equal(r.invoices.mismatches.length, 0);
     assert.equal(r.payments.voided, 1);
     assert.equal(r.payments.onAccount, 20000, 'paid 500 on a 300 invoice → 200 on account');
@@ -123,6 +124,19 @@ describe('Dentolize import', () => {
 
       const again = dz.planImport(sheets(), await ctx());
       assert.equal(Object.values(again.writes).reduce((n, w) => n + w.length, 0), 0, 'nothing to write the second time');
+
+      // An earlier version booked that 50 as a discount: importing again puts it back on the patient.
+      const inv5 = (await repos.invoices.list()).find((i) => i.notes.startsWith('Dentolize #5'));
+      await repos.invoices.update(inv5.id, { discountValue: 5000, status: 'paid' });
+      const fix = dz.planImport(sheets(), await ctx());
+      assert.equal(fix.report.invoices.fixed, 1);
+      assert.equal(fix.writes.invoices.length, 1);
+      await dz.applyImport(fix);
+      const fixed = await repos.invoices.get(inv5.id);
+      assert.equal(fixed.discountValue, 0);
+      assert.equal(fixed.status, 'partial', '500 paid of 650');
+      assert.equal(fixed.number, inv5.number, 'same invoice, same number');
+      assert.equal(dz.planImport(sheets(), await ctx()).report.invoices.fixed, 0, 'fixed once');
     } finally {
       adapter.close();
       await deleteDatabase(name);

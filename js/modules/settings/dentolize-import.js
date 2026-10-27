@@ -80,6 +80,8 @@ export async function runDentolizeImport(files) {
           ${missing.map((m) => html`<div>${SHEET_LABELS[m.type]}: الصفوف ${digits(m.from)} – ${digits(m.to)}</div>`)}
           يمكنك الاستيراد الآن ثم إضافة الملف الناقص لاحقًا: الاستيراد مرة ثانية لا يكرر شيئًا.</div></div></div>` : ''}
         ${unknown.length ? html`<p class="muted text-sm">ملفات لم يُتعرف عليها وتم تجاهلها: ${unknown.join('، ')}</p>` : ''}
+        ${r.invoices.owed.length ? html`<div class="alert alert--info">${ico('receipt')}<div class="alert__content"><div class="alert__title">${r.invoices.fixed ? `تصحيح ${digits(r.invoices.fixed)} فاتورة مستوردة من قبل` : `${digits(r.invoices.owed.length)} فاتورة إجماليها أقل من بنودها`}</div><div class="alert__body">
+          Dentolize خفّض إجمالي هذه الفواتير بدون خصم مسجّل. الفرق (${formatMoney(r.invoices.owed.reduce((n, o) => n + o.amount, 0))}) يُسجّل متبقيًا على المريض، لا خصمًا: ${r.invoices.owed.map((o) => `#${o.dz}`).join('، ')}</div></div></div>` : ''}
 
         <dl class="dl">
           ${row('المرضى', html`<strong>${digits(r.patients.added)}</strong> جديد`, [
@@ -138,7 +140,7 @@ export async function runDentolizeImport(files) {
     await applyImport(plan, (d, t) => progress(`جارٍ الحفظ… ${digits(Math.round((d / t) * 100))}%`));
     work();
     const rr = plan.report;
-    toastSuccess(`تم الاستيراد: ${digits(rr.patients.added)} مريض، ${digits(rr.appointments.added)} موعد، ${digits(rr.invoices.added)} فاتورة، ${digits(rr.payments.added)} دفعة`, { duration: 10000 });
+    toastSuccess(`تم الاستيراد: ${digits(rr.patients.added)} مريض، ${digits(rr.appointments.added)} موعد، ${digits(rr.invoices.added)} فاتورة، ${digits(rr.payments.added)} دفعة${rr.invoices.fixed ? `، وتصحيح ${digits(rr.invoices.fixed)} فاتورة` : ''}`, { duration: 10000 });
     return true;
   } catch (err) {
     work();
