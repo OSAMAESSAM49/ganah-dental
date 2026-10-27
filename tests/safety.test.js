@@ -54,6 +54,30 @@ describe('prescription safety for medicines typed by hand', () => {
   });
 });
 
+describe('quick add: price and discount (temporary database)', () => {
+  test('edited price and a discount split over per-tooth items', async () => {
+    const { initData, repos } = await import('../js/data/index.js');
+    const { deleteDatabase } = await import('../js/data/idb.js');
+    const treatment = await import('../js/services/treatment.js');
+    const name = `ganah-test-${crypto.randomUUID()}`;
+    const adapter = await initData({ name });
+    try {
+      const patient = await repos.patients.create({ name: 'مريض خصم', fileNo: 'G-99997', searchText: '' });
+      const plan = await treatment.ensureActivePlan(patient.id);
+      const proc = { id: 'p-fill', name: 'حشو', price: 50000, perTooth: true, chartEffect: '' };
+      // 3 teeth at 400 each, 100 off the whole: 34 + 33 + 33
+      const items = await treatment.addItems(plan.id, { procedure: proc, teeth: [16, 26, 36], unitPrice: 40000, discountType: 'amount', discountValue: [3400, 3300, 3300] });
+      assert.deepEqual(items.map((i) => i.unitPrice), [40000, 40000, 40000]);
+      assert.equal(items.reduce((n, i) => n + treatment.itemMath(i).total, 0), 110000);
+      const pct = await treatment.addItems(plan.id, { procedure: { ...proc, perTooth: false }, teeth: [], unitPrice: 20000, discountType: 'percent', discountValue: 10 });
+      assert.equal(treatment.itemMath(pct[0]).total, 18000);
+    } finally {
+      adapter.close();
+      await deleteDatabase(name);
+    }
+  });
+});
+
 describe('money paid without an invoice settles open invoices (temporary database)', () => {
   test('oldest invoice first, the rest stays as credit, voiding takes it back', async () => {
     const { initData, repos } = await import('../js/data/index.js');

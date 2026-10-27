@@ -182,14 +182,19 @@ function historyEntry(status) {
  * @param {{ procedure: object, teeth?: number[], surfaces?: string[], unitPrice?: number, notes?: string }} input
  * @returns {Promise<object[]>} created items
  */
-export async function addItems(planId, { procedure, teeth = [], surfaces = [], unitPrice, notes = '' }) {
+/**
+ * @param {{ procedure: object, teeth?: number[], surfaces?: string[], unitPrice?: number, notes?: string,
+ *           discountType?: 'amount'|'percent', discountValue?: number|number[] }} input
+ *   discountValue: piasters (amount) or % — an array gives each created item its own value.
+ */
+export async function addItems(planId, { procedure, teeth = [], surfaces = [], unitPrice, notes = '', discountType = 'amount', discountValue = 0 }) {
   const plan = await repos.treatmentPlans.require(planId);
   if (procedure.perTooth && !teeth.length) throw new TreatmentError('اختر السن أو الأسنان لهذا الإجراء');
   const existing = await repos.treatmentItems.findBy('planId', planId);
   let order = Math.max(-1, ...existing.map((i) => i.order ?? 0)) + 1;
   const groups = procedure.perTooth ? teeth.map((t) => [t]) : [teeth];
   const created = [];
-  for (const group of groups) {
+  for (const [n, group] of groups.entries()) {
     const base = {
       patientId: plan.patientId,
       planId,
@@ -201,8 +206,8 @@ export async function addItems(planId, { procedure, teeth = [], surfaces = [], u
       chartEffect: procedure.chartEffect ?? '',
       unitPrice: unitPrice ?? procedure.price ?? 0,
       qty: 1,
-      discountType: 'amount',
-      discountValue: 0,
+      discountType: discountType === 'percent' ? 'percent' : 'amount',
+      discountValue: Math.max(0, Number(Array.isArray(discountValue) ? discountValue[n] : discountValue) || 0),
       sessionsPlanned: procedure.sessions ?? 1,
       sessionsDone: 0,
       needsLab: !!procedure.needsLab,

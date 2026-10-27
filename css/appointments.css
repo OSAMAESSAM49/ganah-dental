@@ -93,3 +93,9 @@
   .list-status-chips { display: flex; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; max-inline-size: 100%; align-self: stretch !important; }
   .list-status-chips .chip { flex-shrink: 0; }
 }
+
+/* Quick add: price and discount right under the procedure */
+.qt__money { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: var(--sp-3); align-items: end; }
+.qt__discount { display: flex; gap: var(--sp-2); align-items: center; }
+.qt__discount .input { flex: 1; min-inline-size: 0; }
+.qt__discount .segmented { flex-shrink: 0; }
