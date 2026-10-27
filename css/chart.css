@@ -32,7 +32,7 @@
 .odo-planned { fill: var(--brand-lime); stroke: #000; stroke-width: 1; }
 .odo-midline { stroke: var(--c-border-strong); stroke-dasharray: 4 5; }
 .odo-occlusal { stroke: var(--c-border); stroke-dasharray: 2 6; }
-.odo-side { font-size: 11px; fill: var(--c-text-subtle); }
+.odo-side { font-size: 12px; fill: var(--c-text-subtle); }
 
 .chart-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: var(--sp-5); align-items: start; }
 .chart-aside { position: sticky; inset-block-start: calc(var(--topbar-h) + var(--sp-3)); }
@@ -66,7 +66,7 @@
   border: 1.5px solid var(--c-border); border-radius: var(--radius-sm); background: var(--c-surface);
   font-weight: var(--fw-bold); color: var(--c-text); display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1;
 }
-.surface-picker button small { font-size: 10px; font-weight: var(--fw-medium); color: var(--c-text-muted); }
+.surface-picker button small { font-size: 11.5px; font-weight: var(--fw-medium); color: var(--c-text-muted); }
 .surface-picker button[aria-pressed="true"] { background: var(--c-primary); color: #fff; border-color: transparent; }
 .surface-picker button[aria-pressed="true"] small { color: rgb(255 255 255 / 80%); }
 .surface-picker .sp-top { grid-column: 2; grid-row: 1; }

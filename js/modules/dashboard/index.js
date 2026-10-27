@@ -12,7 +12,8 @@ import { getAdapter, repos } from '../../data/index.js';
 import { getSettings } from '../../data/settings.js';
 import { emptyState } from '../../components/states.js';
 import { dateField, enhanceDateFields } from '../../components/date-field.js';
-import { can } from '../../core/permissions.js';
+import { can, isAdmin } from '../../core/permissions.js';
+import { getPref, setPref } from '../../core/prefs.js';
 import { currentUser } from '../../core/session.js';
 import { cardVisible } from '../../core/dashboard-cards.js';
 import { backupStatus } from '../../services/backup.js';
@@ -78,6 +79,38 @@ const kpi = ({ key, icon, tone = '', label, value, meta }) => html`
     </div>
   </article>`;
 
+/** «ابدأ هنا»: what the Admin still has to set up, each with the place to do it. */
+async function setupSteps() {
+  const [clinic, schedule, procedures, users, lastBackupAt] = await Promise.all([
+    repos.settings.get('clinic', null), repos.settings.get('schedule', null), repos.procedures.list(),
+    repos.users.list(), repos.meta.get('lastBackupAt', null),
+  ]);
+  return [
+    { label: 'بيانات العيادة والشعار', hint: 'تظهر في الفواتير والروشتات', done: !!clinic, link: '#/settings?tab=clinic' },
+    { label: 'أيام ومواعيد العمل والكراسي', hint: 'لحجز المواعيد في أوقاتها', done: !!schedule && Object.keys(schedule).length > 0, link: '#/settings?tab=schedule' },
+    { label: 'أسعار الإجراءات', hint: 'الأسعار تبدأ صفرًا', done: procedures.some((p) => p.active && p.price > 0), link: '#/procedures' },
+    { label: 'حسابات الفريق', hint: 'لكل موظف حسابه وصلاحياته', done: users.filter((u) => u.active !== false).length > 1, link: '#/users' },
+    { label: 'ربط السحابة', hint: 'لتعمل كل الأجهزة على نفس البيانات', done: cloudEnabled(), link: '#/settings?tab=cloud' },
+    { label: 'أول نسخة احتياطية', hint: 'احفظها خارج الجهاز', done: !!lastBackupAt, link: '#/settings?tab=backup' },
+  ];
+}
+
+const setupCard = (steps) => {
+  const done = steps.filter((s) => s.done).length;
+  return html`<section class="card span-12 setup-card" aria-labelledby="setup-title">
+    <div class="card__header">
+      <div class="card__heading"><h2 class="card__title" id="setup-title">${ico('sparkles', { size: 20 })} ابدأ هنا</h2>
+        <p class="card__subtitle">تم ${digits(done)} من ${digits(steps.length)} — بعدها يختفي هذا المربع</p></div>
+      <button type="button" class="btn btn--ghost btn--sm" data-hide-setup>إخفاء</button>
+    </div>
+    <div class="card__body"><ul class="setup-steps">${steps.map((s) => html`<li class="setup-step ${s.done ? 'is-done' : ''}">
+      <span class="setup-step__mark">${ico(s.done ? 'circle-check' : 'clock', { size: 20 })}</span>
+      <span class="setup-step__text"><strong>${s.label}</strong><span class="muted text-sm">${s.hint}</span></span>
+      ${s.done ? '' : html`<a class="btn btn--soft btn--sm" href="${s.link}">ابدأ</a>`}
+    </li>`)}</ul></div>
+  </section>`;
+};
+
 const money = (v) => html`${formatMoney(v, { currency: false })}<small>ج.م</small>`;
 const sum = (rows) => rows.reduce((n, p) => n + p.amount, 0);
 const localDay = (iso) => toISODate(new Date(iso));
@@ -132,6 +165,10 @@ export default {
       if (show('alerts')) d.alerts = await collectAlerts(can('settings', 'edit') ? await backupStatus() : null);
       if (show('trend') && (needs('payments', 'expenses') || !prev.trend)) d.trend = (await financialReport(...presetRange('last12', today))).series;
       if (show('system')) d.system = await systemStatus();
+      if (isAdmin() && !getPref('hideSetupCard', false) && (needs('settings', 'procedures', 'users', 'meta') || prev.setup === undefined)) {
+        const steps = await setupSteps();
+        d.setup = steps.every((s) => s.done) ? null : steps;
+      }
       return d;
     };
 
@@ -190,6 +227,7 @@ export default {
         </nav>
 
         <div class="bento">
+          ${d.setup ? setupCard(d.setup) : ''}
           ${show('appointments') ? html`<article class="card card--hero span-3" data-dash="appointments">
             <div class="kpi">
               <div class="kpi__head">
@@ -295,6 +333,7 @@ export default {
       if (d && d !== day) navigate(d === today ? '/' : `/?day=${d}`);
     }, { signal });
     on(el, 'submit', '#day-pick', (e) => e.preventDefault(), { signal });
+    on(el, 'click', '[data-hide-setup]', () => { setPref('hideSetupCard', true); data.setup = null; paint(data); }, { signal });
     on(el, 'click', '[data-filter]', (_, b) => { filter = b.dataset.filter; drawList(data); }, { signal });
     on(el, 'click', '[data-book]', () => openAppointmentForm(day >= today ? { date: day } : {}), { signal });
     on(el, 'click', '[data-appt]', (_, b) => { const a = data.appts.find((x) => x.id === b.dataset.appt); if (a) openAppointmentDetails(a); }, { signal });
@@ -321,7 +360,7 @@ export default {
 
     // Live: changes made here or synced from other devices (a doctor finishing a treatment,
     // reception collecting a payment…) update the cards within a moment.
-    const RELEVANT = new Set(['appointments', 'invoices', 'payments', 'treatmentItems', 'patients', 'expenses', 'followUps', 'inventoryItems', 'labCases', 'users']);
+    const RELEVANT = new Set(['appointments', 'invoices', 'payments', 'treatmentItems', 'patients', 'expenses', 'followUps', 'inventoryItems', 'labCases', 'users', 'settings', 'procedures', 'meta']);
     let timer = 0;
     let pending = new Set();
     const refresh = async () => {

@@ -109,3 +109,15 @@
   .bento > [data-kpi] .kpi__value { font-size: var(--fs-2xl); }
   .bento > [data-kpi] .kpi__meta { display: none; }
 }
+
+/* «ابدأ هنا» (Admin, until set up) */
+.setup-steps { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: var(--sp-2); margin: 0; padding: 0; list-style: none; }
+.setup-step { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3); border-radius: var(--radius-lg); background: var(--c-surface-2); }
+.setup-step__mark { display: grid; place-items: center; color: var(--c-warning); flex-shrink: 0; }
+.setup-step.is-done .setup-step__mark { color: var(--c-success); }
+.setup-step.is-done .setup-step__text strong { text-decoration: line-through; text-decoration-color: var(--c-border-strong); }
+.setup-step__text { display: flex; flex-direction: column; flex: 1; min-inline-size: 0; }
+@media (max-width: 767px) {
+  .bento > .setup-card { order: -1; } /* after today's work on phones */
+  .setup-step.is-done { display: none; }
+}

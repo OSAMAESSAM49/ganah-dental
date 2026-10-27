@@ -40,6 +40,12 @@ export const NAV_GROUPS = [
       { path: '/settings', label: 'الإعدادات', icon: 'settings', module: 'settings' },
     ],
   },
+  {
+    title: 'مساعدة',
+    items: [
+      { path: '/help', label: 'دليل الاستخدام', icon: 'circle-help', module: 'dashboard' },
+    ],
+  },
 ];
 
 /** Bottom bar on phones: four shortcuts + "more" (opens the drawer). */
@@ -53,6 +59,7 @@ export const NAV_ITEMS = NAV_GROUPS.flatMap((g) => g.items);
  */
 export const ROUTES = [
   { path: '/setup', title: 'إعداد البرنامج', load: () => import('../modules/setup/index.js'), meta: { public: true, layout: 'bare', setup: true } },
+  { path: '/help', title: 'دليل الاستخدام', load: () => import('../modules/help/index.js') },
   { path: '/login', title: 'تسجيل الدخول', load: () => import('../modules/login/index.js'), meta: { public: true, layout: 'bare' } },
   { path: '/', title: 'الرئيسية', load: () => import('../modules/dashboard/index.js'), permission: ['dashboard', 'view'] },
   { path: '/patients', title: 'المرضى', load: () => import('../modules/patients/list.js'), permission: ['patients', 'view'] },

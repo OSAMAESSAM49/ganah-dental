@@ -1,6 +1,21 @@
 import { describe, test, assert } from './runner.js';
 import { openModal, closeAllModals, hasDirtyModal } from '../js/components/modal.js';
 import { rxWarnings } from '../js/services/prescriptions.js';
+import { markdownToHTML } from '../js/core/markdown.js';
+
+describe('in-app guide (Markdown)', () => {
+  test('headings, nested lists, quotes and inline marks; raw HTML stays text', () => {
+    const out = markdownToHTML([
+      '# دليل', '', '## أول يوم', '1. **البيانات:** من الإعدادات', '   - الشعار', '   - الهاتف', '2. الأسعار', '',
+      '> تنبيه `مهم`', '', 'رابط https://dentoganah.com و <script>x</script>',
+    ].join('\n'));
+    assert.ok(out.includes('<h2>دليل</h2>') && out.includes('<h3>أول يوم</h3>'));
+    assert.ok(/<ol><li><strong>البيانات:<\/strong> من الإعدادات\s*<ul><li>الشعار<\/li><li>الهاتف<\/li><\/ul><\/li><li>الأسعار<\/li><\/ol>/.test(out.replace(/\n/g, '')), out);
+    assert.ok(out.includes('<blockquote>تنبيه <code>مهم</code></blockquote>'));
+    assert.ok(out.includes('<a href="https://dentoganah.com"'));
+    assert.ok(!out.includes('<script>') && out.includes('&lt;script&gt;'));
+  });
+});
 
 describe('windows: no double saves, unsaved input protected', () => {
   test('a double tap on save runs the save once', async () => {

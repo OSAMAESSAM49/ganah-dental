@@ -22,13 +22,16 @@ function walk(dir) {
   });
 }
 
+const GUIDES_DIR = join(ROOT, 'docs', 'guides'); // shown in «دليل الاستخدام»
 const files = [
-  ...INCLUDE_FILES.map((f) => join(ROOT, f)),
-  ...INCLUDE_DIRS.filter((d) => existsSync(join(ROOT, d))).flatMap((d) => walk(join(ROOT, d))),
-]
-  .map((f) => relative(ROOT, f).split(sep).join('/'))
-  .filter((f) => !SKIP.some((re) => re.test(f)))
-  .sort();
+  ...[
+    ...INCLUDE_FILES.map((f) => join(ROOT, f)),
+    ...INCLUDE_DIRS.filter((d) => existsSync(join(ROOT, d))).flatMap((d) => walk(join(ROOT, d))),
+  ]
+    .map((f) => relative(ROOT, f).split(sep).join('/'))
+    .filter((f) => !SKIP.some((re) => re.test(f))),
+  ...(existsSync(GUIDES_DIR) ? walk(GUIDES_DIR) : []).map((f) => relative(ROOT, f).split(sep).join('/')).filter((f) => f.endsWith('.md')),
+].sort();
 
 const hash = createHash('sha256');
 for (const f of files) { hash.update(f); hash.update(readFileSync(join(ROOT, f))); }
