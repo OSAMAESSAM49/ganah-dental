@@ -60,14 +60,30 @@ export function followUpRow(f, { showPatient = true } = {}) {
       </div>
       <div class="fu-row__actions">
         ${pending && edit ? html`
-          <button type="button" class="btn btn--whatsapp btn--sm" data-fu-wa>${ico('message-circle', { size: 18 })}<span class="hide-sm">واتساب</span></button>
+          <a class="btn btn--whatsapp btn--sm" data-fu-wa href="#" target="_blank" rel="noopener" aria-label="إرسال الرسالة واتساب">${ico('message-circle', { size: 18 })} واتساب</a>
           <button type="button" class="btn btn--soft btn--sm" data-fu-done>${ico('check', { size: 18 })}<span class="hide-sm">تم</span></button>` : ''}
         ${edit || can('followups', 'delete') ? html`<button type="button" class="btn btn--icon btn--sm" data-fu-menu aria-label="خيارات" aria-haspopup="menu">${ico('ellipsis-vertical', { size: 18 })}</button>` : ''}
       </div>
     </li>`;
 }
 
-/** Opens WhatsApp with the follow-up message and marks it sent. */
+/**
+ * Puts the ready WhatsApp link (message included) on every row's «واتساب», so a tap opens
+ * WhatsApp straight away; phones block opening it after waiting for the message.
+ */
+async function fillWhatsAppLinks(box, list) {
+  const byId = new Map(list.map((f) => [f.id, f]));
+  const links = [...box.querySelectorAll('[data-fu-wa]')];
+  await Promise.all(links.map(async (a) => {
+    const f = byId.get(a.closest('[data-fu]')?.dataset.fu);
+    if (!f) return;
+    const msg = await followUpMessage(f);
+    if (msg.link) a.setAttribute('href', msg.link);
+    else { a.dataset.noPhone = ''; a.removeAttribute('target'); }
+  }));
+}
+
+/** Opens WhatsApp with the follow-up message and marks it sent (when the link wasn't ready yet). */
 export async function sendFollowUpWhatsApp(f) {
   const msg = await followUpMessage(f);
   if (!msg.link) { toastError('لا يوجد رقم موبايل صالح لهذا المريض'); return; }
@@ -163,7 +179,13 @@ export function wireFollowUpRows(root, find, signal) {
     toast(message, { type: 'success', action: { label: 'تراجع', onClick: () => repos.followUps.update(f.id, before) } });
   };
   const snooze = (f, days, label) => withUndo(f, () => snoozeFollowUp(f.id, days), `${f.patientName}: تأجيل ${label}`);
-  on(root, 'click', '[data-fu-wa]', (_, b) => sendFollowUpWhatsApp(rec(b)), { signal });
+  on(root, 'click', '[data-fu-wa]', (e, a) => {
+    const f = rec(a);
+    if ('noPhone' in a.dataset) { e.preventDefault(); toastError('لا يوجد رقم موبايل صالح لهذا المريض'); return; }
+    if (a.getAttribute('href') === '#') { e.preventDefault(); sendFollowUpWhatsApp(f); return; }
+    // The link opens WhatsApp by itself; just remember that the message went out.
+    setTimeout(() => markFollowUpSent(f.id), 300);
+  }, { signal });
   on(root, 'click', '[data-fu-done]', (_, b) => completeDialog(rec(b)), { signal });
   on(root, 'click', '[data-fu-menu]', (_, b) => {
     const f = rec(b);
@@ -207,8 +229,9 @@ export async function offerInstructions(item) {
       ...(msg.link ? [{ label: 'إرسال واتساب', value: 'wa', variant: 'whatsapp' }] : []),
       { label: 'نسخ', value: 'copy' }, { label: 'طباعة', value: 'print' }, { label: 'لاحقًا', value: null },
     ],
+    // Open WhatsApp within the tap itself (phones block it once the window has closed).
+    beforeClose(v) { if (v === 'wa') window.open(msg.link, '_blank', 'noopener'); return true; },
   });
-  if (res === 'wa') window.open(msg.link, '_blank', 'noopener');
   if (res === 'copy') {
     try { await navigator.clipboard.writeText(msg.text); toastSuccess('تم نسخ الرسالة'); } catch { toastError('تعذّر النسخ'); }
   }
@@ -221,4 +244,5 @@ export async function offerInstructions(item) {
 /** Renders `list` into `box` as rows, or an empty message. */
 export function renderRows(box, list, opts, empty) {
   render(box, list.length ? html`<ul class="fu-list">${list.map((f) => followUpRow(f, opts))}</ul>` : empty);
+  fillWhatsAppLinks(box, list).catch((err) => console.warn('[followups] links', err));
 }
