@@ -26,7 +26,7 @@ export async function renderTab({ body, patient, signal }) {
           <div class="totals__item totals__item--hero"><div class="totals__label">المتبقي على المريض</div><div class="totals__value">${formatMoney(Math.max(0, acc.balance))}</div></div>
           <div class="totals__item"><div class="totals__label">إجمالي الفواتير</div><div class="totals__value">${formatMoney(acc.billed)}</div></div>
           <div class="totals__item"><div class="totals__label">إجمالي المدفوع</div><div class="totals__value">${formatMoney(acc.paid)}</div></div>
-          ${acc.credit ? html`<div class="totals__item"><div class="totals__label">رصيد دائن (مقدم)</div><div class="totals__value">${formatMoney(acc.credit)}</div></div>` : ''}
+          ${acc.credit ? html`<div class="totals__item"><div class="totals__label">رصيد مقدم</div><div class="totals__value">${formatMoney(acc.credit)}</div></div>` : ''}
           ${unbilled.length ? html`<div class="totals__item"><div class="totals__label">علاجات لم تُفوتر</div><div class="totals__value">${formatMoney(unbilledTotal)}</div></div>` : ''}
         </div>
 
@@ -41,7 +41,7 @@ export async function renderTab({ body, patient, signal }) {
           <div class="alert alert--warning">${ico('receipt')}
             <div class="alert__content"><div class="alert__title">${digits(unbilled.length)} بند منتهٍ لم تُصدر له فاتورة</div>
               <div class="alert__body">${unbilled.map((i) => i.procedureName).join('، ')}</div></div>
-            <button type="button" class="btn btn--primary btn--sm" data-new-invoice>${ico('plus', { size: 18 })} إنشاء فاتورة</button>
+            <button type="button" class="btn btn--primary btn--sm" data-new-invoice>${ico('plus', { size: 18 })} إصدار فاتورة</button>
           </div>` : ''}
 
         <div class="toolbar" style="margin:0">
@@ -52,7 +52,7 @@ export async function renderTab({ body, patient, signal }) {
           </div>
           <div class="grow"></div>
           ${perm.create ? html`
-            <button type="button" class="btn btn--sm" data-new-invoice>${ico('receipt', { size: 18 })} فاتورة</button>
+            <button type="button" class="btn btn--sm" data-new-invoice>${ico('receipt', { size: 18 })} إصدار فاتورة</button>
             <button type="button" class="btn btn--accent btn--sm" data-pay>${ico('banknote', { size: 18 })} تسجيل دفعة</button>` : ''}
         </div>
 
@@ -70,7 +70,7 @@ export async function renderTab({ body, patient, signal }) {
           <p class="card__subtitle">${formatDate(inv.date)} · ${inv.lines.map((l) => l.description).join('، ')}</p>
         </div>
         <div class="row" style="gap: var(--sp-1)">
-          ${perm.create && (inv.status === 'open' || inv.status === 'partial') ? html`<button type="button" class="btn btn--accent btn--sm" data-pay-inv="${inv.id}">${ico('banknote', { size: 16 })} سداد</button>` : ''}
+          ${perm.create && (inv.status === 'open' || inv.status === 'partial') ? html`<button type="button" class="btn btn--accent btn--sm" data-pay-inv="${inv.id}">${ico('banknote', { size: 16 })} تحصيل</button>` : ''}
           <button type="button" class="btn btn--icon btn--sm" data-print-inv="${inv.id}" aria-label="طباعة الفاتورة">${ico('printer', { size: 18 })}</button>
           ${(perm.create || perm.void) && ownsOrAdmin(inv) ? html`<button type="button" class="btn btn--icon btn--sm" data-inv-menu="${inv.id}" aria-label="خيارات" aria-haspopup="menu">${ico('ellipsis-vertical', { size: 18 })}</button>` : ''}
         </div>
@@ -94,7 +94,7 @@ export async function renderTab({ body, patient, signal }) {
     <div class="table-wrap"><table class="table table--stack">
       <thead><tr><th>الإيصال</th><th>التاريخ</th><th>عن</th><th>الطريقة</th><th>المستلم</th><th class="num">المبلغ</th><th></th></tr></thead>
       <tbody>${acc.payments.map((pay) => html`<tr ${pay.voided ? html`style="opacity:.55"` : ''}>
-        <td data-label="الإيصال" class="ltr">${formatReceiptNo(pay.receiptNo)}${pay.voided ? html` <span class="badge">ملغى</span>` : ''}</td>
+        <td data-label="الإيصال" class="ltr">${formatReceiptNo(pay.receiptNo)}${pay.voided ? html` <span class="badge">مُبطل</span>` : ''}</td>
         <td data-label="التاريخ">${formatDateTime(pay.at)}</td>
         <td data-label="عن">${pay.invoiceId ? html`<span class="ltr">${formatInvoiceNo(acc.invoices.find((i) => i.id === pay.invoiceId)?.number ?? 0)}</span>` : 'تحت الحساب'}</td>
         <td data-label="الطريقة">${PAYMENT_METHODS[pay.method]?.label}</td>
@@ -102,7 +102,7 @@ export async function renderTab({ body, patient, signal }) {
         <td data-label="المبلغ" class="num"><strong>${pay.voided ? html`<s>${formatMoney(pay.amount)}</s>` : formatMoney(pay.amount)}</strong></td>
         <td data-label=""><div class="table__actions">
           <button type="button" class="btn btn--icon btn--sm" data-print-pay="${pay.id}" aria-label="طباعة الإيصال">${ico('printer', { size: 18 })}</button>
-          ${perm.void && !pay.voided && ownsOrAdmin(pay) ? html`<button type="button" class="btn btn--ghost btn--icon btn--sm" data-void-pay="${pay.id}" aria-label="إلغاء الإيصال">${ico('circle-x', { size: 18 })}</button>` : ''}
+          ${perm.void && !pay.voided && ownsOrAdmin(pay) ? html`<button type="button" class="btn btn--ghost btn--icon btn--sm" data-void-pay="${pay.id}" aria-label="إبطال الإيصال">${ico('circle-x', { size: 18 })}</button>` : ''}
         </div></td>
       </tr>`)}</tbody>
     </table></div>` : html`<div class="card">${emptyState({ icon: 'banknote', title: 'لا توجد مدفوعات بعد' })}</div>`);
@@ -140,7 +140,7 @@ export async function renderTab({ body, patient, signal }) {
     const inv = acc.invoices.find((x) => x.id === b.dataset.invMenu);
     openMenu(b, { items: [
       ...(perm.create && (inv.status === 'open' || inv.status === 'partial') ? [{ label: inv.installments?.length ? 'تعديل جدول الأقساط' : 'تقسيط المتبقي', icon: 'calendar-days', onSelect: () => editInstallmentsDialog(inv) }] : []),
-      ...(perm.void && inv.status !== 'void' ? [{ label: 'إلغاء الفاتورة', icon: 'circle-x', danger: true, onSelect: () => voidInvoiceFlow(inv) }] : []),
+      ...(perm.void && inv.status !== 'void' ? [{ label: 'إبطال الفاتورة', icon: 'circle-x', danger: true, onSelect: () => voidInvoiceFlow(inv) }] : []),
     ] });
   }, { signal });
 

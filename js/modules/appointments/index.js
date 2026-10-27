@@ -6,7 +6,7 @@
 import { html, ico, render, on } from '../../core/dom.js';
 import { digits, formatDate, todayISO, parseDateInput, toDate, toISODate } from '../../core/format.js';
 import { addDays, weekDays, monthGrid, dayLabel, monthLabel, formatRange, nowMinutes } from '../../core/time.js';
-import { APPT_STATUS } from '../../core/labels.js';
+import { APPT_STATUS, APPT_ACTIONS } from '../../core/labels.js';
 import { medicalAlerts } from '../../core/medical.js';
 import { can } from '../../core/permissions.js';
 import { href } from '../../core/router.js';
@@ -24,7 +24,7 @@ import { openAppointmentDetails, cancelWithReason } from './appt-details.js';
 import { openReminders } from './reminders.js';
 
 const VIEWS = [['day', 'يوم'], ['week', 'أسبوع'], ['month', 'شهر'], ['list', 'قائمة']];
-const QUICK = { arrived: 'وصل', in_chair: 'على الكرسي', done: 'انتهى' };
+const QUICK = { arrived: APPT_ACTIONS.arrived, in_chair: APPT_ACTIONS.in_chair, done: APPT_ACTIONS.done };
 
 /** Phones remember their own view and start on the list (big rows, one-tap status). */
 const phone = () => matchMedia('(max-width: 639px)').matches;

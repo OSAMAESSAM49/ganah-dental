@@ -81,7 +81,7 @@ export async function renderTab({ body, signal }) {
       title, icon: 'pencil',
       dirty: true,
       body: html`<form class="form" novalidate><label class="field"><span class="field__label">الاسم</span><input class="input" name="n" value="${value}"></label></form>`,
-      actions: [{ label: 'حفظ', value: 'ok', variant: 'primary' }, { label: 'إلغاء', value: null }],
+      actions: [{ label: 'حفظ', value: 'ok', variant: 'primary' }, { label: 'إغلاق', value: null }],
       onOpen(d, close) { d.querySelector('form').addEventListener('submit', (e) => { e.preventDefault(); close('ok'); }); d.querySelector('input').select(); },
       beforeClose(v, d) { if (v !== 'ok') return true; name = /** @type {HTMLInputElement} */ (d.querySelector('input')).value.trim(); return !!name; },
     });

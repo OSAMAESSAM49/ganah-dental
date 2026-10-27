@@ -38,7 +38,6 @@ export const NAV_GROUPS = [
       { path: '/users', label: 'المستخدمون والصلاحيات', icon: 'shield-check', module: 'users' },
       { path: '/audit', label: 'سجل العمليات', icon: 'scroll-text', module: 'audit' },
       { path: '/settings', label: 'الإعدادات', icon: 'settings', module: 'settings' },
-      { path: '/styleguide', label: 'دليل التصميم', icon: 'palette', module: 'settings' },
     ],
   },
 ];

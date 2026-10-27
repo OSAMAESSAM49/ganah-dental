@@ -191,7 +191,7 @@ async function recoveryFlow() {
         <p class="muted">أدخل رمز الاسترداد الذي حصلت عليه عند إعداد البرنامج (أو آخر رمز جديد).</p>
         ${textField({ name: 'code', label: 'رمز الاسترداد', ltr: true, required: true, placeholder: 'XXXX-XXXX-XXXX-XXXX' })}
       </form>`,
-    actions: [{ label: 'متابعة', value: 'next', variant: 'primary' }, { label: 'إلغاء', value: null }],
+    actions: [{ label: 'متابعة', value: 'next', variant: 'primary' }, { label: 'إغلاق', value: null }],
     onOpen(d, close) {
       const f = d.querySelector('form');
       f.addEventListener('submit', (e) => { e.preventDefault(); close('next'); });
@@ -220,7 +220,7 @@ async function recoveryFlow() {
         ${passwordField({ name: 'password', label: 'كلمة المرور الجديدة', required: true, meter: true })}
         ${passwordField({ name: 'confirm', label: 'تأكيد كلمة المرور', required: true })}
       </form>`,
-    actions: [{ label: 'حفظ', value: 'save', variant: 'primary' }, { label: 'إلغاء', value: null }],
+    actions: [{ label: 'حفظ', value: 'save', variant: 'primary' }, { label: 'إغلاق', value: null }],
     onOpen(d, close) {
       const f = d.querySelector('form');
       enhancePasswordFields(f, passwordStrength);

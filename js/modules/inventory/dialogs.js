@@ -38,7 +38,7 @@ export async function itemDialog(item = null) {
         ${textareaField({ name: 'notes', label: 'ملاحظات', value: item?.notes ?? '', rows: 2 })}
         ${datalist('dl-cat', hints.categories)}${datalist('dl-sup', hints.suppliers)}
       </form>`,
-    actions: [{ label: 'حفظ', value: 'save', variant: 'primary' }, { label: 'إلغاء', value: null }],
+    actions: [{ label: 'حفظ', value: 'save', variant: 'primary' }, { label: 'إغلاق', value: null }],
     onOpen(d, close) { const f = d.querySelector('form'); f.addEventListener('submit', (e) => { e.preventDefault(); close('save'); }); f.querySelector('input').focus(); },
     async beforeClose(v, d) {
       if (v !== 'save') return true;
@@ -82,7 +82,7 @@ export async function receiveDialog(item = null) {
         ${can('expenses', 'create') ? html`<label class="check"><input type="checkbox" name="createExpense" checked> تسجيل قيمة الشراء كمصروف (شراء خامات)</label>` : ''}
         ${datalist('dl-sup2', hints.suppliers)}
       </form>`,
-    actions: [{ label: 'استلام', value: 'save', variant: 'primary' }, { label: 'إلغاء', value: null }],
+    actions: [{ label: 'استلام', value: 'save', variant: 'primary' }, { label: 'إغلاق', value: null }],
     onOpen(d, close) {
       const f = d.querySelector('form');
       enhanceDateFields(f);
@@ -139,7 +139,7 @@ export async function adjustDialog(item) {
         ${selectField({ name: 'reason', label: 'السبب', required: true, placeholder: 'اختر…', options: ADJUST_REASONS.map((r) => ({ value: r, label: r })) })}
         ${textField({ name: 'note', label: 'تفاصيل (اختياري)' })}
       </form>`,
-    actions: [{ label: 'حفظ التسوية', value: 'save', variant: 'primary' }, { label: 'إلغاء', value: null }],
+    actions: [{ label: 'حفظ التسوية', value: 'save', variant: 'primary' }, { label: 'إغلاق', value: null }],
     onOpen(d, close) {
       const f = d.querySelector('form');
       const drawBatch = () => {

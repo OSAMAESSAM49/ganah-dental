@@ -12,7 +12,7 @@ import { DENTITIONS, ROWS, toothName, surfaceLabel, surfacesText, sortTeeth, isU
 import { CONDITIONS, CONDITION, toothConditions } from '../../core/chart-conditions.js';
 import { odontogram } from '../../components/odontogram.js';
 import { confirmDialog } from '../../components/modal.js';
-import { toastSuccess, toastError } from '../../components/toast.js';
+import { toast, toastSuccess, toastError } from '../../components/toast.js';
 import { getChart, historyDays, recordToothEvents, voidToothEvent } from '../../services/chart.js';
 import { listPlans, listItems, ensureActivePlan, addItems, plannedByTooth } from '../../services/treatment.js';
 import { loadCatalog } from '../../services/procedures.js';
@@ -274,8 +274,8 @@ export async function renderTab({ body, patient, signal }) {
     const teeth = sortTeeth([...ui.selected]);
     const changes = teeth.map((tooth) => ({ tooth, type: 'add', condition: c.key, surfaces: c.surface ? [...ui.surfaces] : [] }));
     try {
-      await recordToothEvents(p.id, changes);
-      toastSuccess(`تم تسجيل «${c.label}» على ${teeth.join('، ')}`);
+      const recorded = await recordToothEvents(p.id, changes);
+      undoToast(`تم تسجيل «${c.label}» على ${teeth.join('، ')}`, recorded);
       ui.surfaces.clear();
       ui.selected.clear(); // next tap starts a fresh selection
       await redraw();
@@ -285,16 +285,25 @@ export async function renderTab({ body, patient, signal }) {
   on(body, 'click', '[data-clear-teeth]', async () => {
     const teeth = sortTeeth([...ui.selected]);
     if (!(await confirmDialog({ title: 'تحديد الأسنان كسليمة؟', message: `ستُزال كل الحالات المسجّلة على ${teeth.join('، ')}. يبقى ذلك في سجل التغييرات.`, confirmLabel: 'نعم، سليمة' }))) return;
-    await recordToothEvents(p.id, teeth.map((tooth) => ({ tooth, type: 'clear' })));
-    toastSuccess('تم');
+    const recorded = await recordToothEvents(p.id, teeth.map((tooth) => ({ tooth, type: 'clear' })));
+    undoToast(`${teeth.join('، ')}: سليمة`, recorded);
     ui.selected.clear();
     ui.surfaces.clear();
     await redraw();
   }, { signal });
 
+  /** Chart changes can be taken back from the toast (the events stay in the log as voided). */
+  function undoToast(message, recorded) {
+    toast(message, { type: 'success', action: { label: 'تراجع', onClick: async () => {
+      for (const e of recorded) await voidToothEvent(e.id);
+      await redraw();
+    } } });
+  }
+
   on(body, 'click', '[data-remove-cond]', async (_, b) => {
     const tooth = [...ui.selected][0];
-    await recordToothEvents(p.id, [{ tooth, type: 'remove', condition: b.dataset.removeCond }]);
+    const recorded = await recordToothEvents(p.id, [{ tooth, type: 'remove', condition: b.dataset.removeCond }]);
+    undoToast(`أُزيلت «${CONDITION[b.dataset.removeCond]?.label ?? b.dataset.removeCond}» من سن ${tooth}`, recorded);
     await redraw();
   }, { signal });
 

@@ -53,10 +53,20 @@ function fatal(title, message) {
 function registerServiceWorker() {
   if (!('serviceWorker' in navigator) || location.protocol === 'file:') return;
   navigator.serviceWorker.register('./sw.js').then((reg) => {
-    const promptUpdate = (worker) => toast('يوجد إصدار جديد من البرنامج', {
-      duration: 0,
-      action: { label: 'تحديث الآن', onClick: () => worker.postMessage({ type: 'SKIP_WAITING' }) },
-    });
+    let prompted = false;
+    const promptUpdate = (worker) => {
+      if (prompted) return;
+      prompted = true;
+      toast('يوجد إصدار جديد من البرنامج', {
+        duration: 0, sticky: true,
+        action: { label: 'تحديث الآن', onClick: () => worker.postMessage({ type: 'SKIP_WAITING' }) },
+      });
+    };
+    // The app is often left open all day: look for a new version every 30 minutes and
+    // whenever it comes back to the screen.
+    const check = () => reg.update().catch(() => {});
+    setInterval(check, 30 * 60_000);
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') check(); });
     if (reg.waiting && navigator.serviceWorker.controller) promptUpdate(reg.waiting);
     reg.addEventListener('updatefound', () => {
       const worker = reg.installing;
@@ -161,10 +171,16 @@ async function boot() {
   window.addEventListener('offline', () => toast('انقطع الإنترنت — البرنامج يعمل بشكل طبيعي بدونه.', { type: 'info' }));
 }
 
-window.addEventListener('unhandledrejection', (e) => {
-  console.error('[app] unhandled', e.reason);
+// Anything that slips through: log it and tell the user once (not a burst of toasts).
+let lastErrorToast = 0;
+const reportUnexpected = (err) => {
+  console.error('[app] unexpected', err);
+  if (Date.now() - lastErrorToast < 5000) return;
+  lastErrorToast = Date.now();
   toastError('حدث خطأ غير متوقع. إذا تكرر أعد تحميل الصفحة.');
-});
+};
+window.addEventListener('unhandledrejection', (e) => reportUnexpected(e.reason));
+window.addEventListener('error', (e) => { if (e.error) reportUnexpected(e.error); });
 
 // Skip link: focus main content without changing the hash (hash = route).
 document.addEventListener('click', (e) => {

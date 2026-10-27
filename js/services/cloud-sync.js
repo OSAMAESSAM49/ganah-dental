@@ -61,7 +61,7 @@ export async function syncNow() {
     console.warn('[sync]', err);
     if (err instanceof CloudError && err.status === 401) publish({ state: 'auth', error: err.message });
     else if (err instanceof CloudError && err.status === 0) publish({ state: 'offline', error: '' });
-    else publish({ state: 'error', error: err.message || 'تعذّرت المزامنة' });
+    else publish({ state: 'error', error: /[\u0600-\u06FF]/.test(err.message ?? '') ? err.message : 'تعذّر الاتصال بالسحابة. ستتم المحاولة تلقائيًا بعد قليل.' });
   }
   return status;
 }

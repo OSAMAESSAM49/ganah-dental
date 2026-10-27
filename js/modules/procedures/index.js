@@ -169,7 +169,7 @@ async function askName(title, value) {
     title, icon: 'pencil',
     dirty: true,
     body: html`<form class="form" novalidate>${textField({ name: 'name', label: 'الاسم', value, required: true })}</form>`,
-    actions: [{ label: 'حفظ', value: 'save', variant: 'primary' }, { label: 'إلغاء', value: null }],
+    actions: [{ label: 'حفظ', value: 'save', variant: 'primary' }, { label: 'إغلاق', value: null }],
     onOpen(d, close) { const f = d.querySelector('form'); f.addEventListener('submit', (e) => { e.preventDefault(); close('save'); }); f.querySelector('input').select(); },
     beforeClose(v, d) {
       if (v !== 'save') return true;
@@ -241,7 +241,7 @@ async function procedureDialog(proc, catalog, items = []) {
         ${selectField({ name: 'instructionTemplateId', label: 'تعليمات ما بعد الإجراء', value: proc?.instructionTemplateId ?? '', placeholder: 'بدون تعليمات', hint: 'يُعرض إرسالها للمريض على واتساب بعد «تم». تُعدّل من المتابعات ← التعليمات والرسائل', options: templates.map((t) => ({ value: t.id, label: t.active === false ? `${t.name} (موقوف)` : t.name })) })}
         <div id="schedule-box">${scheduleMarkup()}</div>
       </form>`,
-    actions: [{ label: isNew ? 'إضافة' : 'حفظ', value: 'save', variant: 'primary' }, { label: 'إلغاء', value: null }],
+    actions: [{ label: isNew ? 'إضافة' : 'حفظ', value: 'save', variant: 'primary' }, { label: 'إغلاق', value: null }],
     onOpen(d, close) {
       const f = d.querySelector('form');
       const box = () => d.querySelector('#recipe-box');

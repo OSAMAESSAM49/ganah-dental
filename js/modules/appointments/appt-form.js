@@ -207,7 +207,7 @@ export async function openAppointmentForm(preset = {}) {
     icon: 'calendar-check',
     size: 'lg',
     body: bodyMarkup(),
-    actions: [{ label: editing ? 'حفظ التعديل' : 'تأكيد الحجز', value: 'save', variant: 'primary' }, { label: 'إلغاء', value: null }],
+    actions: [{ label: editing ? 'حفظ التعديل' : 'تأكيد الحجز', value: 'save', variant: 'primary' }, { label: 'إغلاق', value: null }],
     onOpen(dialog, close) {
       const $ = (sel) => dialog.querySelector(sel);
       enhanceDateFields(dialog);

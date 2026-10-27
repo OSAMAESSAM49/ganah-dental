@@ -54,7 +54,7 @@ export async function printInvoice(invoiceId, size = 'a4') {
       <hr class="th-sep">
       ${row('الإجمالي', formatMoney(st.subtotal))}
       ${st.discount ? row('خصم', formatMoney(st.discount)) : ''}
-      ${row('المستحق', formatMoney(st.total), true)}
+      ${row('الإجمالي', formatMoney(st.total), true)}
       ${row('المدفوع', formatMoney(st.paid))}
       ${row('المتبقي', formatMoney(st.remaining), true)}
       ${inst.length ? html`<hr class="th-sep"><div class="th-small">الأقساط</div>${inst.map((i) => row(formatDate(i.dueDate), `${formatMoney(i.amount)}${i.status === 'paid' ? ' ✓' : ''}`))}` : ''}
@@ -81,8 +81,8 @@ export async function printInvoice(invoiceId, size = 'a4') {
     <table class="print-table" style="inline-size: 55%; margin-inline-start: auto; margin-block-start: 3mm"><tbody>
       <tr><th>الإجمالي</th><td class="num">${formatMoney(st.subtotal)}</td></tr>
       ${st.discount ? html`<tr><th>خصم${inv.discountType === 'percent' ? ` (${digits(inv.discountValue)}%)` : ''}</th><td class="num">${formatMoney(st.discount)}</td></tr>` : ''}
-      <tr><th>المستحق</th><td class="num"><strong>${formatMoney(st.total)}</strong></td></tr>
-      ${inv.appliedCredit ? html`<tr><th>من رصيد سابق</th><td class="num">${formatMoney(inv.appliedCredit)}</td></tr>` : ''}
+      <tr><th>الإجمالي</th><td class="num"><strong>${formatMoney(st.total)}</strong></td></tr>
+      ${inv.appliedCredit ? html`<tr><th>من الرصيد المقدم</th><td class="num">${formatMoney(inv.appliedCredit)}</td></tr>` : ''}
       <tr><th>المدفوع</th><td class="num">${formatMoney(st.paid)}</td></tr>
       <tr><th>المتبقي على الفاتورة</th><td class="num"><strong>${formatMoney(st.remaining)}</strong></td></tr>
       <tr><th>إجمالي المتبقي على المريض</th><td class="num">${formatMoney(Math.max(0, account.balance))}</td></tr>
@@ -94,7 +94,7 @@ export async function printInvoice(invoiceId, size = 'a4') {
       <table class="print-table"><thead><tr><th>#</th><th>تاريخ الاستحقاق</th><th class="num">القيمة</th><th>الحالة</th></tr></thead>
       <tbody>${inst.map((i, n) => html`<tr><td>${digits(n + 1)}</td><td>${formatDate(i.dueDate)}</td><td class="num">${formatMoney(i.amount)}</td><td>${{ paid: 'مدفوع', partial: 'مدفوع جزئيًا', due: 'لم يحن', overdue: 'متأخر' }[i.status]}</td></tr>`)}</tbody></table>` : ''}
     ${inv.notes ? html`<p style="margin-block-start: 4mm">${inv.notes}</p>` : ''}
-    ${inv.status === 'void' ? html`<p style="margin-block-start: 4mm; color: #C1272D; font-weight: 700">فاتورة ملغاة: ${inv.voidReason}</p>` : ''}
+    ${inv.status === 'void' ? html`<p style="margin-block-start: 4mm; color: #C1272D; font-weight: 700">فاتورة مُبطلة: ${inv.voidReason}</p>` : ''}
     <div style="display:flex; justify-content: space-between; margin-block-start: 14mm"><span>توقيع المحاسب: ....................</span><span>ختم العيادة</span></div>`,
   { title: `فاتورة ${no}` });
 }
@@ -117,10 +117,10 @@ export async function printReceipt(paymentId, size = 'a4') {
       <hr class="th-sep">
       ${row('المبلغ المستلم', formatMoney(p.amount), true)}
       ${row('طريقة الدفع', methodLabel(p.method))}
-      ${row('عن', inv ? `فاتورة ${formatInvoiceNo(inv.number)}` : 'دفعة تحت الحساب')}
+      ${row('عن', inv ? `فاتورة ${formatInvoiceNo(inv.number)}` : 'رصيد مقدم')}
       ${invState ? row('المتبقي على الفاتورة', formatMoney(invState.remaining)) : ''}
       ${row('إجمالي المتبقي', formatMoney(Math.max(0, account.balance)), true)}
-      ${p.voided ? html`<div class="th-center th-strong">— إيصال ملغى —</div>` : ''}
+      ${p.voided ? html`<div class="th-center th-strong">— إيصال مُبطل —</div>` : ''}
       <hr class="th-sep">
       <div class="th-small">المستلم: ${p.userName ?? ''}</div>
       <div class="th-center th-small">شكرًا لكم</div>
@@ -135,8 +135,8 @@ export async function printReceipt(paymentId, size = 'a4') {
       </div>
       <p style="font-size: 13pt; line-height: 2">
         استلمنا من السيد/ة <strong>${p.patientName}</strong> (ملف <span class="ltr">${patient?.fileNo ?? ''}</span>)
-        مبلغ <strong>${formatMoney(p.amount)}</strong> نقدًا/${methodLabel(p.method)}
-        ${inv ? html`وذلك سدادًا من فاتورة رقم <span class="ltr">${formatInvoiceNo(inv.number)}</span>.` : 'وذلك دفعة تحت الحساب.'}
+        مبلغ <strong>${formatMoney(p.amount)}</strong> (${methodLabel(p.method)})
+        ${inv ? html`وذلك سدادًا من فاتورة رقم <span class="ltr">${formatInvoiceNo(inv.number)}</span>.` : 'وذلك رصيدًا مقدمًا لحساب المريض.'}
       </p>
       <table class="print-table" style="inline-size: 60%; margin-block-start: 4mm"><tbody>
         <tr><th>طريقة الدفع</th><td>${methodLabel(p.method)}</td></tr>
@@ -144,7 +144,7 @@ export async function printReceipt(paymentId, size = 'a4') {
         <tr><th>إجمالي المتبقي على المريض</th><td class="num">${formatMoney(Math.max(0, account.balance))}</td></tr>
         ${p.note ? html`<tr><th>ملاحظة</th><td>${p.note}</td></tr>` : ''}
       </tbody></table>
-      ${p.voided ? html`<p style="color:#C1272D; font-weight:700; margin-block-start: 4mm">إيصال ملغى: ${p.voidReason}</p>` : ''}
+      ${p.voided ? html`<p style="color:#C1272D; font-weight:700; margin-block-start: 4mm">إيصال مُبطل: ${p.voidReason}</p>` : ''}
       <div style="display:flex; justify-content: space-between; margin-block-start: 14mm"><span>المستلم: ${p.userName ?? ''}</span><span>التوقيع: ....................</span></div>
     </div>`, { title: 'إيصال استلام نقدية' });
 }
@@ -161,7 +161,7 @@ export async function printClosing(day, size = 'a4') {
       <hr class="th-sep">${row('إجمالي المقبوضات', formatMoney(c.total), true)}
       <hr class="th-sep"><div class="th-small">حسب المستخدم</div>${users.map(([u, v]) => row(u, formatMoney(v)))}
       <hr class="th-sep">${row('فواتير اليوم', `${digits(c.invoicesCount)} · ${formatMoney(c.billed)}`)}
-      ${c.voided.length ? row('إيصالات ملغاة', digits(c.voided.length)) : ''}
+      ${c.voided.length ? row('إيصالات مُبطلة', digits(c.voided.length)) : ''}
       <div class="th-small">طُبع: ${formatDateTime(new Date())}</div>
     </div>`, { size: '80mm', header: false });
     return;
@@ -176,7 +176,7 @@ export async function printClosing(day, size = 'a4') {
     <h2 class="print-sub">تفاصيل الإيصالات</h2>
     <table class="print-table"><thead><tr><th>الإيصال</th><th>الوقت</th><th>المريض</th><th>الطريقة</th><th>المستلم</th><th class="num">المبلغ</th></tr></thead>
       <tbody>${c.payments.map((p) => html`<tr><td class="ltr">${formatReceiptNo(p.receiptNo)}</td><td>${formatDateTime(p.at).split(' ').slice(1).join(' ')}</td><td>${p.patientName}</td><td>${methodLabel(p.method)}</td><td>${p.userName ?? ''}</td><td class="num">${formatMoney(p.amount)}</td></tr>`)}</tbody></table>
-    ${c.voided.length ? html`<h2 class="print-sub">إيصالات ملغاة</h2><table class="print-table"><tbody>${c.voided.map((p) => html`<tr><td class="ltr">${formatReceiptNo(p.receiptNo)}</td><td>${p.patientName}</td><td class="num">${formatMoney(p.amount)}</td><td>${p.voidReason}</td></tr>`)}</tbody></table>` : ''}
+    ${c.voided.length ? html`<h2 class="print-sub">إيصالات مُبطلة</h2><table class="print-table"><tbody>${c.voided.map((p) => html`<tr><td class="ltr">${formatReceiptNo(p.receiptNo)}</td><td>${p.patientName}</td><td class="num">${formatMoney(p.amount)}</td><td>${p.voidReason}</td></tr>`)}</tbody></table>` : ''}
     <p style="margin-block-start: 4mm"><strong>فواتير اليوم:</strong> ${digits(c.invoicesCount)} بإجمالي ${formatMoney(c.billed)}</p>
     <div style="display:flex; justify-content: space-between; margin-block-start: 14mm"><span>توقيع المسؤول: ....................</span><span>توقيع المدير: ....................</span></div>`,
   { title: 'إقفال اليومية' });

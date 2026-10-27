@@ -27,15 +27,15 @@ import { allPatients } from '../../services/patients.js';
 import { listDay, setAppointmentStatus, NEXT_STEPS, PREVIOUS } from '../../services/appointments.js';
 import { openAppointmentForm } from '../appointments/appt-form.js';
 import { openAppointmentDetails } from '../appointments/appt-details.js';
-import { APPT_STATUS } from '../../core/labels.js';
+import { APPT_STATUS, APPT_ACTIONS, INVOICE_STATUS } from '../../core/labels.js';
 import { medicalAlerts } from '../../core/medical.js';
 import { formatClock, MONTHS, addDays, dayLabel } from '../../core/time.js';
 import { href, navigate } from '../../core/router.js';
 import { onEvent } from '../../core/bus.js';
 import { toastSuccess, toastError } from '../../components/toast.js';
 
-const QUICK = { arrived: 'وصل', in_chair: 'على الكرسي', done: 'انتهى' };
-const INV_STATUS = { paid: ['تم السداد', 'success'], partial: ['مدفوعة جزئيًا', 'warning'], open: ['غير مدفوعة', 'danger'] };
+const QUICK = { arrived: APPT_ACTIONS.arrived, in_chair: APPT_ACTIONS.in_chair, done: APPT_ACTIONS.done };
+const INV_STATUS = Object.fromEntries(Object.entries(INVOICE_STATUS).map(([k, v]) => [k, [v.label, v.tone]]));
 
 function greeting(d = new Date()) {
   const h = d.getHours();

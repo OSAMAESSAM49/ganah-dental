@@ -136,7 +136,7 @@ export async function patientAccount(patientId) {
   // Ledger: debits (invoices) and credits (payments) in time order with running balance
   const events = [
     ...inv.filter((i) => i.status !== 'void').map((i) => ({ kind: 'invoice', at: i.createdAt, date: i.date, ref: formatInvoiceNo(i.number), description: i.lines.map((l) => l.description).join('، '), debit: i.total, credit: 0, id: i.id })),
-    ...livePayments.map((p) => ({ kind: 'payment', at: p.at, date: p.date, ref: formatReceiptNo(p.receiptNo), description: p.invoiceId ? `سداد ${formatInvoiceNo(inv.find((i) => i.id === p.invoiceId)?.number ?? 0)}` : 'دفعة تحت الحساب', debit: 0, credit: p.amount, method: p.method, id: p.id })),
+    ...livePayments.map((p) => ({ kind: 'payment', at: p.at, date: p.date, ref: formatReceiptNo(p.receiptNo), description: p.invoiceId ? `سداد ${formatInvoiceNo(inv.find((i) => i.id === p.invoiceId)?.number ?? 0)}` : 'رصيد مقدم', debit: 0, credit: p.amount, method: p.method, id: p.id })),
   ].sort((a, b) => a.date.localeCompare(b.date) || a.at.localeCompare(b.at));
   let running = 0;
   const ledger = events.map((e) => { running += e.debit - e.credit; return { ...e, balance: running }; });
@@ -226,7 +226,7 @@ export async function recordPayment(input) {
   const patient = await repos.patients.require(input.patientId);
   if (input.invoiceId) {
     const inv = await repos.invoices.require(input.invoiceId);
-    if (inv.status === 'void') throw new BillingError('لا يمكن السداد على فاتورة ملغاة');
+    if (inv.status === 'void') throw new BillingError('لا يمكن السداد على فاتورة مُبطلة');
     const { remaining } = invoiceState(inv, await repos.payments.findBy('invoiceId', inv.id));
     if (amount > remaining) throw new BillingError(`المتبقي على الفاتورة أقل من المبلغ`);
   }
@@ -305,7 +305,7 @@ export async function voidPayment(id, reason) {
   if (!reason?.trim()) throw new BillingError('اكتب سبب الإلغاء');
   const p = await repos.payments.require(id);
   if (p.voided) return p;
-  if (!ownsOrAdmin(p)) throw new BillingError('إلغاء الإيصال متاح لمدير النظام أو لمن سجّله فقط');
+  if (!ownsOrAdmin(p)) throw new BillingError('إبطال الإيصال متاح لمدير النظام أو لمن سجّله فقط');
   const me = currentUser();
   const updated = await repos.payments.update(id, { voided: true, voidReason: reason.trim(), voidedAt: new Date().toISOString(), voidedBy: me?.displayName ?? null });
   if (p.invoiceId) await refreshInvoiceStatus(p.invoiceId);
@@ -321,11 +321,11 @@ export async function voidInvoice(id, reason) {
   if (!reason?.trim()) throw new BillingError('اكتب سبب الإلغاء');
   const inv = await repos.invoices.require(id);
   if (inv.status === 'void') return inv;
-  if (!ownsOrAdmin(inv)) throw new BillingError('إلغاء الفاتورة متاح لمدير النظام أو لمن أصدرها فقط');
+  if (!ownsOrAdmin(inv)) throw new BillingError('إبطال الفاتورة متاح لمدير النظام أو لمن أصدرها فقط');
   const me = currentUser();
   for (const l of inv.lines) if (l.treatmentItemId) await repos.treatmentItems.update(l.treatmentItemId, { invoiceId: null });
   const payments = (await repos.payments.findBy('invoiceId', id)).filter((p) => !p.voided);
-  for (const p of payments) await repos.payments.update(p.id, { invoiceId: null, note: `${p.note ? `${p.note} · ` : ''}كانت على ${formatInvoiceNo(inv.number)} الملغاة` });
+  for (const p of payments) await repos.payments.update(p.id, { invoiceId: null, note: `${p.note ? `${p.note} · ` : ''}كانت على ${formatInvoiceNo(inv.number)} المُبطلة` });
   return repos.invoices.update(id, { status: 'void', appliedCredit: 0, voidReason: reason.trim(), voidedAt: new Date().toISOString(), voidedBy: me?.displayName ?? null });
 }
 

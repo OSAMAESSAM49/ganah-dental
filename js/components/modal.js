@@ -148,7 +148,7 @@ export function openModal({
  *           danger?: boolean, requireText?: string }} opts
  *   requireText: the user must type this word to enable the button (for irreversible actions).
  */
-export async function confirmDialog({ title, message, confirmLabel = 'تأكيد', cancelLabel = 'إلغاء', danger = false, requireText }) {
+export async function confirmDialog({ title, message, confirmLabel = 'تأكيد', cancelLabel = 'رجوع', danger = false, requireText }) {
   const body = html`
     <div class="stack">
       ${message instanceof SafeHTML ? message : html`<p>${message}</p>`}

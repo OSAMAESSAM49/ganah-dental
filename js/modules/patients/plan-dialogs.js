@@ -40,7 +40,7 @@ export async function addItemDialog(plan, catalog) {
         ${textField({ name: 'surfaces', label: 'الأسطح (للحشوات)', ltr: true, placeholder: 'MOD' })}
         ${textareaField({ name: 'notes', label: 'ملاحظات', rows: 2 })}
       </form>`,
-    actions: [{ label: 'إضافة', value: 'save', variant: 'primary' }, { label: 'إلغاء', value: null }],
+    actions: [{ label: 'إضافة', value: 'save', variant: 'primary' }, { label: 'إغلاق', value: null }],
     onOpen(d, close) { d.querySelector('form').addEventListener('submit', (e) => { e.preventDefault(); close('save'); }); d.querySelector('select').focus(); },
     async beforeClose(v, d) {
       if (v !== 'save') return true;
@@ -99,7 +99,7 @@ export async function editItemDialog(item) {
         ${textareaField({ name: 'notes', label: 'ملاحظات', value: item.notes ?? '', rows: 2 })}
         <div class="totals"><div class="totals__item totals__item--hero"><div class="totals__label">صافي البند</div><div class="totals__value" id="live-total">${formatMoney(item.total ?? itemMath(item).total)}</div></div></div>
       </form>`,
-    actions: [{ label: 'حفظ', value: 'save', variant: 'primary' }, { label: 'إلغاء', value: null }],
+    actions: [{ label: 'حفظ', value: 'save', variant: 'primary' }, { label: 'إغلاق', value: null }],
     onOpen(d, close) {
       const f = d.querySelector('form');
       if (editingLocked) f.querySelectorAll('[name=unitPrice],[name=qty],[name=discountValue],[name=discountType]').forEach((i) => { i.disabled = true; });
@@ -180,7 +180,7 @@ export async function confirmDone(item) {
             </div>`)}
           </div>` : ''}
       </div>`,
-    actions: [{ label: 'تم الانتهاء', value: 'ok', variant: 'primary' }, { label: 'إلغاء', value: null }],
+    actions: [{ label: 'تم الانتهاء', value: 'ok', variant: 'primary' }, { label: 'إغلاق', value: null }],
     onOpen(d) {
       d.addEventListener('input', (e) => {
         const t = /** @type {HTMLInputElement} */ (e.target);

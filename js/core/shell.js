@@ -16,13 +16,14 @@ import { brandMark } from '../components/brand.js';
 import { getSettings } from '../data/settings.js';
 import { toast } from '../components/toast.js';
 import { openMenu } from '../components/menu.js';
-import { confirmDialog } from '../components/modal.js';
+import { confirmDialog, openModal } from '../components/modal.js';
 import { logout } from '../services/auth.js';
 import { openChangePasswordDialog, openPinDialog } from '../modules/account/dialogs.js';
 import { attachPatientSearch } from '../components/patient-search.js';
 import { backupStatus } from '../services/backup.js';
 import { collectAlerts } from '../services/alerts.js';
-import { syncStatus } from '../services/cloud-sync.js';
+import { syncStatus, syncNow } from '../services/cloud-sync.js';
+import { digits, formatDateTime } from './format.js';
 
 /** @type {HTMLElement} */
 let app;
@@ -88,16 +89,57 @@ function drawNav() {
 
 const SYNC_UI = {
   syncing: ['refresh-cw', 'جارٍ المزامنة…'], ok: ['cloud', 'متزامن'], offline: ['cloud-off', 'بدون إنترنت — ستتم المزامنة عند عودته'],
-  error: ['cloud-off', 'تعذّرت المزامنة'], auth: ['cloud-off', 'يلزم تسجيل الدخول بحساب العيادة'],
+  error: ['triangle-alert', 'تعذّرت المزامنة'], auth: ['lock', 'يلزم تسجيل الدخول بحساب العيادة'],
 };
+
+/** "منذ 5 دقائق" style age of the last successful sync. */
+function ago(iso) {
+  if (!iso) return 'لم تتم بعد';
+  const min = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (min < 1) return 'الآن';
+  if (min < 60) return `منذ ${digits(min)} دقيقة`;
+  if (min < 24 * 60) return `منذ ${digits(Math.round(min / 60))} ساعة`;
+  return formatDateTime(iso);
+}
+
+/** Small sheet anyone can open from the cloud icon: what is happening, and a retry. */
+async function openSyncSheet() {
+  const draw = (st) => html`<dl class="dl">
+      <dt>الحالة</dt><dd>${SYNC_UI[st.state]?.[1] ?? 'غير مربوط بالسحابة'}</dd>
+      <dt>آخر مزامنة</dt><dd>${ago(st.lastSyncAt)}</dd>
+      <dt>بانتظار الرفع</dt><dd>${st.pending ? `${digits(st.pending)} تعديل` : 'لا شيء'}</dd>
+      ${st.error ? html`<dt>السبب</dt><dd>${st.error}</dd>` : ''}
+    </dl>
+    <p class="muted text-sm">${st.state === 'auth' ? 'اطلب من مدير النظام إعادة تسجيل الدخول بحساب العيادة من الإعدادات ← المزامنة.' : 'البرنامج يعمل بدون إنترنت، والتعديلات تُرفع تلقائيًا عند عودة الاتصال.'}</p>`;
+  const res = await openModal({
+    title: 'المزامنة مع السحابة', icon: 'cloud',
+    body: html`<div class="stack-sm" data-sync-sheet>${draw(syncStatus())}</div>`,
+    actions: [{ label: 'مزامنة الآن', value: 'now', variant: 'primary' }, ...(can('settings', 'view') ? [{ label: 'الإعدادات', value: 'settings' }] : []), { label: 'إغلاق', value: null }],
+    async beforeClose(v, d) {
+      if (v !== 'now') return true;
+      render(d.querySelector('[data-sync-sheet]'), draw(await syncNow()));
+      return false; // stay open to show the result
+    },
+  });
+  if (res === 'settings') navigate('/settings?tab=cloud');
+}
+
+let lastSyncState = '';
 function drawSync(st = syncStatus()) {
+  // Say it once when sync starts failing, instead of only changing the icon colour.
+  if (st.state !== lastSyncState && (st.state === 'error' || st.state === 'auth') && getSession()) {
+    toast(st.state === 'auth' ? 'توقفت المزامنة: يلزم تسجيل الدخول بحساب العيادة.' : 'تعذّرت المزامنة مع السحابة — ستتم المحاولة تلقائيًا.', {
+      type: 'warning', action: { label: 'التفاصيل', onClick: openSyncSheet },
+    });
+  }
+  lastSyncState = st.state;
   const btn = app.querySelector('[data-action="sync"]');
   if (!btn) return;
   const ui = SYNC_UI[st.state];
   btn.hidden = !ui || !getSession();
   if (!ui) return;
   btn.dataset.state = st.state;
-  const label = `${ui[1]}${st.pending ? ` · ${st.pending} تعديل لم يُرفع` : ''}`;
+  const label = `${ui[1]}${st.pending ? ` · ${digits(st.pending)} تعديل لم يُرفع` : ''}`;
   btn.title = label;
   btn.setAttribute('aria-label', `المزامنة: ${label}`);
   render(btn, html`${ico(ui[0], { size: 20 })}${st.pending && st.state !== 'syncing' ? html`<span class="icon-btn__badge"></span>` : ''}`);
@@ -187,7 +229,7 @@ export function mountShell(root) {
         <div class="sidebar-card" data-slot="sidebar-card">
           <div class="sidebar-card__title">بياناتك على هذا الجهاز</div>
           <p class="sidebar-card__text">خذ نسخة احتياطية بانتظام لحماية ملفات المرضى.</p>
-          <a class="btn btn--accent btn--sm btn--block" href="#/settings">${ico('database', { size: 18 })} النسخ الاحتياطي</a>
+          <a class="btn btn--accent btn--sm btn--block" href="#/settings?tab=backup">${ico('database', { size: 18 })} النسخ الاحتياطي</a>
         </div>
       </div>
     </aside>
@@ -256,7 +298,7 @@ export function mountShell(root) {
         break;
       }
       case 'notifications': openBell(el); break;
-      case 'sync': navigate('/settings?tab=cloud'); break;
+      case 'sync': openSyncSheet(); break;
       case 'user-menu': openUserMenu(el); break;
     }
   });

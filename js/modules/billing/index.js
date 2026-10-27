@@ -90,12 +90,12 @@ export default {
           { key: 'number', label: 'الرقم', render: (r) => html`<span class="ltr num">${formatInvoiceNo(r.number)}</span>` },
           { key: 'date', label: 'التاريخ', render: (r) => formatDate(r.date) },
           { key: 'patient', label: 'المريض', render: (r) => patientLink(r.patientId, r.patientName) },
-          { key: 'total', label: 'المستحق', num: true, render: (r) => formatMoney(r.total) },
+          { key: 'total', label: 'الإجمالي', num: true, render: (r) => formatMoney(r.total) },
           { key: 'paid', label: 'المدفوع', num: true, render: (r) => formatMoney(r.paid) },
           { key: 'remaining', label: 'المتبقي', num: true, render: (r) => (r.status === 'void' ? '—' : html`<strong>${formatMoney(r.remaining)}</strong>`) },
           { key: 'status', label: 'الحالة', render: (r) => html`<span class="badge badge--dot badge--${INVOICE_STATUS[r.status].tone}">${INVOICE_STATUS[r.status].label}</span>` },
           { key: 'a', label: '', render: (r) => html`<div class="table__actions">
-            ${can('billing', 'create') && (r.status === 'open' || r.status === 'partial') ? html`<button type="button" class="btn btn--accent btn--sm" data-pay-inv="${r.id}" data-patient="${r.patientId}">سداد</button>` : ''}
+            ${can('billing', 'create') && (r.status === 'open' || r.status === 'partial') ? html`<button type="button" class="btn btn--accent btn--sm" data-pay-inv="${r.id}" data-patient="${r.patientId}">تحصيل</button>` : ''}
             <button type="button" class="btn btn--icon btn--sm" data-print-inv="${r.id}" aria-label="طباعة">${ico('printer', { size: 18 })}</button></div>` },
         ],
       });
@@ -117,7 +117,7 @@ export default {
         signal, caption: 'المدفوعات', rows,
         empty: { icon: 'banknote', title: 'لا توجد مدفوعات في هذه الفترة' },
         columns: [
-          { key: 'r', label: 'الإيصال', render: (p) => html`<span class="ltr num">${formatReceiptNo(p.receiptNo)}</span>${p.voided ? html` <span class="badge" title="${p.voidReason}">ملغى</span>` : ''}` },
+          { key: 'r', label: 'الإيصال', render: (p) => html`<span class="ltr num">${formatReceiptNo(p.receiptNo)}</span>${p.voided ? html` <span class="badge" title="${p.voidReason}">مُبطل</span>` : ''}` },
           { key: 'at', label: 'الوقت', render: (p) => formatDateTime(p.at) },
           { key: 'patient', label: 'المريض', render: (p) => patientLink(p.patientId, p.patientName) },
           { key: 'method', label: 'الطريقة', render: (p) => PAYMENT_METHODS[p.method]?.label },
@@ -160,7 +160,7 @@ export default {
             const link = whatsappLink(p?.phone, msg);
             return html`<div class="table__actions">
               ${link ? html`<a class="btn btn--whatsapp btn--icon btn--sm" href="${link}" target="_blank" rel="noopener" aria-label="تذكير واتساب">${ico('message-circle', { size: 18 })}</a>` : ''}
-              ${can('billing', 'create') ? html`<button type="button" class="btn btn--accent btn--sm" data-pay-inv="${i.invoice.id}" data-patient="${i.invoice.patientId}">سداد</button>` : ''}</div>`;
+              ${can('billing', 'create') ? html`<button type="button" class="btn btn--accent btn--sm" data-pay-inv="${i.invoice.id}" data-patient="${i.invoice.patientId}">تحصيل</button>` : ''}</div>`;
           } },
         ],
       });
@@ -183,7 +183,7 @@ export default {
           { key: 'billed', label: 'إجمالي الفواتير', num: true, sortable: true, render: (r) => formatMoney(r.billed) },
           { key: 'paid', label: 'المدفوع', num: true, sortable: true, render: (r) => formatMoney(r.paid) },
           { key: 'balance', label: 'المتبقي', num: true, sortable: true, render: (r) => html`<strong>${formatMoney(r.balance)}</strong>` },
-          { key: 'a', label: '', render: (r) => (can('billing', 'create') ? html`<button type="button" class="btn btn--accent btn--sm" data-pay-patient="${r.patientId}">سداد</button>` : '') },
+          { key: 'a', label: '', render: (r) => (can('billing', 'create') ? html`<button type="button" class="btn btn--accent btn--sm" data-pay-patient="${r.patientId}">تحصيل</button>` : '') },
         ],
       });
     };
@@ -213,7 +213,7 @@ export default {
             <div class="card__body">${Object.keys(c.byUser).length ? html`<dl class="dl">${Object.entries(c.byUser).map(([u, v]) => html`<dt>${u}</dt><dd class="num">${formatMoney(v)}</dd>`)}</dl>` : html`<p class="muted">لا توجد مقبوضات.</p>`}</div>
           </section>
           <section class="card span-12">
-            <div class="card__header"><div class="card__heading"><h2 class="card__title">إيصالات اليوم</h2>${c.voided.length ? html`<p class="card__subtitle">${digits(c.voided.length)} إيصال ملغى (غير محسوب)</p>` : ''}</div></div>
+            <div class="card__header"><div class="card__heading"><h2 class="card__title">إيصالات اليوم</h2>${c.voided.length ? html`<p class="card__subtitle">${digits(c.voided.length)} إيصال مُبطل (غير محسوب)</p>` : ''}</div></div>
             <div class="card__body">${c.payments.length ? html`<ul class="list">${c.payments.map((p) => html`<li class="list__item">
               <span class="ltr num muted">${formatReceiptNo(p.receiptNo)}</span>
               <span class="list__main"><span class="list__title">${p.patientName}</span><span class="list__meta">${formatDateTime(p.at)} · ${PAYMENT_METHODS[p.method]?.label} · ${p.userName ?? ''}</span></span>

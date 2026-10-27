@@ -118,7 +118,7 @@ export async function renderTab({ body, actions, query, signal }) {
           ${textField({ name: 'name', label: 'اسم الدور', required: true, placeholder: 'مثال: محاسب' })}
           ${selectField({ name: 'copyFrom', label: 'ابدأ بصلاحيات', placeholder: 'بدون صلاحيات', options: roles.filter((r) => r.id !== ADMIN_ROLE_ID).map((r) => ({ value: r.id, label: r.name })) })}
         </form>`,
-      actions: [{ label: 'إنشاء', value: 'save', variant: 'primary' }, { label: 'إلغاء', value: null }],
+      actions: [{ label: 'إنشاء', value: 'save', variant: 'primary' }, { label: 'إغلاق', value: null }],
       onOpen(d, close) { const f = d.querySelector('form'); f.addEventListener('submit', (e) => { e.preventDefault(); close('save'); }); f.querySelector('input').focus(); },
       async beforeClose(v, d) {
         if (v !== 'save') return true;
@@ -144,7 +144,7 @@ async function askRoleName({ title, value }) {
     title, icon: 'pencil',
     dirty: true,
     body: html`<form class="form" novalidate>${textField({ name: 'name', label: 'اسم الدور', value, required: true })}</form>`,
-    actions: [{ label: 'حفظ', value: 'save', variant: 'primary' }, { label: 'إلغاء', value: null }],
+    actions: [{ label: 'حفظ', value: 'save', variant: 'primary' }, { label: 'إغلاق', value: null }],
     onOpen(d, close) { const f = d.querySelector('form'); f.addEventListener('submit', (e) => { e.preventDefault(); close('save'); }); f.querySelector('input').select(); },
     beforeClose(v, d) {
       if (v !== 'save') return true;

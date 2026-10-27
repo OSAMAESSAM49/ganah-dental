@@ -26,7 +26,7 @@ export async function openChangePasswordDialog({ forced = false } = {}) {
       </form>`,
     actions: [
       { label: 'حفظ', value: 'save', variant: 'primary' },
-      ...(forced ? [] : [{ label: 'إلغاء', value: null }]),
+      ...(forced ? [] : [{ label: 'إغلاق', value: null }]),
     ],
     onOpen(dialog, close) {
       const form = dialog.querySelector('form');
@@ -72,7 +72,7 @@ export async function openPinDialog() {
     actions: [
       { label: 'حفظ', value: 'save', variant: 'primary' },
       ...(me?.hasPin ? [{ label: 'إزالة الرمز', value: 'remove', variant: 'ghost' }] : []),
-      { label: 'إلغاء', value: null },
+      { label: 'إغلاق', value: null },
     ],
     onOpen(dialog, close) {
       const form = dialog.querySelector('form');

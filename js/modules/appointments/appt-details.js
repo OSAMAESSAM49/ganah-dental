@@ -5,7 +5,7 @@
 import { html, ico, render } from '../../core/dom.js';
 import { formatDateTime, digits } from '../../core/format.js';
 import { formatRange, dayLabel, addDays } from '../../core/time.js';
-import { APPT_STATUS, TREATMENT_STATUS } from '../../core/labels.js';
+import { APPT_STATUS, APPT_ACTIONS, TREATMENT_STATUS } from '../../core/labels.js';
 import { can } from '../../core/permissions.js';
 import { href } from '../../core/router.js';
 import { repos } from '../../data/index.js';
@@ -22,11 +22,11 @@ import { offerInstructions } from '../followups/shared.js';
 import { openAppointmentForm } from './appt-form.js';
 
 const STEP_UI = {
-  arrived: { label: 'وصل — في الانتظار', icon: 'user-round', variant: 'accent' },
-  in_chair: { label: 'دخل الكرسي', icon: 'stethoscope', variant: 'primary' },
-  done: { label: 'انتهت الزيارة', icon: 'circle-check', variant: 'primary' },
-  no_show: { label: 'لم يحضر', icon: 'circle-x', variant: 'ghost' },
-  cancelled: { label: 'إلغاء الموعد', icon: 'x', variant: 'ghost' },
+  arrived: { label: APPT_ACTIONS.arrived, icon: 'user-round', variant: 'accent' },
+  in_chair: { label: APPT_ACTIONS.in_chair, icon: 'stethoscope', variant: 'primary' },
+  done: { label: APPT_ACTIONS.done, icon: 'circle-check', variant: 'primary' },
+  no_show: { label: APPT_ACTIONS.no_show, icon: 'circle-x', variant: 'ghost' },
+  cancelled: { label: APPT_ACTIONS.cancelled, icon: 'x', variant: 'ghost' },
 };
 
 /** Asks for a reason, then cancels. Shared with quick actions. */
@@ -115,8 +115,8 @@ export async function openAppointmentDetails(appt) {
         <div class="row" style="border-block-start: 1px solid var(--c-border); padding-block-start: var(--sp-4)">
           ${a.status === 'booked' ? html`<button type="button" class="btn btn--whatsapp btn--sm" data-remind>${ico('message-circle', { size: 18 })} تذكير واتساب</button>` : ''}
           ${canEdit && !['done', 'cancelled', 'no_show'].includes(a.status) ? html`<button type="button" class="btn btn--sm" data-edit>${ico('pencil', { size: 18 })} تعديل / تأجيل</button>` : ''}
-          ${can('billing', 'view') && (a.status === 'done' || a.status === 'in_chair') ? html`<a class="btn btn--sm" href="${href('/patients/:id', { id: a.patientId }, { tab: 'payments' })}" data-close>${ico('receipt', { size: 18 })} الحساب والفاتورة</a>` : ''}
-          ${can('appointments', 'create') ? html`<button type="button" class="btn btn--sm btn--soft" data-followup>${ico('calendar-check', { size: 18 })} حجز موعد قادم</button>` : ''}
+          ${can('billing', 'view') && (a.status === 'done' || a.status === 'in_chair') ? html`<a class="btn btn--sm" href="${href('/patients/:id', { id: a.patientId }, { tab: 'payments' })}" data-close>${ico('receipt', { size: 18 })} الحسابات</a>` : ''}
+          ${can('appointments', 'create') ? html`<button type="button" class="btn btn--sm btn--soft" data-followup>${ico('calendar-check', { size: 18 })} حجز موعد</button>` : ''}
           ${can('appointments', 'delete') ? html`<button type="button" class="btn btn--ghost btn--sm" data-delete style="color: var(--c-danger); margin-inline-start: auto">${ico('trash-2', { size: 18 })} حذف</button>` : ''}
         </div>
       </div>`;

@@ -56,7 +56,7 @@ export async function expenseDialog(expense = null) {
           <label class="check"><input type="checkbox" name="recurring"> يتكرر كل شهر (إيجار، رواتب…)</label>
           <div id="rec-box" hidden>${textField({ name: 'dayOfMonth', label: 'يوم الاستحقاق في الشهر', value: String(toDate(todayISO()).getDate()), ltr: true, inputmode: 'numeric', hint: 'من 1 إلى 28. يُسجّل تلقائيًا كل شهر عند فتح البرنامج.' })}</div>`}
       </form>`,
-    actions: [{ label: 'حفظ', value: 'save', variant: 'primary' }, { label: 'إلغاء', value: null }],
+    actions: [{ label: 'حفظ', value: 'save', variant: 'primary' }, { label: 'إغلاق', value: null }],
     onOpen(d, close) {
       const f = d.querySelector('form');
       enhanceDateFields(f);
@@ -202,7 +202,7 @@ export default {
         title, icon: 'pencil',
         dirty: true,
         body: html`<form class="form" novalidate>${textField({ name: 'v', label, value })}</form>`,
-        actions: [{ label: 'حفظ', value: 'ok', variant: 'primary' }, { label: 'إلغاء', value: null }],
+        actions: [{ label: 'حفظ', value: 'ok', variant: 'primary' }, { label: 'إغلاق', value: null }],
         onOpen(d, close) { d.querySelector('form').addEventListener('submit', (e) => { e.preventDefault(); close('ok'); }); d.querySelector('input').select(); },
         beforeClose(v, d) { if (v !== 'ok') return true; out = /** @type {HTMLInputElement} */ (d.querySelector('input')).value.trim(); return !!out; },
       });

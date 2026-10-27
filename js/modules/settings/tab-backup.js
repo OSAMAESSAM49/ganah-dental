@@ -234,7 +234,7 @@ async function confirmRestore(parsed, file) {
         ${preview.older ? html`<div class="alert">${ico('info')}<div class="alert__content"><div class="alert__body">النسخة من إصدار أقدم من البرنامج، وسيتم تحديثها تلقائيًا أثناء الاسترجاع.</div></div></div>` : ''}
         <label class="check"><input type="checkbox" id="safety" checked> نزّل نسخة من البيانات الحالية قبل الاسترجاع (موصى به)</label>
       </div>`,
-    actions: [{ label: 'متابعة', value: 'next', variant: 'danger' }, { label: 'إلغاء', value: null }],
+    actions: [{ label: 'متابعة', value: 'next', variant: 'danger' }, { label: 'إغلاق', value: null }],
     beforeClose(v, d) {
       if (v === 'next') safety = /** @type {HTMLInputElement} */ (d.querySelector('#safety')).checked;
       return true;
@@ -284,7 +284,7 @@ async function confirmMerge(parsed, file) {
         </table></div>` : html`<p class="muted">لا يوجد في النسخة شيء جديد أو أحدث مما على هذا الجهاز.</p>`}
         <label class="check"><input type="checkbox" id="safety" checked> نزّل نسخة من البيانات الحالية قبل الدمج (موصى به)</label>
       </div>`,
-    actions: rows.length ? [{ label: 'دمج الآن', value: 'go', variant: 'primary' }, { label: 'إلغاء', value: null }] : [{ label: 'إغلاق', value: null }],
+    actions: rows.length ? [{ label: 'دمج الآن', value: 'go', variant: 'primary' }, { label: 'إغلاق', value: null }] : [{ label: 'إغلاق', value: null }],
     beforeClose(v, d) {
       if (v === 'go') safety = /** @type {HTMLInputElement} */ (d.querySelector('#safety')).checked;
       return true;

@@ -237,11 +237,14 @@ export const PAYMENT_METHODS = {
 export const INVOICE_STATUS = {
   open: { label: 'غير مدفوعة', tone: 'danger' },
   partial: { label: 'مدفوعة جزئيًا', tone: 'warning' },
-  paid: { label: 'مدفوعة', tone: 'success' },
-  void: { label: 'ملغاة', tone: '' },
+  paid: { label: 'تم السداد', tone: 'success' },
+  void: { label: 'مُبطلة', tone: '' },
 };
 
 /** Appointment arrival flow: booked → arrived → in_chair → done (or no_show / cancelled). */
+/** What the buttons that move an appointment along say (same words everywhere). */
+export const APPT_ACTIONS = { arrived: 'وصل', in_chair: 'دخل الكرسي', done: 'انتهت الزيارة', no_show: 'لم يحضر', cancelled: 'إلغاء الموعد' };
+
 export const APPT_STATUS = {
   booked: { label: 'محجوز', tone: 'primary', color: '#4A0CD3' },
   arrived: { label: 'في الانتظار', tone: 'warning', color: '#D97706' },

@@ -12,7 +12,7 @@ import { openModal, confirmDialog } from '../../components/modal.js';
 import { openMenu } from '../../components/menu.js';
 import { textField, selectField, textareaField } from '../../components/form.js';
 import { dateField, enhanceDateFields } from '../../components/date-field.js';
-import { toastSuccess, toastError } from '../../components/toast.js';
+import { toastSuccess, toastError, toast } from '../../components/toast.js';
 import { searchPatients, getPatient } from '../../services/patients.js';
 import { listItems as listTreatmentItems } from '../../services/treatment.js';
 import { listLabCases, createLabCase, updateLabCase, setLabStatus, deleteLabCase, knownLabs, isOverdue, LAB_FLOW } from '../../services/labs.js';
@@ -78,7 +78,7 @@ export async function labCaseDialog(preset = {}) {
         ${textareaField({ name: 'notes', label: 'ملاحظات للمعمل', value: editing?.notes ?? '', rows: 2 })}
         <datalist id="dl-labs">${labs.map((l) => html`<option value="${l}"></option>`)}</datalist>
       </form>`,
-    actions: [{ label: editing ? 'حفظ' : 'تسجيل الإرسال', value: 'save', variant: 'primary' }, { label: 'إلغاء', value: null }],
+    actions: [{ label: editing ? 'حفظ' : 'تسجيل الإرسال', value: 'save', variant: 'primary' }, { label: 'إغلاق', value: null }],
     onOpen(d, close) {
       const f = d.querySelector('form');
       enhanceDateFields(f);
@@ -185,7 +185,13 @@ export default {
 
     on(el, 'click', '[data-filter]', (_, b) => { filter = b.dataset.filter; draw(); }, { signal });
     on(el, 'click', '[data-new]', () => labCaseDialog(), { signal });
-    on(el, 'click', '[data-next]', async (_, b) => { const c = cases.find((x) => x.id === b.dataset.next); await setLabStatus(c.id, NEXT[c.status][0]); toastSuccess(`${c.patientName}: ${LAB_STATUS[NEXT[c.status][0]].label}`); }, { signal });
+    on(el, 'click', '[data-next]', async (_, b) => {
+      const c = cases.find((x) => x.id === b.dataset.next);
+      const from = c.status, to = NEXT[c.status][0];
+      b.disabled = true;
+      try { await setLabStatus(c.id, to); } catch (err) { toastError(err.message); b.disabled = false; return; }
+      toast(`${c.patientName}: ${LAB_STATUS[to].label}`, { type: 'success', action: { label: 'تراجع', onClick: () => setLabStatus(c.id, from).catch((err) => toastError(err.message)) } });
+    }, { signal });
     on(el, 'click', '[data-menu]', (_, b) => {
       const c = cases.find((x) => x.id === b.dataset.menu);
       const idx = LAB_FLOW.indexOf(c.status);

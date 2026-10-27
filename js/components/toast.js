@@ -25,6 +25,7 @@ function region() {
 function raise(el) {
   const host = [...document.querySelectorAll('dialog[open]')].at(-1) ?? document.body;
   if (el.parentElement !== host) host.append(el);
+  if (!el.hasAttribute('popover') && 'showPopover' in el) el.setAttribute('popover', 'manual'); // index.html ships it plain
   if (!el.hasAttribute('popover')) return;
   try { if (el.matches(':popover-open')) el.hidePopover(); el.showPopover(); } catch { /* not supported */ }
 }
@@ -40,12 +41,13 @@ export function releaseToasts(dialog) {
 /**
  * Shows a toast.
  * @param {string} message
- * @param {{ type?: 'success'|'error'|'warning'|'info', duration?: number,
+ * @param {{ type?: 'success'|'error'|'warning'|'info', duration?: number, sticky?: boolean,
  *           action?: { label: string, onClick: () => void } }} [opts]
  *   duration in ms; 0 keeps it until closed. Errors stay longer by default.
+ *   sticky: never pushed out by newer toasts (e.g. «يوجد إصدار جديد»).
  * @returns {() => void} dismiss
  */
-export function toast(message, { type = 'info', duration, action } = {}) {
+export function toast(message, { type = 'info', duration, action, sticky = false } = {}) {
   const ms = duration ?? (type === 'error' ? 7000 : action ? 10000 : 4000);
   const el = toElement(html`
     <div class="toast toast--${type}" role="${type === 'error' ? 'alert' : 'status'}">
@@ -55,6 +57,7 @@ export function toast(message, { type = 'info', duration, action } = {}) {
       <button type="button" class="toast__close" aria-label="إغلاق">${ico('x', { size: 18 })}</button>
     </div>`);
   render(el.querySelector('.toast__msg'), message);
+  if (sticky) el.dataset.sticky = '';
 
   let timer;
   const dismiss = () => {
@@ -71,7 +74,11 @@ export function toast(message, { type = 'info', duration, action } = {}) {
   const r = region();
   r.append(el);
   raise(r);
-  while (r.children.length > MAX_VISIBLE) r.firstElementChild.remove();
+  while (r.children.length > MAX_VISIBLE) {
+    const oldest = [...r.children].find((c) => !('sticky' in /** @type {HTMLElement} */ (c).dataset));
+    if (!oldest) break;
+    oldest.remove();
+  }
   if (ms) timer = setTimeout(dismiss, ms);
   return dismiss;
 }

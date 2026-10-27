@@ -133,7 +133,7 @@ async function openResetDialog(u) {
         <p class="muted">أعطِ الموظف هذه الكلمة شفهيًا. سيُطلب منه اختيار كلمة مرور جديدة عند أول دخول.</p>
         ${passwordField({ name: 'password', label: 'كلمة المرور المؤقتة', required: true, meter: true })}
       </form>`,
-    actions: [{ label: 'حفظ', value: 'save', variant: 'primary' }, { label: 'إلغاء', value: null }],
+    actions: [{ label: 'حفظ', value: 'save', variant: 'primary' }, { label: 'إغلاق', value: null }],
     onOpen(d, close) {
       const f = d.querySelector('form');
       enhancePasswordFields(f, passwordStrength);
@@ -223,7 +223,7 @@ async function openUserDialog(user, roles) {
           </div>
         </details>
       </form>`,
-    actions: [{ label: isNew ? 'إضافة المستخدم' : 'حفظ التعديلات', value: 'save', variant: 'primary' }, { label: 'إلغاء', value: null }],
+    actions: [{ label: isNew ? 'إضافة المستخدم' : 'حفظ التعديلات', value: 'save', variant: 'primary' }, { label: 'إغلاق', value: null }],
     onOpen(d, close) {
       const form = d.querySelector('form');
       enhancePasswordFields(form, passwordStrength);

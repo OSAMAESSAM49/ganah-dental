@@ -141,7 +141,7 @@ export async function prescriptionDialog(preset = {}) {
         ${dateField({ name: 'date', label: 'التاريخ', value: editing?.date ?? todayISO() })}
       </div>
     </form>`,
-    actions: [{ label: 'حفظ وطباعة', value: 'print', variant: 'primary' }, { label: 'حفظ', value: 'save' }, { label: 'إلغاء', value: null }],
+    actions: [{ label: 'حفظ وطباعة', value: 'print', variant: 'primary' }, { label: 'حفظ', value: 'save' }, { label: 'إغلاق', value: null }],
     onOpen(d) {
       const f = d.querySelector('form');
       enhanceDateFields(f);

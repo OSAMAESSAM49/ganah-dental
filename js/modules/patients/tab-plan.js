@@ -260,7 +260,7 @@ export async function renderTab({ body, patient, query, signal }) {
         ${textField({ name: 'name', label: 'اسم الخطة', required: true, placeholder: 'مثال: الخيار الاقتصادي' })}
         <label class="check"><input type="checkbox" name="copy" checked> ابدأ بنسخة من بنود «${plan().name}»</label>
       </form>`,
-      actions: [{ label: 'إنشاء', value: 'save', variant: 'primary' }, { label: 'إلغاء', value: null }],
+      actions: [{ label: 'إنشاء', value: 'save', variant: 'primary' }, { label: 'إغلاق', value: null }],
       onOpen(d, close) { const f = d.querySelector('form'); f.addEventListener('submit', (e) => { e.preventDefault(); close('save'); }); f.querySelector('input').focus(); },
       async beforeClose(v, d) {
         if (v !== 'save') return true;
@@ -284,7 +284,7 @@ export async function renderTab({ body, patient, query, signal }) {
           title: 'إعادة تسمية', icon: 'pencil',
           dirty: true,
           body: html`<form class="form" novalidate>${textField({ name: 'name', label: 'اسم الخطة', value: pl.name, required: true })}</form>`,
-          actions: [{ label: 'حفظ', value: 'save', variant: 'primary' }, { label: 'إلغاء', value: null }],
+          actions: [{ label: 'حفظ', value: 'save', variant: 'primary' }, { label: 'إغلاق', value: null }],
           onOpen(d, close) { d.querySelector('form').addEventListener('submit', (e) => { e.preventDefault(); close('save'); }); },
           beforeClose(v, d) { if (v !== 'save') return true; name = formData(d.querySelector('form')).name.trim(); return !!name; },
         });

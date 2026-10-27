@@ -29,7 +29,7 @@ const methodChips = (value = 'cash') => html`
 /** Offers to print right after saving. */
 async function offerPrint(kind, id) {
   const size = await openModal({
-    title: kind === 'invoice' ? 'تم إنشاء الفاتورة' : 'تم تسجيل الدفعة',
+    title: kind === 'invoice' ? 'تم إصدار الفاتورة' : 'تم تسجيل الدفعة',
     icon: 'circle-check',
     body: html`<p>هل تريد طباعة ${kind === 'invoice' ? 'الفاتورة' : 'الإيصال'} الآن؟</p>`,
     actions: [
@@ -133,7 +133,7 @@ export async function openInvoiceDialog(patientId, { preselect = null } = {}) {
         <div class="totals__item"><div class="totals__label">الإجمالي</div><div class="totals__value">${formatMoney(t.subtotal)}</div></div>
         <div class="totals__item"><div class="totals__label">الخصم</div><div class="totals__value">${formatMoney(t.discount)}</div></div>
         ${t.credit ? html`<div class="totals__item"><div class="totals__label">من الرصيد الدائن</div><div class="totals__value">${formatMoney(t.credit)}</div></div>` : ''}
-        <div class="totals__item totals__item--hero"><div class="totals__label">المستحق</div><div class="totals__value">${formatMoney(t.due)}</div></div>
+        <div class="totals__item totals__item--hero"><div class="totals__label">الإجمالي</div><div class="totals__value">${formatMoney(t.due)}</div></div>
       </div>
       ${st.payMode === 'installments' && t.rest > 0 ? html`<div class="stack-sm"><span class="field__label">جدول الأقساط</span>
         ${splitInstallments(t.rest, st.instCount, st.instStart).map((i, n) => html`<div class="row row--between text-sm"><span>القسط ${digits(n + 1)} · ${formatDate(i.dueDate)}</span><strong>${formatMoney(i.amount)}</strong></div>`)}</div>` : ''}`;
@@ -169,7 +169,7 @@ export async function openInvoiceDialog(patientId, { preselect = null } = {}) {
         <div id="inv-summary"></div>
         ${textareaField({ name: 'notes', label: 'ملاحظات على الفاتورة', rows: 2 })}
       </form>`,
-    actions: [{ label: 'إنشاء الفاتورة', value: 'save', variant: 'primary' }, { label: 'إلغاء', value: null }],
+    actions: [{ label: 'إصدار الفاتورة', value: 'save', variant: 'primary' }, { label: 'إغلاق', value: null }],
     onOpen(dialog) {
       const $ = (s) => dialog.querySelector(s);
       const drawPay = () => {
@@ -276,12 +276,12 @@ export async function openPaymentDialog(preset = {}) {
     const suggested = sel ? (nextInst ? nextInst.amount - nextInst.covered : sel.remaining) : owed;
     return html`
       <div class="appt-patient">${patientAvatar(st.patient)}<div class="grow"><strong>${st.patient.name}</strong>
-        <div class="muted text-sm">المتبقي عليه: <strong>${formatMoney(Math.max(0, st.account.balance))}</strong>${st.account.credit ? ` · رصيد دائن ${formatMoney(st.account.credit)}` : ''}</div></div>
+        <div class="muted text-sm">المتبقي عليه: <strong>${formatMoney(Math.max(0, st.account.balance))}</strong>${st.account.credit ? ` · رصيد مقدم ${formatMoney(st.account.credit)}` : ''}</div></div>
         ${preset.patientId ? '' : html`<button type="button" class="btn btn--ghost btn--sm" data-change>تغيير</button>`}</div>
       <label class="field"><span class="field__label">عن</span>
         <select class="select" name="invoiceId">
           ${invs.map((i) => html`<option value="${i.id}" ${i.id === st.invoiceId ? 'selected' : ''}>${formatInvoiceNo(i.number)} · ${formatDate(i.date)} · متبقٍ ${formatMoney(i.remaining)}</option>`)}
-          <option value="" ${!st.invoiceId ? 'selected' : ''}>${invs.length ? `سداد الفواتير المفتوحة (الأقدم أولًا) · متبقٍ ${formatMoney(owed)}` : 'دفعة تحت الحساب (رصيد مقدم)'}</option>
+          <option value="" ${!st.invoiceId ? 'selected' : ''}>${invs.length ? `سداد الفواتير المفتوحة (الأقدم أولًا) · متبقٍ ${formatMoney(owed)}` : 'رصيد مقدم (بدون فاتورة)'}</option>
         </select></label>
       ${!sel && invs.length ? html`<p class="muted text-sm">${ico('info', { size: 14 })} يُخصم المبلغ من الفواتير المفتوحة بالأقدم أولًا، والزيادة تبقى رصيدًا مقدمًا للمريض.</p>` : ''}
       ${nextInst ? html`<p class="muted text-sm">${ico('calendar-days', { size: 14 })} القسط المستحق ${formatDate(nextInst.dueDate)}: ${formatMoney(nextInst.amount - nextInst.covered)}${nextInst.status === 'overdue' ? ' (متأخر)' : ''}</p>` : ''}
@@ -299,7 +299,7 @@ export async function openPaymentDialog(preset = {}) {
     dirty: true,
     icon: 'banknote',
     body: html`<form class="form" id="pay-form" novalidate>${markup()}</form>`,
-    actions: [{ label: 'تسجيل الدفعة', value: 'save', variant: 'primary' }, { label: 'إلغاء', value: null }],
+    actions: [{ label: 'تسجيل الدفعة', value: 'save', variant: 'primary' }, { label: 'إغلاق', value: null }],
     onOpen(dialog, close) {
       const form = dialog.querySelector('#pay-form');
       const redraw = () => { render(form, markup()); wire(); };
@@ -379,15 +379,15 @@ async function askReason(title, message) {
 }
 
 export async function voidPaymentFlow(payment) {
-  const reason = await askReason('إلغاء الإيصال؟', `إيصال بمبلغ ${formatMoney(payment.amount)} من ${payment.patientName}. يبقى ظاهرًا في السجل كملغى.`);
+  const reason = await askReason('إبطال الإيصال؟', `إيصال بمبلغ ${formatMoney(payment.amount)} من ${payment.patientName}. يبقى ظاهرًا في السجل مُبطلًا.`);
   if (!reason) return false;
-  try { await voidPayment(payment.id, reason); toastSuccess('تم إلغاء الإيصال'); return true; } catch (err) { toastError(err.message); return false; }
+  try { await voidPayment(payment.id, reason); toastSuccess('تم إبطال الإيصال'); return true; } catch (err) { toastError(err.message); return false; }
 }
 
 export async function voidInvoiceFlow(invoice) {
   const reason = await askReason(`إلغاء ${formatInvoiceNo(invoice.number)}؟`, 'تعود بنودها قابلة للفوترة من جديد، والمبالغ المدفوعة عليها تبقى رصيدًا دائنًا للمريض.');
   if (!reason) return false;
-  try { await voidInvoice(invoice.id, reason); toastSuccess('تم إلغاء الفاتورة'); return true; } catch (err) { toastError(err.message); return false; }
+  try { await voidInvoice(invoice.id, reason); toastSuccess('تم إبطال الفاتورة'); return true; } catch (err) { toastError(err.message); return false; }
 }
 
 /** Re-plan the remaining amount of an invoice into installments. */
@@ -399,7 +399,7 @@ export async function editInstallmentsDialog(invoice) {
     title: `أقساط ${formatInvoiceNo(invoice.number)}`,
     icon: 'calendar-days',
     body: html`<div class="stack" id="inst-box"></div>`,
-    actions: [{ label: 'حفظ الجدول', value: 'ok', variant: 'primary' }, { label: 'إلغاء', value: null }],
+    actions: [{ label: 'حفظ الجدول', value: 'ok', variant: 'primary' }, { label: 'إغلاق', value: null }],
     onOpen(d) {
       const box = d.querySelector('#inst-box');
       const draw = () => {

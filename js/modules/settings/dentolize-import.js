@@ -120,7 +120,7 @@ export async function runDentolizeImport(files) {
         <label class="check"><input type="checkbox" id="dz-backup" checked> نزّل نسخة احتياطية من البيانات الحالية أولًا (موصى به)</label>
         <p class="muted text-sm">${ico('cloud', { size: 14 })} بعد الاستيراد تُرفع البيانات للسحابة تلقائيًا على دفعات. اترك البرنامج مفتوحًا على هذا الجهاز حتى تظهر «لا توجد تغييرات بانتظار الرفع» في حالة النظام.</p>
       </div>`,
-    actions: nothingNew ? [{ label: 'إغلاق', value: null }] : [{ label: 'استيراد', value: 'go', variant: 'primary' }, { label: 'إلغاء', value: null }],
+    actions: nothingNew ? [{ label: 'إغلاق', value: null }] : [{ label: 'استيراد', value: 'go', variant: 'primary' }, { label: 'إغلاق', value: null }],
     beforeClose(v, d) {
       if (v !== 'go') return true;
       backupFirst = /** @type {HTMLInputElement} */ (d.querySelector('#dz-backup')).checked;

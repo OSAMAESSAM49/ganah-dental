@@ -13,7 +13,7 @@ import { openMenu } from '../../components/menu.js';
 import { textareaField, segmentedField } from '../../components/form.js';
 import { dateField, enhanceDateFields, isoToInput } from '../../components/date-field.js';
 import { patientPicker, wirePatientPicker } from '../../components/patient-picker.js';
-import { toastSuccess, toastError } from '../../components/toast.js';
+import { toast, toastSuccess, toastError } from '../../components/toast.js';
 import { getPatient } from '../../services/patients.js';
 import {
   followUpMessage, instructionsMessage, markFollowUpSent, completeFollowUp, reopenFollowUp,
@@ -85,7 +85,7 @@ async function completeDialog(f) {
       ${textareaField({ name: 'outcome', label: 'النتيجة (اختياري)', rows: 3, placeholder: 'مثال: الحالة مستقرة، لا يوجد ألم' })}
       <div class="chips">${['الحالة مستقرة', 'يحتاج زيارة', 'لم يرد'].map((q) => html`<button type="button" class="chip" data-quick="${q}">${q}</button>`)}</div>
     </form>`,
-    actions: [{ label: 'تسجيل', value: 'ok', variant: 'primary' }, { label: 'إلغاء', value: null }],
+    actions: [{ label: 'تسجيل', value: 'ok', variant: 'primary' }, { label: 'إغلاق', value: null }],
     onOpen(d) {
       const ta = /** @type {HTMLTextAreaElement} */ (d.querySelector('[name=outcome]'));
       ta.focus();
@@ -120,7 +120,7 @@ export async function newFollowUpDialog(preset = {}) {
       <div class="chips">${[[1, 'غدًا'], [3, 'بعد 3 أيام'], [7, 'بعد أسبوع'], [30, 'بعد شهر'], [180, 'بعد 6 أشهر']].map(([d, l]) => html`<button type="button" class="chip" data-days="${d}">${l}</button>`)}</div>
       ${textareaField({ name: 'note', label: 'ملاحظة', rows: 2, placeholder: 'مثال: الاطمئنان على التورم' })}
     </form>`,
-    actions: [{ label: 'حفظ', value: 'save', variant: 'primary' }, { label: 'إلغاء', value: null }],
+    actions: [{ label: 'حفظ', value: 'save', variant: 'primary' }, { label: 'إغلاق', value: null }],
     onOpen(d) {
       const f = d.querySelector('form');
       enhanceDateFields(f);
@@ -156,6 +156,13 @@ export async function newFollowUpDialog(preset = {}) {
  */
 export function wireFollowUpRows(root, find, signal) {
   const rec = (b) => find(b.closest('[data-fu]').dataset.fu);
+  /** Runs a change, then offers «تراجع» back to how the follow-up was. */
+  const withUndo = async (f, change, message) => {
+    const before = { status: f.status, dueDate: f.dueDate, doneAt: f.doneAt ?? null, doneBy: f.doneBy ?? null };
+    try { await change(); } catch (err) { toastError(err.message); return; }
+    toast(message, { type: 'success', action: { label: 'تراجع', onClick: () => repos.followUps.update(f.id, before) } });
+  };
+  const snooze = (f, days, label) => withUndo(f, () => snoozeFollowUp(f.id, days), `${f.patientName}: تأجيل ${label}`);
   on(root, 'click', '[data-fu-wa]', (_, b) => sendFollowUpWhatsApp(rec(b)), { signal });
   on(root, 'click', '[data-fu-done]', (_, b) => completeDialog(rec(b)), { signal });
   on(root, 'click', '[data-fu-menu]', (_, b) => {
@@ -163,17 +170,17 @@ export function wireFollowUpRows(root, find, signal) {
     const edit = can('followups', 'edit'), pending = f.status === 'pending';
     openMenu(b, { header: f.patientName, items: [
       ...(edit && pending ? [
-        { label: 'تأجيل يوم', icon: 'clock', onSelect: () => snoozeFollowUp(f.id, 1) },
-        { label: 'تأجيل 3 أيام', icon: 'clock', onSelect: () => snoozeFollowUp(f.id, 3) },
-        { label: 'تأجيل أسبوع', icon: 'clock', onSelect: () => snoozeFollowUp(f.id, 7) },
+        { label: 'تأجيل يوم', icon: 'clock', onSelect: () => snooze(f, 1, 'يوم') },
+        { label: 'تأجيل 3 أيام', icon: 'clock', onSelect: () => snooze(f, 3, '3 أيام') },
+        { label: 'تأجيل أسبوع', icon: 'clock', onSelect: () => snooze(f, 7, 'أسبوع') },
         'sep',
       ] : []),
       ...(can('appointments', 'create') ? [{ label: 'حجز موعد', icon: 'calendar-check', onSelect: async () => { const { openAppointmentForm } = await import('../appointments/appt-form.js'); openAppointmentForm({ patientId: f.patientId }); } }] : []),
       { label: 'نسخ نص الرسالة', icon: 'file-text', onSelect: async () => {
         try { await navigator.clipboard.writeText((await followUpMessage(f)).text); toastSuccess('تم نسخ الرسالة'); } catch { toastError('تعذّر النسخ'); }
       } },
-      ...(edit && pending ? [{ label: 'إلغاء المتابعة', icon: 'circle-x', onSelect: () => skipFollowUp(f.id) }] : []),
-      ...(edit && !pending ? [{ label: 'إعادة فتح', icon: 'refresh-cw', onSelect: () => reopenFollowUp(f.id) }] : []),
+      ...(edit && pending ? [{ label: 'إلغاء المتابعة', icon: 'circle-x', onSelect: () => withUndo(f, () => skipFollowUp(f.id), `ألغيت متابعة ${f.patientName}`) }] : []),
+      ...(edit && !pending ? [{ label: 'إعادة فتح', icon: 'refresh-cw', onSelect: () => withUndo(f, () => reopenFollowUp(f.id), `أُعيد فتح متابعة ${f.patientName}`) }] : []),
       ...(can('followups', 'delete') ? ['sep', { label: 'حذف', icon: 'trash-2', danger: true, onSelect: async () => {
         if (await confirmDialog({ title: 'حذف المتابعة؟', message: `${f.patientName} — ${FOLLOWUP_TYPES[f.type]?.label}`, confirmLabel: 'حذف', danger: true })) { await repos.followUps.remove(f.id); toastSuccess('تم الحذف'); }
       } }] : []),

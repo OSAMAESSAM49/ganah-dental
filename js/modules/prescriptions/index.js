@@ -45,7 +45,7 @@ async function medicineDialog(med) {
         <div class="chips">${Object.entries(GROUPS).map(([k, label]) => html`<label class="check"><input type="checkbox" name="groups" value="${k}" ${med?.groups?.includes(k) ? 'checked' : ''}> ${label}</label>`)}</div>
       </fieldset>
     </form>`,
-    actions: [{ label: 'حفظ', value: 'save', variant: 'primary' }, { label: 'إلغاء', value: null }],
+    actions: [{ label: 'حفظ', value: 'save', variant: 'primary' }, { label: 'إغلاق', value: null }],
     async beforeClose(v, d) {
       if (v !== 'save') return true;
       const f = d.querySelector('form');
@@ -69,7 +69,7 @@ async function templateDialog(tpl) {
       ${textField({ name: 'name', label: 'اسم القالب', value: tpl?.name ?? '', required: true, placeholder: 'مثال: بعد الخلع' })}
       <div id="tpl-lines" class="stack-sm">${linesMarkup(st)}</div>
     </form>`,
-    actions: [{ label: 'حفظ', value: 'save', variant: 'primary' }, { label: 'إلغاء', value: null }],
+    actions: [{ label: 'حفظ', value: 'save', variant: 'primary' }, { label: 'إغلاق', value: null }],
     onOpen(d) { wireLinesEditor(d.querySelector('#tpl-lines'), st, medicines); d.querySelector('form').addEventListener('submit', (e) => e.preventDefault()); },
     async beforeClose(v, d) {
       if (v !== 'save') return true;

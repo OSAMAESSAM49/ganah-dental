@@ -33,7 +33,7 @@ async function templateDialog(tpl) {
       ${textField({ name: 'name', label: 'اسم القالب', value: tpl?.name ?? '', required: true, placeholder: 'مثال: بعد الخلع' })}
       ${textareaField({ name: 'body', label: 'التعليمات', value: tpl?.body ?? '', rows: 10, hint: 'سطر لكل تعليمة. تُرسل للمريض على واتساب ويمكن طباعتها.' })}
     </form>`,
-    actions: [{ label: 'حفظ', value: 'save', variant: 'primary' }, { label: 'إلغاء', value: null }],
+    actions: [{ label: 'حفظ', value: 'save', variant: 'primary' }, { label: 'إغلاق', value: null }],
     async beforeClose(v, d) {
       if (v !== 'save') return true;
       try { saved = await saveTemplate(tpl?.id, formData(d.querySelector('form'))); return true; } catch (err) { toastError(err.message); return false; }
