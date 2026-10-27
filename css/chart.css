@@ -35,7 +35,18 @@
 .odo-side { font-size: 11px; fill: var(--c-text-subtle); }
 
 .chart-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: var(--sp-5); align-items: start; }
+.chart-aside { position: sticky; inset-block-start: calc(var(--topbar-h) + var(--sp-3)); }
 @media (max-width: 1279px) { .chart-layout { grid-template-columns: minmax(0, 1fr); } }
+/* Phones: once a tooth is picked, its panel rises as a sheet above the bottom bar, so the
+   chart stays in view while choosing what to do. */
+@media (max-width: 767px) {
+  .chart-aside[data-sheet] {
+    position: fixed; inset-inline: var(--sp-2); inset-block: auto calc(88px + env(safe-area-inset-bottom));
+    z-index: var(--z-sticky); max-block-size: 42vh; overflow-y: auto; box-shadow: var(--shadow-lg);
+  }
+  .chart-layout:has(.chart-aside[data-sheet]) { padding-block-end: 42vh; }
+  .odo { min-inline-size: 720px; }
+}
 
 .legend-grid { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); font-size: var(--fs-sm); color: var(--c-text-muted); }
 .cond-dot { display: inline-block; inline-size: 14px; block-size: 14px; border-radius: 5px; vertical-align: -2px; flex-shrink: 0; }

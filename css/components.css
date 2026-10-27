@@ -421,6 +421,9 @@
 
 /* ---------- Toasts ---------- */
 .toast-region {
+  /* a manual popover (top layer, above open windows): drop the browser's popover box */
+  margin: 0; padding: 0; border: 0; background: transparent; overflow: visible; color: inherit;
+  inset: auto;
   position: fixed;
   inset-block-end: var(--sp-6);
   inset-inline-start: 50%;

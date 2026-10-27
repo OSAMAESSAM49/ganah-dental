@@ -182,7 +182,10 @@ export async function openAppointmentDetails(appt) {
           if (done) {
             const item = await repos.treatmentItems.get(done.dataset.itemDone);
             const res = await confirmDone(item);
-            if (res) { await setItemStatus(item.id, 'done', res); changed = true; toastSuccess(`تم: ${item.procedureName}`); await refresh(); await offerInstructions(item); }
+            if (res) {
+              await setItemStatus(item.id, 'done', res); changed = true; toastSuccess(`تم: ${item.procedureName}`); await refresh(); await offerInstructions(item);
+              (await import('../billing/dialogs.js')).offerInvoice(item.patientId);
+            }
             return;
           }
           if (t.closest('[data-save-notes]')) {

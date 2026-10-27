@@ -3,11 +3,11 @@
  * tabs (each tab is its own module, loaded on demand).
  */
 import { html, ico, render, on } from '../../core/dom.js';
-import { digits, formatAge } from '../../core/format.js';
+import { digits, formatAge, formatMoney, formatDate, todayISO } from '../../core/format.js';
 import { toWhatsAppNumber } from '../../core/validate.js';
 import { GENDER_LABELS } from '../../core/labels.js';
 import { can } from '../../core/permissions.js';
-import { href, navigate } from '../../core/router.js';
+import { href, navigate, confirmLeave, replaceUrl } from '../../core/router.js';
 import { onEvent } from '../../core/bus.js';
 import { openMenu } from '../../components/menu.js';
 import { confirmDialog } from '../../components/modal.js';
@@ -15,7 +15,8 @@ import { emptyState } from '../../components/states.js';
 import { toastSuccess } from '../../components/toast.js';
 import { getPatient, deletePatient, canChangePatient } from '../../services/patients.js';
 import { medicalBanner } from './medical.js';
-import { nextAppointment } from '../../services/appointments.js';
+import { nextAppointment, listForPatient } from '../../services/appointments.js';
+import { patientAccount } from '../../services/billing.js';
 import { dayLabel, formatClock } from '../../core/time.js';
 import { patientAvatar } from './list.js';
 
@@ -40,10 +41,16 @@ export default {
       return;
     }
     const tabs = TABS.filter((t) => !t.module || can(t.module, 'view'));
-    const tab = tabs.find((t) => t.key === query.tab) ?? tabs[0];
+    let tab = tabs.find((t) => t.key === query.tab) ?? tabs[0];
     document.title = `${patient.name} · ${tab.label}`;
 
     let next = can('appointments', 'view') ? await nextAppointment(patient.id) : null;
+    // What reception asks first: does the patient owe anything, and when did they last come.
+    const loadSummary = async () => ({
+      balance: can('billing', 'view') ? (await patientAccount(patient.id)).balance : null,
+      lastVisit: can('appointments', 'view') ? (await listForPatient(patient.id)).filter((a) => a.status === 'done' && a.date <= todayISO()).at(-1)?.date ?? null : null,
+    });
+    let summary = await loadSummary();
     // Patients with invoices: only the Admin or whoever registered them may edit or delete.
     let changeable = await canChangePatient(patient);
 
@@ -61,6 +68,9 @@ export default {
                 ${patient.dob ? html`<span class="badge">${formatAge(patient.dob)}${patient.dobEstimated ? ' تقريبًا' : ''}</span>` : ''}
                 ${patient.gender ? html`<span class="badge">${GENDER_LABELS[patient.gender]}</span>` : ''}
                 ${patient.isDemo ? html`<span class="badge badge--warning">بيانات تجريبية</span>` : ''}
+                ${summary.balance > 0 ? html`<a class="badge badge--danger" href="${href('/patients/:id', { id: patient.id }, { tab: 'payments' })}" data-tab-link="payments">عليه ${formatMoney(summary.balance)}</a>` : ''}
+                ${summary.balance < 0 ? html`<a class="badge badge--success" href="${href('/patients/:id', { id: patient.id }, { tab: 'payments' })}" data-tab-link="payments">رصيد مقدم ${formatMoney(-summary.balance)}</a>` : ''}
+                ${summary.lastVisit ? html`<span class="badge">آخر زيارة ${formatDate(summary.lastVisit)}</span>` : ''}
                 ${next ? html`<a class="badge badge--accent" href="${href('/appointments', {}, { view: 'day', date: next.date })}">${ico('calendar-check', { size: 14 })} الموعد القادم: ${dayLabel(next.date)} ${formatClock(next.startMin)}</a>` : ''}
                 ${patient.phone ? html`<span class="muted ltr num">${digits(patient.phone)}</span>` : ''}
               </div>
@@ -68,10 +78,10 @@ export default {
             <div class="pfile-head__actions">
               ${can('treatment', 'create') && !patient.deletedAt ? html`<button type="button" class="btn btn--primary btn--sm" data-quick-add>${ico('tooth', { size: 18 })} إضافة إجراء</button>` : ''}
               ${can('appointments', 'create') ? html`<button type="button" class="btn btn--primary btn--sm" data-book-appt>${ico('calendar-check', { size: 18 })} حجز موعد</button>` : ''}
-              ${patient.phone ? html`<a class="btn btn--sm" href="tel:${patient.phone}">${ico('phone', { size: 18 })} اتصال</a>` : ''}
-              ${wa ? html`<a class="btn btn--whatsapp btn--sm" href="https://wa.me/${wa}" target="_blank" rel="noopener">${ico('message-circle', { size: 18 })} واتساب</a>` : ''}
-              ${can('patients', 'edit') && changeable ? html`<a class="btn btn--sm btn--soft" href="${href('/patients/:id/edit', { id: patient.id })}">${ico('pencil', { size: 18 })} تعديل</a>` : ''}
-              ${can('patients', 'delete') && changeable ? html`<button type="button" class="btn btn--sm btn--icon" data-more aria-label="المزيد" aria-haspopup="menu">${ico('ellipsis-vertical', { size: 18 })}</button>` : ''}
+              ${patient.phone ? html`<a class="btn btn--sm" href="tel:${patient.phone}" data-secondary>${ico('phone', { size: 18 })} اتصال</a>` : ''}
+              ${wa ? html`<a class="btn btn--whatsapp btn--sm" href="https://wa.me/${wa}" target="_blank" rel="noopener" data-secondary>${ico('message-circle', { size: 18 })} واتساب</a>` : ''}
+              ${can('patients', 'edit') && changeable ? html`<a class="btn btn--sm btn--soft" href="${href('/patients/:id/edit', { id: patient.id })}" data-secondary>${ico('pencil', { size: 18 })} تعديل</a>` : ''}
+              ${(can('patients', 'delete') && changeable) || patient.phone || (can('patients', 'edit') && changeable) ? html`<button type="button" class="btn btn--sm btn--icon ${can('patients', 'delete') && changeable ? '' : 'pfile-more--phone'}" data-more aria-label="المزيد" aria-haspopup="menu">${ico('ellipsis-vertical', { size: 18 })}</button>` : ''}
             </div>
           </div>
         </section>`;
@@ -82,21 +92,23 @@ export default {
         <a class="link-btn" href="#/patients" style="align-self:flex-start">${ico('arrow-right', { size: 18 })} كل المرضى</a>
         <div id="pf-head">${header()}</div>
         <div id="pf-banner">${medicalBanner(patient, { link: can('patients', 'edit') ? href('/patients/:id', { id: patient.id }, { tab: 'medical' }) : '' })}</div>
-        <nav class="tabs" aria-label="أقسام ملف المريض" style="margin-block-end: 0">
-          ${tabs.map((t) => html`<a class="tab" href="${href('/patients/:id', { id: patient.id }, t.key === 'overview' ? undefined : { tab: t.key })}" aria-selected="${String(t === tab)}" ${t === tab ? html`aria-current="page"` : ''}>${ico(t.icon, { size: 18 })} ${t.label}</a>`)}
+        <nav class="tabs pfile-tabs" aria-label="أقسام ملف المريض" style="margin-block-end: 0">
+          ${tabs.map((t) => html`<a class="tab" href="${href('/patients/:id', { id: patient.id }, t.key === 'overview' ? undefined : { tab: t.key })}" data-tab-link="${t.key}" aria-selected="${String(t === tab)}" ${t === tab ? html`aria-current="page"` : ''}>${ico(t.icon, { size: 18 })} ${t.label}</a>`)}
         </nav>
         <div id="pf-body"></div>
       </div>`);
 
     // keep header/banner fresh when the record changes (e.g. medical tab saves)
     const off = onEvent('data:changed', async ({ store, id }) => {
-      if (store === 'invoices') {
+      if (store === 'invoices' || store === 'payments') {
         changeable = await canChangePatient(patient);
+        summary = await loadSummary();
         render(el.querySelector('#pf-head'), header());
         return;
       }
       if (store === 'appointments') {
         next = await nextAppointment(patient.id);
+        summary = await loadSummary();
         render(el.querySelector('#pf-head'), header());
         return;
       }
@@ -118,8 +130,13 @@ export default {
       if (await openQuickTreatment({ patientId: patient.id })) await showTab();
     }, { signal });
 
+    // On phones the ⋮ menu also holds call / WhatsApp / edit (only two big buttons stay).
     on(el, 'click', '[data-more]', (_, b) => openMenu(b, {
-      items: [{
+      items: [...(matchMedia('(max-width: 639px)').matches ? [
+        ...(patient.phone ? [{ label: 'اتصال', icon: 'phone', onSelect: () => { location.href = `tel:${patient.phone}`; } }] : []),
+        ...(toWhatsAppNumber(patient.phone) ? [{ label: 'واتساب', icon: 'message-circle', onSelect: () => window.open(`https://wa.me/${toWhatsAppNumber(patient.phone)}`, '_blank', 'noopener') }] : []),
+        ...(can('patients', 'edit') && changeable ? [{ label: 'تعديل البيانات', icon: 'pencil', onSelect: () => navigate(`/patients/${patient.id}/edit`) }] : []),
+      ] : []), ...(can('patients', 'delete') && changeable ? [{
         label: 'حذف ملف المريض', icon: 'trash-2', danger: true,
         onSelect: async () => {
           const ok = await confirmDialog({
@@ -132,11 +149,11 @@ export default {
           toastSuccess('تم نقل الملف إلى المحذوفين');
           navigate('/patients');
         },
-      }],
+      }] : [])],
     }), { signal });
 
     let cleanup = null;
-    const mod = await tab.load();
+    let mod = await tab.load();
     /** (Re)draws the open tab on a fresh element, so no listeners are left behind. */
     const showTab = async () => {
       if (typeof cleanup === 'function') cleanup();
@@ -146,6 +163,28 @@ export default {
       cleanup = await mod.renderTab({ ...ctx, body, patient: () => patient });
     };
     await showTab();
+
+    // Tabs switch in place: the header stays, only the tab body is drawn.
+    const nav = /** @type {HTMLElement} */ (el.querySelector('.pfile-tabs'));
+    const centerActive = () => nav.querySelector('[aria-selected="true"]')?.scrollIntoView({ inline: 'center', block: 'nearest' });
+    centerActive();
+    on(el, 'click', '[data-tab-link]', async (e, a) => {
+      const chosen = tabs.find((t) => t.key === a.dataset.tabLink);
+      if (!chosen) return;
+      e.preventDefault();
+      if (chosen === tab || !(await confirmLeave())) return;
+      tab = chosen;
+      for (const x of nav.querySelectorAll('[data-tab-link]')) {
+        const selected = x.dataset.tabLink === tab.key;
+        x.setAttribute('aria-selected', String(selected));
+        if (selected) x.setAttribute('aria-current', 'page'); else x.removeAttribute('aria-current');
+      }
+      centerActive();
+      replaceUrl(href('/patients/:id', { id: patient.id }, tab.key === 'overview' ? undefined : { tab: tab.key }));
+      document.title = `${patient.name} · ${tab.label}`;
+      mod = await tab.load();
+      await showTab();
+    }, { signal });
     return () => { off(); if (typeof cleanup === 'function') cleanup(); };
   },
 };

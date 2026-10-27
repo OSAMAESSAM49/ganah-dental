@@ -161,8 +161,12 @@ export async function renderTab({ body, patient, signal }) {
   };
 
   /* ---------- main draw ---------- */
+  let odoScroll = null; // keep the chart's sideways scroll across redraws (phones)
+  let sheetWasOpen = false;
   const draw = () => {
     const days = historyDays(events.length ? events : []);
+    const prev = body.querySelector('#odo');
+    if (prev) odoScroll = prev.scrollLeft;
     render(body, html`
       <div class="chart-layout">
         <section class="card">
@@ -186,11 +190,23 @@ export async function renderTab({ body, patient, signal }) {
             ${ui.showLog ? html`<div style="margin-block-start: var(--sp-3)">${logMarkup()}</div>` : ''}
           </div>
         </section>
-        <aside class="card" aria-label="الأسنان المختارة" style="position: sticky; inset-block-start: calc(var(--topbar-h) + var(--sp-3))">
+        <aside class="card chart-aside" aria-label="الأسنان المختارة" ${ui.selected.size && !ui.day ? html`data-sheet` : ''}>
           <div class="card__header"><div class="card__heading"><h2 class="card__title">${ui.day ? 'الخريطة السابقة' : 'الأسنان المختارة'}</h2></div></div>
           <div class="card__body" id="chart-panel">${panel()}</div>
         </aside>
       </div>`);
+    const odo = body.querySelector('#odo');
+    // Phones: when the sheet first rises, bring the chart up above it.
+    const sheetOpen = !!body.querySelector('.chart-aside[data-sheet]');
+    if (odo && sheetOpen && !sheetWasOpen && matchMedia('(max-width: 767px)').matches) {
+      const top = odo.getBoundingClientRect().top - (document.querySelector('.topbar')?.offsetHeight ?? 0) - 8;
+      if (top > 0 && odo.getBoundingClientRect().bottom > innerHeight * 0.55) scrollBy({ top, behavior: 'smooth' });
+    }
+    sheetWasOpen = sheetOpen;
+    if (odo && odo.scrollWidth > odo.clientWidth) {
+      if (odoScroll === null) odo.scrollLeft = (odo.scrollWidth - odo.clientWidth) / 2 * (getComputedStyle(odo).direction === 'rtl' ? -1 : 1);
+      else odo.scrollLeft = odoScroll;
+    }
   };
 
   const redraw = async () => { await load(); draw(); };
@@ -205,16 +221,15 @@ export async function renderTab({ body, patient, signal }) {
     if (ui.day) return;
     const t = Number(g.dataset.tooth);
     const surf = /** @type {Element} */ (e.target).closest('[data-surface]');
-    if (surf && canEdit) {
+    if (surf && canEdit && CONDITION[ui.condition].surface) {
       if (!ui.selected.has(t)) ui.selected.add(t);
       const s = surf.getAttribute('data-surface');
-      if (!CONDITION[ui.condition].surface) ui.condition = 'caries';
       if (ui.surfaces.has(s)) ui.surfaces.delete(s); else ui.surfaces.add(s);
     } else {
       toggleTooth(t);
     }
     draw();
-    body.querySelector(`[data-tooth="${t}"]`)?.focus();
+    body.querySelector(`[data-tooth="${t}"]`)?.focus({ preventScroll: true });
   }, { signal });
 
   on(body, 'keydown', '[data-tooth]', (e, g) => {
@@ -223,7 +238,7 @@ export async function renderTab({ body, patient, signal }) {
     if (ev.key === 'Enter' || ev.key === ' ') {
       ev.preventDefault();
       if (ui.day) return;
-      toggleTooth(t); draw(); body.querySelector(`[data-tooth="${t}"]`)?.focus();
+      toggleTooth(t); draw(); body.querySelector(`[data-tooth="${t}"]`)?.focus({ preventScroll: true });
       return;
     }
     const rows = DENTITIONS[ui.dentition].rows.map((k) => ROWS[k]);

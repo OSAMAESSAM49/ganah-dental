@@ -95,6 +95,23 @@ export const currentRoute = () => parseHash(location.hash);
 export function setLeaveGuard(fn) { dirtyGuard = fn; }
 export const hasLeaveGuard = () => !!dirtyGuard;
 
+/** Asks the leave guard (if any) before an in-page switch; true when it is fine to go on. */
+export async function confirmLeave() {
+  if (!dirtyGuard) return true;
+  const ok = await dirtyGuard();
+  if (ok) dirtyGuard = null;
+  return ok;
+}
+
+/**
+ * Changes the URL of the current view without re-rendering it (e.g. a tab switched in
+ * place), keeping the history entry.
+ */
+export function replaceUrl(hash) {
+  history.replaceState(history.state, '', hash);
+  current.key = location.hash || '#/';
+}
+
 /**
  * Lets Back close something on top of the page (a modal) instead of leaving it.
  * @param {(() => boolean) | null} fn returns true when it handled the Back press

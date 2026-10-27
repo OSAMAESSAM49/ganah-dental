@@ -1,7 +1,8 @@
 /**
  * Patients list: fast search (name / phone / file no), filters, sorting, trash.
- * Wide screens show a table; phones show one card per patient with only the name and phone
- * (tap the phone to copy it, tap the card for the other details).
+ * Wide screens show a table (tap the phone to copy it); phones show one card per patient with
+ * only the name and phone (tap the phone to call, tap the card for the other details).
+ * Only the layout that fits the screen is drawn. Back returns to the same scroll position.
  */
 import { html, ico, render, on } from '../../core/dom.js';
 import { initials } from '../../core/text.js';
@@ -38,6 +39,7 @@ export async function copyPhone(phone) {
   toastSuccess(`تم نسخ الرقم ${digits(phone)}`);
 }
 
+const phoneCall = (p) => html`<a class="phone-copy phone-call ltr num" href="tel:${p.phone}" aria-label="اتصال بـ ${p.name}">${ico('phone', { size: 16 })} ${digits(p.phone)}</a>`;
 const phoneButton = (p) => html`<button type="button" class="phone-copy ltr num" data-copy-phone="${p.phone}" aria-label="نسخ رقم ${p.name}" title="اضغط لنسخ الرقم">${digits(p.phone)} ${ico('copy', { size: 16 })}</button>`;
 
 function alertBadge(p) {
@@ -56,7 +58,7 @@ const patientCard = (p) => {
       ${patientAvatar(p)}
       <span class="pcard__text">
         <span class="pcard__name">${p.name}${critical ? html` <span class="pcard__alert" title="تنبيه طبي">${ico('triangle-alert', { size: 16 })}</span>` : ''}</span>
-        ${p.phone ? phoneButton(p) : html`<span class="subtle text-sm">لا يوجد رقم</span>`}
+        ${p.phone ? phoneCall(p) : html`<span class="subtle text-sm">لا يوجد رقم</span>`}
       </span>
       <span class="pcard__chev" aria-hidden="true">${ico('chevron-down', { size: 18 })}</span>
     </div>
@@ -83,13 +85,16 @@ const patientCard = (p) => {
 export default {
   title: 'المرضى',
   async render({ el, query, signal }) {
+    // Coming back (Back) to this entry: same number of rows and scroll position as before.
+    const kept = history.state?.plist;
     const state = {
       q: query.q ?? '',
       filter: query.filter ?? 'all',
       source: query.source ?? '',
       sort: query.sort ?? 'newest',
-      shown: PAGE,
+      shown: kept?.shown ?? PAGE,
     };
+    const cardsMq = matchMedia('(max-width: 767px)');
     const canCreate = can('patients', 'create');
     const canDelete = can('patients', 'delete');
 
@@ -104,7 +109,7 @@ export default {
           ${canCreate ? html`<a class="btn btn--primary" href="#/patients/new">${ico('user-plus')} مريض جديد</a>` : ''}
         </div>
       </header>
-      <div class="toolbar">
+      <div class="toolbar plist-tools">
         <div class="input-group toolbar__search">${ico('search', { size: 20 })}
           <input class="input input--pill" type="search" id="psearch" value="${state.q}" placeholder="الاسم أو الموبايل أو رقم الملف…" aria-label="بحث في المرضى" autocomplete="off">
         </div>
@@ -118,7 +123,7 @@ export default {
           <option value="file" ${state.sort === 'file' ? 'selected' : ''}>رقم الملف</option>
         </select>
       </div>
-      <div class="chips" role="group" aria-label="تصفية" style="margin-block-end: var(--sp-4)">
+      <div class="chips plist-chips" role="group" aria-label="تصفية" style="margin-block-end: var(--sp-4)">
         ${[['all', 'الكل'], ['alerts', 'لديهم تنبيه طبي'], ['children', 'أطفال (أقل من 14)'], ['female', 'إناث'], ['male', 'ذكور'],
           ...(canDelete ? [['trash', 'المحذوفون']] : [])].map(([k, label]) => html`
           <button type="button" class="chip" data-filter="${k}" aria-pressed="${String(state.filter === k)}">${k === 'trash' ? ico('trash-2', { size: 16 }) : ''}${label}</button>`)}
@@ -177,14 +182,26 @@ export default {
         rows = [...rows].sort(cmp);
       }
       current = rows;
-      table.update(rows.slice(0, state.shown));
-      render(el.querySelector('#pcards'), rows.length
-        ? html`${rows.slice(0, state.shown).map(patientCard)}`
-        : html`<li class="card">${emptyState({ icon: 'users', title: 'لا يوجد مرضى مطابقون', hint: 'جرّب كلمة بحث أخرى، أو أضف مريضًا جديدًا.' })}</li>`);
+      drawRows();
       el.querySelector('#pmore').hidden = rows.length <= state.shown;
       el.querySelector('#pcount').textContent = rows.length ? arabicCount(rows.length, PATIENT_COUNT) : 'لا يوجد مرضى';
       syncUrl();
     };
+
+    let drawnAs = '';
+    function drawRows() {
+      const rows = current;
+      drawnAs = cardsMq.matches ? 'cards' : 'table';
+      if (drawnAs === 'table') { table.update(rows.slice(0, state.shown)); render(el.querySelector('#pcards'), ''); return; }
+      table.update([]);
+      render(el.querySelector('#pcards'), rows.length
+        ? html`${rows.slice(0, state.shown).map(patientCard)}`
+        : html`<li class="card">${emptyState({ icon: 'users', title: 'لا يوجد مرضى مطابقون', hint: 'جرّب كلمة بحث أخرى، أو أضف مريضًا جديدًا.' })}</li>`);
+    }
+    cardsMq.addEventListener('change', () => { if ((cardsMq.matches ? 'cards' : 'table') !== drawnAs) drawRows(); }, { signal });
+    const remember = () => history.replaceState({ ...(history.state ?? {}), plist: { shown: state.shown, y: scrollY } }, '');
+    let rafId = 0;
+    window.addEventListener('scroll', () => { cancelAnimationFrame(rafId); rafId = requestAnimationFrame(remember); }, { passive: true, signal });
 
     let t;
     el.querySelector('#psearch').addEventListener('input', (e) => {
@@ -193,7 +210,7 @@ export default {
     }, { signal });
     el.querySelector('#psource').addEventListener('change', (e) => { state.source = /** @type {HTMLSelectElement} */ (e.target).value; refresh(); }, { signal });
     el.querySelector('#psort').addEventListener('change', (e) => { state.sort = /** @type {HTMLSelectElement} */ (e.target).value; refresh(); }, { signal });
-    el.querySelector('#pmore').addEventListener('click', () => { state.shown += PAGE; refresh(); }, { signal });
+    el.querySelector('#pmore').addEventListener('click', () => { state.shown += PAGE; refresh(); remember(); }, { signal });
     on(el, 'click', '[data-export]', async (_, b) => {
       b.disabled = true;
       try {
@@ -242,6 +259,7 @@ export default {
     }, { signal });
 
     await refresh();
-    if (state.q) el.querySelector('#psearch').focus();
+    if (kept?.y) setTimeout(() => scrollTo({ top: kept.y }), 0); // after the router's scroll-to-top
+    else if (state.q && !cardsMq.matches) el.querySelector('#psearch').focus();
   },
 };

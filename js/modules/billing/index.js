@@ -18,7 +18,7 @@ import {
   invoiceState, formatInvoiceNo, formatReceiptNo, allInstallments, outstandingBalances, dailyClosing,
 } from '../../services/billing.js';
 import { whatsappLink } from '../../services/appointments.js';
-import { openPaymentDialog, voidPaymentFlow } from './dialogs.js';
+import { openPaymentDialog, voidPaymentFlow, pickPatient, openInvoiceDialog } from './dialogs.js';
 import { printInvoice, printReceipt, printClosing, choosePrintSize } from './print.js';
 
 const TABS = [
@@ -45,7 +45,8 @@ export default {
           <p class="page-header__sub">الفواتير والمدفوعات والأقساط وإقفال الخزينة اليومي</p>
         </div>
         <div class="page-header__actions">
-          ${can('billing', 'create') ? html`<button type="button" class="btn btn--accent" data-pay>${ico('banknote')} تسجيل دفعة</button>` : ''}
+          ${can('billing', 'create') ? html`<button type="button" class="btn" data-new-invoice>${ico('receipt')} فاتورة جديدة</button>
+            <button type="button" class="btn btn--accent" data-pay>${ico('banknote')} تسجيل دفعة</button>` : ''}
         </div>
       </header>
       <nav class="tabs" aria-label="أقسام الحسابات">
@@ -84,7 +85,7 @@ export default {
         <div id="tbl"></div>`);
       mountTable(body.querySelector('#tbl'), {
         signal, caption: 'الفواتير', rows,
-        empty: { icon: 'receipt', title: 'لا توجد فواتير في هذه الفترة', hint: 'الفواتير تُنشأ من ملف المريض ← الحسابات.' },
+        empty: { icon: 'receipt', title: 'لا توجد فواتير في هذه الفترة', hint: 'اضغط «فاتورة جديدة» بالأعلى، أو من ملف المريض ← الحسابات.' },
         columns: [
           { key: 'number', label: 'الرقم', render: (r) => html`<span class="ltr num">${formatInvoiceNo(r.number)}</span>` },
           { key: 'date', label: 'التاريخ', render: (r) => formatDate(r.date) },
@@ -241,6 +242,10 @@ export default {
     on(body, 'click', '[data-status]', (_, b) => { st.status = b.dataset.status; draw(); }, { signal });
     on(body, 'click', '[data-inst]', (_, b) => { st.inst = b.dataset.inst; draw(); }, { signal });
     on(el, 'click', '[data-pay]', () => openPaymentDialog(), { signal });
+    on(el, 'click', '[data-new-invoice]', async () => {
+      const id = await pickPatient({ title: 'فاتورة جديدة — اختر المريض' });
+      if (id) await openInvoiceDialog(id);
+    }, { signal });
     on(body, 'click', '[data-pay-inv]', (_, b) => openPaymentDialog({ patientId: b.dataset.patient, invoiceId: b.dataset.payInv }), { signal });
     on(body, 'click', '[data-pay-patient]', (_, b) => openPaymentDialog({ patientId: b.dataset.payPatient }), { signal });
     on(body, 'click', '[data-print-inv]', (_, b) => choosePrintSize(b, (size) => printInvoice(b.dataset.printInv, size)), { signal });

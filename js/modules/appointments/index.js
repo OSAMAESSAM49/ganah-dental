@@ -26,11 +26,15 @@ import { openReminders } from './reminders.js';
 const VIEWS = [['day', 'يوم'], ['week', 'أسبوع'], ['month', 'شهر'], ['list', 'قائمة']];
 const QUICK = { arrived: 'وصل', in_chair: 'على الكرسي', done: 'انتهى' };
 
+/** Phones remember their own view and start on the list (big rows, one-tap status). */
+const phone = () => matchMedia('(max-width: 639px)').matches;
+const viewPref = () => (phone() ? 'apptViewPhone' : 'apptView');
+
 export default {
   title: 'المواعيد',
   async render({ el, query, signal }) {
     const st = {
-      view: VIEWS.some(([k]) => k === query.view) ? query.view : getPref('apptView', 'day'),
+      view: VIEWS.some(([k]) => k === query.view) ? query.view : getPref(viewPref(), phone() ? 'list' : 'day'),
       date: /^\d{4}-\d{2}-\d{2}$/.test(query.date ?? '') ? query.date : todayISO(),
       doctor: query.doctor ?? '',
       chair: query.chair ?? '',
@@ -62,7 +66,7 @@ export default {
       const q = { view: st.view, date: st.date === todayISO() ? '' : st.date, doctor: st.doctor, chair: st.chair, by: st.by === 'doctor' ? 'doctor' : '' };
       const clean = Object.fromEntries(Object.entries(q).filter(([, v]) => v));
       history.replaceState(history.state, '', href('/appointments', {}, clean));
-      setPref('apptView', st.view);
+      setPref(viewPref(), st.view);
     };
 
     render(el, html`
@@ -86,6 +90,7 @@ export default {
           ${VIEWS.map(([k, label]) => html`<label><input type="radio" name="view" value="${k}" ${st.view === k ? 'checked' : ''}><span>${label}</span></label>`)}
         </div>
         <div class="grow"></div>
+        <button type="button" class="btn btn--sm cal-filters-btn" data-toggle-filters aria-expanded="false">${ico('filter', { size: 18 })} تصفية${st.doctor || st.chair ? ' •' : ''}</button>
         <select class="select input--pill" id="f-doctor" aria-label="الطبيب" style="inline-size:auto">
           <option value="">كل الأطباء</option>
           ${doctors.map((d) => html`<option value="${d.id}" ${st.doctor === d.id ? 'selected' : ''}>${d.displayName}</option>`)}
@@ -150,7 +155,7 @@ export default {
       render(bodyEl, html`
         <div class="toolbar">
           ${dateField({ name: 'listTo', label: 'حتى تاريخ', value: st.listTo || addDays(st.date, 6) })}
-          <div class="chips" role="group" aria-label="الحالة" style="align-self: flex-end">
+          <div class="chips list-status-chips" role="group" aria-label="الحالة" style="align-self: flex-end">
             <button type="button" class="chip" data-lstatus="" aria-pressed="${String(!st.listStatus)}">الكل <span class="chip__count">${digits(visible.length)}</span></button>
             ${Object.entries(APPT_STATUS).map(([k, s]) => html`<button type="button" class="chip" data-lstatus="${k}" aria-pressed="${String(st.listStatus === k)}">${s.label}</button>`)}
           </div>
@@ -236,6 +241,11 @@ export default {
       if (t.id === 'f-doctor') { st.doctor = t.value; draw(); syncUrl(); }
       if (t.id === 'f-chair') { st.chair = t.value; draw(); syncUrl(); }
       if (t.name === 'listTo') { const iso = parseDateInput(t.value); if (iso) { st.listTo = iso; load(); } }
+    }, { signal });
+    on(el, 'click', '[data-toggle-filters]', (_, b) => {
+      const open = el.querySelector('.cal-toolbar').toggleAttribute('data-filters-open');
+      el.querySelector('#cal-legend').toggleAttribute('data-filters-open', open);
+      b.setAttribute('aria-expanded', String(open));
     }, { signal });
 
     // Live updates: any appointment change re-renders (once per burst of writes); the "now"

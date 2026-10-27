@@ -11,9 +11,30 @@ function region() {
     el.id = 'toast-region';
     el.className = 'toast-region';
     el.setAttribute('aria-live', 'polite');
+    if ('showPopover' in el) el.setAttribute('popover', 'manual');
     document.body.append(el);
   }
   return el;
+}
+
+/**
+ * Puts the toasts above any open window so their buttons can be tapped: an open modal makes
+ * everything outside it inert, so the region moves inside the top window, and shows as a
+ * top-layer popover above it.
+ */
+function raise(el) {
+  const host = [...document.querySelectorAll('dialog[open]')].at(-1) ?? document.body;
+  if (el.parentElement !== host) host.append(el);
+  if (!el.hasAttribute('popover')) return;
+  try { if (el.matches(':popover-open')) el.hidePopover(); el.showPopover(); } catch { /* not supported */ }
+}
+
+/** Called when a window closes: bring the toasts back out before it is removed. */
+export function releaseToasts(dialog) {
+  const el = document.getElementById('toast-region');
+  if (!el || !dialog.contains(el)) return;
+  document.body.append(el);
+  queueMicrotask(() => raise(el));
 }
 
 /**
@@ -49,6 +70,7 @@ export function toast(message, { type = 'info', duration, action } = {}) {
 
   const r = region();
   r.append(el);
+  raise(r);
   while (r.children.length > MAX_VISIBLE) r.firstElementChild.remove();
   if (ms) timer = setTimeout(dismiss, ms);
   return dismiss;

@@ -128,6 +128,7 @@
   backdrop-filter: saturate(1.4) blur(14px);
 }
 .topbar__search { flex: 0 1 380px; }
+.topbar__search-btn, .topbar__search-close { display: none; }
 .topbar__spacer { flex: 1; }
 .topbar__actions { display: flex; align-items: center; gap: var(--sp-2); }
 
@@ -242,6 +243,16 @@
   .app[data-sidebar="collapsed"] .nav-group + .nav-group { border: 0; padding: 0; }
   .topbar { padding-inline: var(--sp-4); }
   .topbar .topbar__search { display: none; }
+  .topbar__search-btn { display: inline-grid; }
+  /* 🔍 opens the search over the whole top bar */
+  .app[data-search="open"] .topbar .topbar__search {
+    display: flex; align-items: center; gap: var(--sp-2);
+    position: absolute; inset: 0; padding: var(--sp-2) var(--sp-4);
+    background: var(--c-bg); z-index: 2;
+  }
+  .app[data-search="open"] .topbar__search .input { flex: 1; }
+  .app[data-search="open"] .topbar__search-close { display: inline-grid; }
+  .app[data-search="open"] .topbar__search .gsearch__list { inset-inline: var(--sp-3); }
   .content { padding: var(--sp-2) var(--sp-4) var(--sp-8); }
   .user-chip__text { display: none; }
   [dir="rtl"] .user-chip, .user-chip { padding: 3px; }
@@ -249,7 +260,8 @@
 
 @media (max-width: 639px) {
   .content { padding-block-end: calc(88px + var(--sp-4) + env(safe-area-inset-bottom)); }
-  .icon-btn { inline-size: 42px; block-size: 42px; }
+  .icon-btn { inline-size: 44px; block-size: 44px; }
+  .topbar__actions [data-action="theme"] { display: none; } /* in the account menu on phones */
   .bottom-nav {
     position: fixed;
     inset-inline: var(--sp-3);

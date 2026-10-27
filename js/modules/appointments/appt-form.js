@@ -5,7 +5,7 @@
  */
 import { html, ico, render, formData, showFieldErrors } from '../../core/dom.js';
 import { digits, parseDateInput, todayISO, formatMoney } from '../../core/format.js';
-import { formatClock, formatRange, dayLabel } from '../../core/time.js';
+import { formatClock, formatRange, dayLabel, nowMinutes } from '../../core/time.js';
 import { APPT_STATUS } from '../../core/labels.js';
 import { can } from '../../core/permissions.js';
 import { currentUser } from '../../core/session.js';
@@ -135,6 +135,10 @@ export async function openAppointmentForm(preset = {}) {
     slots.sort((a, b) => a - b);
     const durs = DURATIONS.includes(st.duration) ? DURATIONS : [...DURATIONS, st.duration].sort((a, b) => a - b);
     const h = hoursFor(st.date);
+    // Free times as one-tap chips (the list below still has every time).
+    const free = slotsFor(st.date, { duration: st.duration })
+      .filter((m) => !(st.date === todayISO() && m < nowMinutes()) && !findConflicts({ ...candidate(), startMin: m }, st.dayAppts).length)
+      .slice(0, 12);
     return html`
       <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr))">
         ${dateField({ name: 'date', label: 'التاريخ', value: st.date, required: true })}
@@ -150,6 +154,8 @@ export async function openAppointmentForm(preset = {}) {
           <select class="select" id="appt-dur" name="duration">${durs.map((d) => html`<option value="${d}" ${d === st.duration ? 'selected' : ''}>${digits(d)} دقيقة</option>`)}</select>
         </div>
       </div>
+      ${free.length ? html`<div class="stack-sm"><span class="field__label" style="margin:0">أوقات متاحة</span>
+        <div class="chips slot-chips">${free.map((m) => html`<button type="button" class="chip" data-use-slot="${m}" aria-pressed="${String(m === st.startMin)}">${formatClock(m)}</button>`)}</div></div>` : ''}
       <p class="muted text-sm">${dayLabel(st.date, { year: true })} · ${h?.open ? `مواعيد العمل ${formatRange(h.from, h.to - h.from)}` : 'العيادة مغلقة في هذا اليوم'}</p>
       <div class="form-grid">
         <div class="field">

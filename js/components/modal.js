@@ -3,6 +3,7 @@
  * Every destructive action in the app must go through confirmDialog().
  */
 import { html, ico, render, SafeHTML, toElement } from '../core/dom.js';
+import { releaseToasts } from './toast.js';
 
 /** Open modals, newest last: what Back, a route change or the idle lock act on. */
 const stack = [];
@@ -78,6 +79,7 @@ export function openModal({
       if (settled) return;
       settled = true;
       stack.splice(stack.indexOf(entry), 1);
+      releaseToasts(dialog);
       if (dialog.open) dialog.close();
       dialog.remove();
       resolve(value);

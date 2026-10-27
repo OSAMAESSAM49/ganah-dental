@@ -24,7 +24,7 @@ import { cloudEnabled } from '../../services/cloud-sync.js';
 import { usageItem, loadUsage, cachedUsage } from '../../components/cloud-usage.js';
 import { mountChart, wireCharts } from '../../components/chart.js';
 import { allPatients } from '../../services/patients.js';
-import { listDay, setAppointmentStatus, NEXT_STEPS } from '../../services/appointments.js';
+import { listDay, setAppointmentStatus, NEXT_STEPS, PREVIOUS } from '../../services/appointments.js';
 import { openAppointmentForm } from '../appointments/appt-form.js';
 import { openAppointmentDetails } from '../appointments/appt-details.js';
 import { APPT_STATUS } from '../../core/labels.js';
@@ -66,8 +66,8 @@ const alertItem = ({ icon, tone, title, sub, link }) => html`
   <a class="dash-alert" href="${link}"><span class="dash-alert__icon dash-alert__icon--${tone}">${ico(icon, { size: 20 })}</span>
     <span class="dash-alert__text"><strong>${title}</strong><span class="muted text-sm">${sub}</span></span></a>`;
 
-const kpi = ({ icon, tone = '', label, value, meta }) => html`
-  <article class="card span-3">
+const kpi = ({ key, icon, tone = '', label, value, meta }) => html`
+  <article class="card span-3" data-dash="${key}" data-kpi>
     <div class="kpi">
       <div class="kpi__head">
         <span class="kpi__icon ${tone ? `kpi__icon--${tone}` : ''}">${ico(icon, { size: 22 })}</span>
@@ -195,16 +195,18 @@ export default {
               <div class="kpi__foot">${d.appts.some((a) => a.status === 'arrived') ? html`<span class="delta delta--up">${digits(d.appts.filter((a) => a.status === 'arrived').length)} في الانتظار</span>` : ''}<span class="kpi__meta">${d.appts.filter((a) => a.status === 'done').length ? `انتهى ${digits(d.appts.filter((a) => a.status === 'done').length)}` : 'اضغط للتقويم'}</span></div>
             </div>
           </article>` : ''}
-          ${show('collections') ? kpi({ icon: 'banknote', tone: 'lime', label: `مدفوعات ${word}`, value: money(d.collections), meta: html`${deltaPill(d.collectionsPrev, d.collections)}<span class="kpi__meta">${digits(d.paymentsCount)} عملية دفع · <a href="#/billing?tab=closing">إقفال اليومية</a></span>` }) : ''}
-          ${show('net') ? kpi({ icon: 'trending-up', tone: 'success', label: `صافي ${word}`, value: money(d.net), meta: html`${deltaPill(d.netPrev, d.net)}<span class="kpi__meta">مصروفات ${formatMoney(d.expenses)} · <a href="#/reports">تقارير الشهر</a></span>` }) : ''}
-          ${show('newPatients') ? kpi({ icon: 'user-round', tone: 'info', label: `مرضى جدد ${word}`, value: digits(d.newPatients), meta: html`${deltaPill(d.newPrev, d.newPatients)}<span class="kpi__meta"><a href="#/patients">عرض المرضى</a></span>` }) : ''}
+          ${show('collections') ? kpi({ key: 'collections', icon: 'banknote', tone: 'lime', label: `مدفوعات ${word}`, value: money(d.collections), meta: html`${deltaPill(d.collectionsPrev, d.collections)}<span class="kpi__meta">${digits(d.paymentsCount)} عملية دفع · <a href="#/billing?tab=closing">إقفال اليومية</a></span>` }) : ''}
+          ${show('net') ? kpi({ key: 'net', icon: 'trending-up', tone: 'success', label: `صافي ${word}`, value: money(d.net), meta: html`${deltaPill(d.netPrev, d.net)}<span class="kpi__meta">مصروفات ${formatMoney(d.expenses)} · <a href="#/reports">تقارير الشهر</a></span>` }) : ''}
+          ${show('newPatients') ? kpi({ key: 'newPatients', icon: 'user-round', tone: 'info', label: `مرضى جدد ${word}`, value: digits(d.newPatients), meta: html`${deltaPill(d.newPrev, d.newPatients)}<span class="kpi__meta"><a href="#/patients">عرض المرضى</a></span>` }) : ''}
 
-          ${show('patientsList') ? html`<section class="card ${show('invoices') ? 'span-8' : 'span-12'}" aria-labelledby="today-title">
+          ${show('patientsList') ? html`<section class="card ${show('invoices') ? 'span-8' : 'span-12'}" aria-labelledby="today-title" data-dash="patientsList">
             <div class="card__header">
               <div class="card__heading"><h2 class="card__title" id="today-title">مرضى ${word}</h2></div>
-              <select class="select input--pill today-filter" id="today-filter" aria-label="تصفية مرضى ${word}"></select>
             </div>
-            <div class="card__body" id="today-list"></div>
+            <div class="card__body stack-sm">
+              <div class="chips today-chips" id="today-filter" role="group" aria-label="تصفية مرضى ${word}"></div>
+              <div id="today-list"></div>
+            </div>
           </section>` : ''}
           ${show('invoices') ? invoicesCard(d.billing) : ''}
 
@@ -256,8 +258,10 @@ export default {
 
     const drawList = (d) => {
       const all = d.appts;
-      const groups = [['all', 'الكل', all], ['arrived', 'في الانتظار', all.filter((a) => a.status === 'arrived')], ['in_chair', 'على الكرسي', all.filter((a) => a.status === 'in_chair')], ['booked', 'لم يصل بعد', all.filter((a) => a.status === 'booked')]];
-      render(el.querySelector('#today-filter'), html`${groups.map(([k, label, list]) => html`<option value="${k}" ${filter === k ? 'selected' : ''}>${label} (${digits(list.length)})</option>`)}`);
+      const by = (st) => all.filter((a) => a.status === st);
+      const groups = [['all', 'الكل', all], ...['booked', 'arrived', 'in_chair', 'done', 'no_show'].map((k) => [k, APPT_STATUS[k].label, by(k)])]
+        .filter(([k, , list]) => k === 'all' || list.length || k === filter);
+      render(el.querySelector('#today-filter'), html`${groups.map(([k, label, list]) => html`<button type="button" class="chip" data-filter="${k}" aria-pressed="${String(filter === k)}">${label} <span class="chip__count">${digits(list.length)}</span></button>`)}`);
       const list = groups.find(([k]) => k === filter)[2];
       render(el.querySelector('#today-list'), list.length ? html`<ul class="list">${list.map((a) => {
         const st = APPT_STATUS[a.status];
@@ -285,12 +289,26 @@ export default {
       if (d && d !== day) navigate(d === today ? '/' : `/?day=${d}`);
     }, { signal });
     on(el, 'submit', '#day-pick', (e) => e.preventDefault(), { signal });
-    on(el, 'change', '#today-filter', (_, sel) => { filter = /** @type {HTMLSelectElement} */ (sel).value; drawList(data); }, { signal });
+    on(el, 'click', '[data-filter]', (_, b) => { filter = b.dataset.filter; drawList(data); }, { signal });
     on(el, 'click', '[data-book]', () => openAppointmentForm(day >= today ? { date: day } : {}), { signal });
     on(el, 'click', '[data-appt]', (_, b) => { const a = data.appts.find((x) => x.id === b.dataset.appt); if (a) openAppointmentDetails(a); }, { signal });
+    // One tap moves the patient on; the row's buttons lock until saved (a double tap can't
+    // skip a step) and the toast offers «تراجع».
     on(el, 'click', '[data-quick]', async (_, b) => {
       const a = data.appts.find((x) => x.id === b.dataset.id);
-      try { await setAppointmentStatus(a.id, b.dataset.quick); toastSuccess(`${a.patientName}: ${APPT_STATUS[b.dataset.quick].label}`); } catch (err) { toastError(err.message); }
+      const to = b.dataset.quick;
+      const row = b.closest('.today-item');
+      row?.querySelectorAll('[data-quick]').forEach((x) => { /** @type {HTMLButtonElement} */ (x).disabled = true; });
+      try {
+        await setAppointmentStatus(a.id, to);
+        const back = PREVIOUS[to] === a.status ? a.status : null;
+        toastSuccess(`${a.patientName}: ${APPT_STATUS[to].label}`, back ? {
+          action: { label: 'تراجع', onClick: () => setAppointmentStatus(a.id, back).catch((err) => toastError(err.message)) },
+        } : undefined);
+      } catch (err) {
+        toastError(err.message);
+        row?.querySelectorAll('[data-quick]').forEach((x) => { /** @type {HTMLButtonElement} */ (x).disabled = false; });
+      }
     }, { signal });
     on(el, 'click', '[data-new-inv]', async (_, b) => { const { openInvoiceDialog } = await import('../billing/dialogs.js'); openInvoiceDialog(b.dataset.newInv); }, { signal });
     on(el, 'click', '[data-collect]', async (_, b) => { const { openPaymentDialog } = await import('../billing/dialogs.js'); openPaymentDialog({ patientId: b.dataset.patient, invoiceId: b.dataset.collect }); }, { signal });

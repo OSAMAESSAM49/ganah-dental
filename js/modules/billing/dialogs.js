@@ -10,7 +10,8 @@ import { PAYMENT_METHODS } from '../../core/labels.js';
 import { openModal } from '../../components/modal.js';
 import { dateField, enhanceDateFields } from '../../components/date-field.js';
 import { textareaField } from '../../components/form.js';
-import { toastSuccess, toastError } from '../../components/toast.js';
+import { toast, toastSuccess, toastError } from '../../components/toast.js';
+import { can } from '../../core/permissions.js';
 import { searchPatients, getPatient } from '../../services/patients.js';
 import {
   uninvoicedItems, chargeAt, patientAccount, createInvoice, recordPayment, voidPayment, voidInvoice, setInstallments,
@@ -45,6 +46,46 @@ async function offerPrint(kind, id) {
 /* ---------- Create invoice ---------- */
 
 /** @param {string} patientId @returns {Promise<object|null>} */
+/** Asks which patient (search by name, phone or file number). @returns {Promise<string|null>} id */
+export async function pickPatient({ title = 'اختر المريض' } = {}) {
+  return openModal({
+    title, icon: 'search',
+    body: html`<div class="field"><label class="field__label" for="pick-psearch">المريض</label>
+      <div class="input-group">${ico('search', { size: 20 })}<input class="input" id="pick-psearch" autocomplete="off" placeholder="ابحث بالاسم أو الموبايل أو رقم الملف…"></div>
+      <ul class="gsearch__list" id="pick-presults" style="position: static; box-shadow: none; padding: 0; margin-block-start: var(--sp-2)" hidden></ul></div>`,
+    actions: [{ label: 'إغلاق', value: null }],
+    onOpen(dialog, close) {
+      const input = /** @type {HTMLInputElement} */ (dialog.querySelector('#pick-psearch'));
+      const list = dialog.querySelector('#pick-presults');
+      let timer;
+      input.focus();
+      input.addEventListener('input', () => {
+        clearTimeout(timer);
+        timer = setTimeout(async () => {
+          const found = input.value.trim() ? await searchPatients(input.value, { limit: 8 }) : [];
+          render(list, found.length ? html`${found.map((p) => html`<li class="gsearch__item" data-pick="${p.id}">${patientAvatar(p)}<span class="gsearch__text"><strong>${p.name}</strong><span class="gsearch__sub ltr">${digits(p.fileNo)}${p.phone ? ` · ${digits(p.phone)}` : ''}</span></span></li>`)}` : html`<li class="gsearch__empty">لا يوجد مريض مطابق</li>`);
+          list.hidden = !input.value.trim();
+        }, 120);
+      });
+      input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); /** @type {HTMLElement|null} */ (list.querySelector('[data-pick]'))?.click(); } });
+      list.addEventListener('click', (e) => { const li = /** @type {HTMLElement} */ (e.target).closest('[data-pick]'); if (li) close(li.dataset.pick); });
+    },
+  });
+}
+
+/**
+ * Right after a treatment is marked «تم»: offer the invoice (or tell who can issue it).
+ * Says nothing when the work was already invoiced.
+ */
+export async function offerInvoice(patientId) {
+  if (!(await uninvoicedItems(patientId)).length) return;
+  if (can('billing', 'create')) {
+    toast('انتهى العلاج — هل تُصدر الفاتورة الآن؟', { action: { label: 'إصدار فاتورة', onClick: () => openInvoiceDialog(patientId) } });
+  } else {
+    toast('ظهر حساب العلاج في «فواتير اليوم» — أبلغ الاستقبال لإصدار الفاتورة.');
+  }
+}
+
 export async function openInvoiceDialog(patientId, { preselect = null } = {}) {
   const [patient, items, account] = await Promise.all([getPatient(patientId), uninvoicedItems(patientId), patientAccount(patientId)]);
   const st = {
@@ -215,7 +256,7 @@ export async function openInvoiceDialog(patientId, { preselect = null } = {}) {
  * @returns {Promise<object|null>}
  */
 export async function openPaymentDialog(preset = {}) {
-  const st = { patient: preset.patientId ? await getPatient(preset.patientId) : null, account: null, invoiceId: preset.invoiceId ?? '' };
+  const st = { patient: preset.patientId ? await getPatient(preset.patientId) : null, account: null, invoiceId: preset.invoiceId ?? '', date: todayISO() };
   const loadAccount = async () => { st.account = st.patient ? await patientAccount(st.patient.id) : null; };
   await loadAccount();
 
@@ -248,6 +289,7 @@ export async function openPaymentDialog(preset = {}) {
         <input class="input input--ltr" name="amount" inputmode="decimal" value="${suggested ? piastersToInput(suggested) : ''}" placeholder="0" style="font-size: var(--fs-xl); font-weight: 700">
         <span class="field__error" data-error-for="amount"></span></label>
       ${methodChips()}
+      ${dateField({ name: 'date', label: 'تاريخ الدفع', value: st.date })}
       <label class="field"><span class="field__label">ملاحظة (اختياري)</span><input class="input" name="note"></label>`;
   };
 
@@ -264,7 +306,7 @@ export async function openPaymentDialog(preset = {}) {
       let timer;
       const wire = () => {
         const input = /** @type {HTMLInputElement} */ (form.querySelector('#pay-psearch'));
-        if (!input) { /** @type {HTMLInputElement} */ (form.querySelector('[name=amount]'))?.focus(); return; }
+        if (!input) { enhanceDateFields(form); /** @type {HTMLInputElement} */ (form.querySelector('[name=amount]'))?.focus(); return; }
         input.focus();
         input.addEventListener('input', () => {
           clearTimeout(timer);
@@ -286,6 +328,7 @@ export async function openPaymentDialog(preset = {}) {
       form.addEventListener('change', (e) => {
         const t = /** @type {HTMLSelectElement} */ (e.target);
         if (t.name === 'invoiceId') { st.invoiceId = t.value; redraw(); }
+        if (t.name === 'date') { const d = parseDateInput(t.value); if (d) st.date = d; }
       });
       form.addEventListener('submit', (e) => { e.preventDefault(); close('save'); });
     },
@@ -297,11 +340,14 @@ export async function openPaymentDialog(preset = {}) {
       const amount = toPiasters(data.amount);
       const sel = openInvoices().find((i) => i.id === data.invoiceId);
       const errors = {};
+      const date = parseDateInput(data.date);
+      if (!date) errors.date = 'تاريخ غير صحيح';
+      else if (date > todayISO()) errors.date = 'لا يمكن تسجيل دفعة بتاريخ قادم';
       if (!(amount > 0)) errors.amount = 'أدخل مبلغًا صحيحًا';
       else if (sel && amount > sel.remaining) errors.amount = `المتبقي على الفاتورة ${formatMoney(sel.remaining)} فقط. اختر «سداد الفواتير المفتوحة» لتُسجَّل الزيادة رصيدًا مقدمًا.`;
       if (!showFieldErrors(form, errors)) return false;
       try {
-        saved = await recordPayment({ patientId: st.patient.id, invoiceId: data.invoiceId || null, amount, method: data.method || 'cash', note: data.note });
+        saved = await recordPayment({ patientId: st.patient.id, invoiceId: data.invoiceId || null, amount, method: data.method || 'cash', note: data.note, date });
         return true;
       } catch (err) { showFieldErrors(form, { amount: err.message }); return false; }
     },

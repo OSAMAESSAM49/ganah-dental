@@ -1,6 +1,14 @@
 /* Appointments calendar: day/week time grid, month grid, blocks, booking dialog bits. */
 
 .cal-toolbar { gap: var(--sp-3); }
+.cal-filters-btn { display: none; }
+/* Phones: doctor/chair filters and the colour legend wait behind «تصفية» */
+@media (max-width: 639px) {
+  .cal-filters-btn { display: inline-flex; }
+  .cal-toolbar:not([data-filters-open]) > select, .cal-toolbar:not([data-filters-open]) > #by-toggle,
+  #cal-legend:not([data-filters-open]) { display: none; }
+  .cal-toolbar > select { flex: 1 1 100%; }
+}
 .cal-card { padding: var(--sp-3); overflow: hidden; }
 
 .sched { --gutter: 64px; display: flex; flex-direction: column; }
@@ -81,3 +89,7 @@
 .qt__sel { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); min-block-size: 32px; }
 .qt__teeth { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: var(--radius-pill); background: var(--c-primary-soft); color: var(--c-primary-text); font-weight: var(--fw-bold); }
 .qt__price { margin-inline-start: auto; }
+@media (max-width: 639px) {
+  .list-status-chips { display: flex; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; max-inline-size: 100%; align-self: stretch !important; }
+  .list-status-chips .chip { flex-shrink: 0; }
+}

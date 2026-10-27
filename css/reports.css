@@ -95,8 +95,17 @@
 .card--inverse .cloud-usage .progress { background: rgb(127 127 127 / 30%); }
 .cloud-usage .progress__bar { display: block; min-inline-size: 4px; }
 
-/* Phones: today's invoices right after the appointments card (less scrolling at reception) */
+.today-chips { display: flex; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-block-end: 2px; }
+.today-chips .chip { flex-shrink: 0; }
+
+/* Phones: who is coming and what to collect first, then the money numbers two per row */
 @media (max-width: 767px) {
-  .bento > [data-dash="appointments"] { order: -2; }
-  .bento > [data-dash="invoices"] { order: -1; }
+  .bento > [data-dash="appointments"] { order: -4; }
+  .bento > [data-dash="patientsList"] { order: -3; }
+  .bento > [data-dash="invoices"] { order: -2; }
+  .bento > [data-kpi] { grid-column: span 6; order: -1; }
+  .bento > [data-kpi] .kpi { padding: var(--sp-4); gap: var(--sp-2); }
+  .bento > [data-kpi] .kpi__icon { display: none; }
+  .bento > [data-kpi] .kpi__value { font-size: var(--fs-2xl); }
+  .bento > [data-kpi] .kpi__meta { display: none; }
 }

@@ -169,6 +169,7 @@ function openUserMenu(anchor) {
       { label: 'تبديل المستخدم', icon: 'users', onSelect: () => signOut({ switchUser: true }) },
       { label: 'تغيير كلمة المرور', icon: 'key-round', onSelect: () => openChangePasswordDialog() },
       { label: s.user.hasPin ? 'تغيير الرمز السريع' : 'تعيين رمز سريع (PIN)', icon: 'lock', onSelect: () => openPinDialog() },
+      { label: `المظهر: ${THEME_LABELS[getTheme()]}`, icon: 'palette', onSelect: () => { const t = cycleTheme(); toast(`المظهر: ${THEME_LABELS[t]}`, { duration: 1800 }); document.querySelectorAll('[data-action="theme"]').forEach((b) => render(b, themeButton())); } },
       'sep',
       { label: 'تسجيل الخروج', icon: 'log-out', danger: true, onSelect: () => signOut() },
     ],
@@ -199,9 +200,11 @@ export function mountShell(root) {
         <div class="topbar__search input-group">
           ${ico('search', { size: 20 })}
           <input class="input input--pill" type="search" placeholder="ابحث عن مريض بالاسم أو الموبايل أو رقم الملف…" aria-label="بحث عن مريض" id="gsearch-input" autocomplete="off">
+          <button type="button" class="icon-btn topbar__search-close" data-action="close-search" aria-label="إغلاق البحث">${ico('x', { size: 20 })}</button>
         </div>
         <div class="topbar__spacer"></div>
         <div class="topbar__actions">
+          <button type="button" class="icon-btn topbar__search-btn" data-action="open-search" aria-label="بحث عن مريض">${ico('search', { size: 20 })}</button>
           <button type="button" class="icon-btn sync-btn" data-action="sync" hidden></button>
           <button type="button" class="icon-btn" data-action="theme" aria-live="polite">${themeButton()}</button>
           <button type="button" class="icon-btn" data-action="notifications" aria-label="التنبيهات" aria-haspopup="menu">
@@ -222,6 +225,13 @@ export function mountShell(root) {
 
   const mqDrawer = matchMedia('(max-width: 1023px)');
   const closeDrawer = () => { delete app.dataset.drawer; };
+  // Phones/tablets: the search field opens over the top bar from the 🔍 button.
+  const closeSearch = () => {
+    delete app.dataset.search;
+    const input = /** @type {HTMLInputElement} */ (app.querySelector('#gsearch-input'));
+    input.value = '';
+    input.dispatchEvent(new Event('input'));
+  };
 
   on(app, 'click', '[data-action]', (e, el) => {
     switch (el.dataset.action) {
@@ -235,6 +245,8 @@ export function mountShell(root) {
           setPref('sidebar', collapsed ? 'expanded' : 'collapsed');
         }
         break;
+      case 'open-search': app.dataset.search = 'open'; /** @type {HTMLInputElement} */ (app.querySelector('#gsearch-input')).focus(); break;
+      case 'close-search': closeSearch(); break;
       case 'open-drawer': app.dataset.drawer = 'open'; app.querySelector('.sidebar a')?.focus(); break;
       case 'close-drawer': closeDrawer(); break;
       case 'theme': {
@@ -248,8 +260,12 @@ export function mountShell(root) {
       case 'user-menu': openUserMenu(el); break;
     }
   });
-  app.addEventListener('keydown', (e) => { if (e.key === 'Escape' && app.dataset.drawer === 'open') closeDrawer(); });
-  onEvent('route:changed', () => { closeDrawer(); scheduleBell(); });
+  app.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (app.dataset.drawer === 'open') closeDrawer();
+    if (app.dataset.search === 'open') closeSearch();
+  });
+  onEvent('route:changed', () => { closeDrawer(); if (app.dataset.search === 'open') closeSearch(); scheduleBell(); });
   onEvent('auth:changed', () => drawNav());
   onEvent('data:changed', ({ store, id }) => { if (store === 'meta' && id === 'lastBackupAt') drawBackupCard(); if (store !== 'auditLog') scheduleBell(); });
   onEvent('settings:changed', ({ key }) => { if (key === 'clinic') drawBrand(); });

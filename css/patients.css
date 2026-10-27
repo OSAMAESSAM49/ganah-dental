@@ -47,6 +47,14 @@
 .pfile-head__name { font-size: var(--fs-2xl); font-weight: var(--fw-bold); line-height: 1.2; }
 .pfile-head__meta { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
 .pfile-head__actions { display: flex; gap: var(--sp-2); flex-wrap: wrap; }
+.pfile-more--phone { display: none; }
+@media (max-width: 639px) {
+  .pfile-head__actions [data-secondary] { display: none; }
+  .pfile-head__actions .pfile-more--phone { display: inline-flex; }
+  .pfile-head__actions .btn--icon { flex: 0 0 auto; }
+  /* More tabs to the side: fade the edge so it's clear the row scrolls */
+  .pfile-tabs { mask-image: linear-gradient(to left, #000 85%, transparent); }
+}
 @media (max-width: 639px) {
   .pfile-head { padding: var(--sp-5); gap: var(--sp-4); }
   .pfile-head__photo { inline-size: 68px; block-size: 68px; font-size: var(--fs-xl); }
@@ -134,6 +142,11 @@
 @media (max-width: 767px) {
   .plist-table { display: none; }
   .pcard-list { display: flex; }
+  /* Filters take two short rows instead of half the screen */
+  .plist-tools .toolbar__search { flex-basis: 100%; }
+  .plist-tools > select { flex: 1 1 0; min-inline-size: 0 !important; }
+  .plist-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; display: flex; }
+  .plist-chips .chip { flex-shrink: 0; }
 }
 .pcard { border-radius: var(--radius-lg); background: var(--c-surface); overflow: hidden; }
 .pcard__head { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4); cursor: pointer; min-block-size: 64px; }
@@ -149,6 +162,7 @@
 .phone-copy { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 0; border-radius: var(--radius-pill); background: var(--c-surface-2); color: inherit; font: inherit; font-weight: var(--fw-medium); cursor: copy; flex-shrink: 0; }
 .phone-copy:hover { background: var(--c-primary-softer); }
 .phone-copy .icon { opacity: .6; }
+.phone-call { min-block-size: 40px; padding-inline: 12px; text-decoration: none; cursor: pointer; }
 @media (max-width: 767px) {
   #psource, #psort { flex: 1 1 calc(50% - var(--sp-2)); min-inline-size: 0 !important; }
 }

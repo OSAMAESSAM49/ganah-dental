@@ -198,7 +198,10 @@ export async function renderTab({ body, patient, query, signal }) {
     if (status === 'done') { const res = await confirmDone(item); if (!res) { draw(); return; } opts = res; }
     if (item.status === 'done' && !(await confirmDialog({ title: 'إرجاع البند من «تم»؟', message: 'سيُلغى أثره على خريطة الأسنان، وتعود المواد للمخزون، وتُحذف متابعاته التي لم تتم.', confirmLabel: 'إرجاع' }))) { draw(); return; }
     const ok = await guard(() => setItemStatus(id, status, opts), status === 'done' ? 'أحسنت! تم تسجيل الانتهاء' : null);
-    if (ok && status === 'done') offerInstructions(item);
+    if (ok && status === 'done') {
+      await offerInstructions(item);
+      (await import('../billing/dialogs.js')).offerInvoice(item.patientId);
+    }
   };
 
   /* ---------- events ---------- */
