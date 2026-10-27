@@ -27,6 +27,7 @@ async function templateDialog(tpl) {
   let saved = null;
   await openModal({
     title: tpl ? 'تعديل قالب التعليمات' : 'قالب تعليمات جديد',
+    dirty: true,
     icon: 'file-text', size: 'lg',
     body: html`<form class="form" novalidate>
       ${textField({ name: 'name', label: 'اسم القالب', value: tpl?.name ?? '', required: true, placeholder: 'مثال: بعد الخلع' })}

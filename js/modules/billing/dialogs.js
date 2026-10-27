@@ -101,6 +101,7 @@ export async function openInvoiceDialog(patientId, { preselect = null } = {}) {
   let created = null;
   await openModal({
     title: `فاتورة جديدة — ${patient.name}`,
+    dirty: true,
     icon: 'receipt',
     size: 'lg',
     body: html`
@@ -230,7 +231,8 @@ export async function openPaymentDialog(preset = {}) {
     if (!st.invoiceId && invs.length === 1) st.invoiceId = invs[0].id;
     const sel = invs.find((i) => i.id === st.invoiceId);
     const nextInst = sel ? invoiceInstallments(sel, sel.paid).find((i) => i.status !== 'paid') : null;
-    const suggested = sel ? (nextInst ? nextInst.amount - nextInst.covered : sel.remaining) : 0;
+    const owed = invs.reduce((n, i) => n + i.remaining, 0);
+    const suggested = sel ? (nextInst ? nextInst.amount - nextInst.covered : sel.remaining) : owed;
     return html`
       <div class="appt-patient">${patientAvatar(st.patient)}<div class="grow"><strong>${st.patient.name}</strong>
         <div class="muted text-sm">المتبقي عليه: <strong>${formatMoney(Math.max(0, st.account.balance))}</strong>${st.account.credit ? ` · رصيد دائن ${formatMoney(st.account.credit)}` : ''}</div></div>
@@ -238,8 +240,9 @@ export async function openPaymentDialog(preset = {}) {
       <label class="field"><span class="field__label">عن</span>
         <select class="select" name="invoiceId">
           ${invs.map((i) => html`<option value="${i.id}" ${i.id === st.invoiceId ? 'selected' : ''}>${formatInvoiceNo(i.number)} · ${formatDate(i.date)} · متبقٍ ${formatMoney(i.remaining)}</option>`)}
-          <option value="" ${!st.invoiceId ? 'selected' : ''}>دفعة تحت الحساب (مقدم)</option>
+          <option value="" ${!st.invoiceId ? 'selected' : ''}>${invs.length ? `سداد الفواتير المفتوحة (الأقدم أولًا) · متبقٍ ${formatMoney(owed)}` : 'دفعة تحت الحساب (رصيد مقدم)'}</option>
         </select></label>
+      ${!sel && invs.length ? html`<p class="muted text-sm">${ico('info', { size: 14 })} يُخصم المبلغ من الفواتير المفتوحة بالأقدم أولًا، والزيادة تبقى رصيدًا مقدمًا للمريض.</p>` : ''}
       ${nextInst ? html`<p class="muted text-sm">${ico('calendar-days', { size: 14 })} القسط المستحق ${formatDate(nextInst.dueDate)}: ${formatMoney(nextInst.amount - nextInst.covered)}${nextInst.status === 'overdue' ? ' (متأخر)' : ''}</p>` : ''}
       <label class="field"><span class="field__label">المبلغ (ج.م)<span class="req">*</span></span>
         <input class="input input--ltr" name="amount" inputmode="decimal" value="${suggested ? piastersToInput(suggested) : ''}" placeholder="0" style="font-size: var(--fs-xl); font-weight: 700">
@@ -251,6 +254,7 @@ export async function openPaymentDialog(preset = {}) {
   let saved = null;
   await openModal({
     title: 'تسجيل دفعة',
+    dirty: true,
     icon: 'banknote',
     body: html`<form class="form" id="pay-form" novalidate>${markup()}</form>`,
     actions: [{ label: 'تسجيل الدفعة', value: 'save', variant: 'primary' }, { label: 'إلغاء', value: null }],
@@ -294,7 +298,7 @@ export async function openPaymentDialog(preset = {}) {
       const sel = openInvoices().find((i) => i.id === data.invoiceId);
       const errors = {};
       if (!(amount > 0)) errors.amount = 'أدخل مبلغًا صحيحًا';
-      else if (sel && amount > sel.remaining) errors.amount = `المتبقي على الفاتورة ${formatMoney(sel.remaining)} فقط. سجّل الزيادة كدفعة تحت الحساب.`;
+      else if (sel && amount > sel.remaining) errors.amount = `المتبقي على الفاتورة ${formatMoney(sel.remaining)} فقط. اختر «سداد الفواتير المفتوحة» لتُسجَّل الزيادة رصيدًا مقدمًا.`;
       if (!showFieldErrors(form, errors)) return false;
       try {
         saved = await recordPayment({ patientId: st.patient.id, invoiceId: data.invoiceId || null, amount, method: data.method || 'cash', note: data.note });

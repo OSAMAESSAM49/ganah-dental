@@ -167,6 +167,7 @@ async function askName(title, value) {
   let name = null;
   const res = await openModal({
     title, icon: 'pencil',
+    dirty: true,
     body: html`<form class="form" novalidate>${textField({ name: 'name', label: 'الاسم', value, required: true })}</form>`,
     actions: [{ label: 'حفظ', value: 'save', variant: 'primary' }, { label: 'إلغاء', value: null }],
     onOpen(d, close) { const f = d.querySelector('form'); f.addEventListener('submit', (e) => { e.preventDefault(); close('save'); }); f.querySelector('input').select(); },
@@ -217,6 +218,7 @@ async function procedureDialog(proc, catalog, items = []) {
     </div>`;
   const res = await openModal({
     title: isNew ? 'إجراء جديد' : `تعديل «${proc.name}»`,
+    dirty: true,
     icon: isNew ? 'plus' : 'pencil',
     body: html`
       <form class="form" novalidate>

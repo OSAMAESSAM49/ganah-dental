@@ -250,6 +250,7 @@ export async function renderTab({ body, patient, query, signal }) {
     let created = null;
     const res = await openModal({
       title: 'خطة بديلة',
+      dirty: true,
       icon: 'list-checks',
       body: html`<form class="form" novalidate>
         <p class="muted">أنشئ خيارًا آخر للمريض (مثلًا «اقتصادي» و«مميز») ثم اطبع عرض سعر يقارن بينهما.</p>
@@ -278,6 +279,7 @@ export async function renderTab({ body, patient, query, signal }) {
         let name = '';
         const r = await openModal({
           title: 'إعادة تسمية', icon: 'pencil',
+          dirty: true,
           body: html`<form class="form" novalidate>${textField({ name: 'name', label: 'اسم الخطة', value: pl.name, required: true })}</form>`,
           actions: [{ label: 'حفظ', value: 'save', variant: 'primary' }, { label: 'إلغاء', value: null }],
           onOpen(d, close) { d.querySelector('form').addEventListener('submit', (e) => { e.preventDefault(); close('save'); }); },

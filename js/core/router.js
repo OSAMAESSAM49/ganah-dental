@@ -24,6 +24,9 @@ let current = { path: null, key: null, cleanup: null, controller: null };
 let renderToken = 0;
 let dirtyGuard = null;
 let suppressNext = false;
+let backInterceptor = null;
+/** Position in this tab's history, stamped on every entry, to tell Back from a new page. */
+let historyIndex = 0;
 
 /** Compiles '/patients/:id' to a RegExp. Exported for tests. */
 export function compilePath(path) {
@@ -90,6 +93,19 @@ export const currentRoute = () => parseHash(location.hash);
  * @param {(() => Promise<boolean>) | null} fn resolves true to allow leaving
  */
 export function setLeaveGuard(fn) { dirtyGuard = fn; }
+export const hasLeaveGuard = () => !!dirtyGuard;
+
+/**
+ * Lets Back close something on top of the page (a modal) instead of leaving it.
+ * @param {(() => boolean) | null} fn returns true when it handled the Back press
+ */
+export function setBackInterceptor(fn) { backInterceptor = fn; }
+
+/** Undoes the history move that triggered this change, without handling it again. */
+function stayHere(direction) {
+  suppressNext = true;
+  if (direction === 'back') history.forward(); else history.back();
+}
 
 /**
  * Starts listening. hooks.beforeEach(route, params, path) may return false (block), a path
@@ -107,12 +123,24 @@ async function handleChange() {
   if (suppressNext) { suppressNext = false; return; }
   const { path, query } = parseHash(location.hash);
 
+  // A new entry has no index yet; an entry we stamped before is Back (lower) or Forward.
+  const stamped = history.state?.ganahIndex;
+  const direction = typeof stamped === 'number' && stamped < historyIndex ? 'back' : 'forward';
+  if (typeof stamped === 'number') historyIndex = stamped;
+  else { historyIndex += current.key ? 1 : 0; history.replaceState({ ...(history.state ?? {}), ganahIndex: historyIndex }, ''); }
+
   const key = location.hash || '#/';
+  if (direction === 'back' && current.key && key !== current.key && backInterceptor?.()) {
+    stayHere(direction);
+    historyIndex += 1;
+    return;
+  }
   if (dirtyGuard && current.key && key !== current.key) {
     const ok = await dirtyGuard();
-    if (!ok) { suppressNext = true; history.back(); return; }
+    if (!ok) { stayHere(direction); historyIndex += direction === 'back' ? 1 : -1; return; }
     dirtyGuard = null;
   }
+  if (current.key && key !== current.key) emit('route:leaving', { path });
 
   const match = matchRoute(path) ?? (notFound ? { route: notFound, params: {} } : null);
   if (!match) return;

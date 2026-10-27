@@ -185,6 +185,7 @@ async function openUserDialog(user, roles) {
 
   const res = await openModal({
     title: isNew ? 'مستخدم جديد' : `تعديل ${user.displayName}`,
+    dirty: true,
     icon: isNew ? 'user-plus' : 'pencil',
     size: 'lg',
     body: html`

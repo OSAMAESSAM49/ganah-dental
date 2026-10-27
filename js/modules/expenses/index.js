@@ -35,6 +35,7 @@ export async function expenseDialog(expense = null) {
   let saved = false;
   await openModal({
     title: expense ? 'تعديل مصروف' : 'مصروف جديد',
+    dirty: true,
     icon: 'wallet',
     body: html`
       <form class="form" novalidate>
@@ -199,6 +200,7 @@ export default {
       let out = null;
       const r = await openModal({
         title, icon: 'pencil',
+        dirty: true,
         body: html`<form class="form" novalidate>${textField({ name: 'v', label, value })}</form>`,
         actions: [{ label: 'حفظ', value: 'ok', variant: 'primary' }, { label: 'إلغاء', value: null }],
         onOpen(d, close) { d.querySelector('form').addEventListener('submit', (e) => { e.preventDefault(); close('ok'); }); d.querySelector('input').select(); },

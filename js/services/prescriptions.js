@@ -78,6 +78,27 @@ export const lineFromMedicine = (m) => cleanLine({ medicineId: m.id, name: m.nam
 /* ---------- Safety ---------- */
 
 /**
+ * Safety net for medicines typed by hand (not picked from the list): common generic and
+ * Egyptian brand names that belong to a risk group.
+ */
+const NAME_GROUPS = {
+  penicillin: ['penicillin', 'amoxicillin', 'amoxycillin', 'ampicillin', 'flucloxacillin', 'clavulan', 'augmentin', 'amoxil', 'hibiotic', 'megamox', 'e-mox', 'emox', 'curam', 'flumox', 'unasyn', 'ampiclox'],
+  nsaid: ['ibuprofen', 'brufen', 'diclofenac', 'cataflam', 'voltaren', 'olfen', 'rheumafen', 'ketoprofen', 'profenid', 'ketorolac', 'ketolac', 'naproxen', 'celecoxib', 'celebrex', 'mefenamic', 'ponstan', 'aspirin', 'aspocid', 'meloxicam', 'mobic', 'piroxicam', 'feldene', 'etoricoxib', 'arcoxia', 'nimesulide', 'sulide'],
+};
+
+/** Risk groups of a prescription line: from the medicine list, else guessed from its name. */
+function lineGroups(line, medicines) {
+  const known = medicines.get(line.medicineId)?.groups;
+  if (known?.length) return known;
+  const name = String(line.name ?? '').toLowerCase();
+  const first = name.split(/[\s(]+/)[0];
+  const same = first.length > 3 ? [...medicines.values()].find((m) => m.groups?.length && String(m.name).toLowerCase().split(/[\s(]+/)[0] === first) : null;
+  const groups = new Set(same?.groups ?? []);
+  for (const [group, words] of Object.entries(NAME_GROUPS)) if (words.some((w) => name.includes(w))) groups.add(group);
+  return [...groups];
+}
+
+/**
  * Warnings for the chosen medicines against the patient's medical history.
  * Pure — `medicines` is a Map id → medicine (for groups); exported for tests.
  * @returns {Array<{ level: 'critical'|'caution', text: string, line: string }>}
@@ -87,7 +108,7 @@ export function rxWarnings(patient, lines, medicines) {
   const otherAllergy = String(patient?.medical?.allergyOther ?? '').trim().toLowerCase();
   const out = [];
   for (const l of lines) {
-    const groups = medicines.get(l.medicineId)?.groups ?? [];
+    const groups = lineGroups(l, medicines);
     const add = (level, text) => out.push({ level, text, line: l.name });
     if (groups.includes('penicillin') && has('allergyPenicillin')) add('critical', 'المريض لديه حساسية من البنسلين');
     if (groups.includes('nsaid')) {

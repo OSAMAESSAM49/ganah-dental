@@ -136,13 +136,24 @@ export async function joinCloud(email, password, { signedIn = false } = {}) {
   return syncNow();
 }
 
-/** Stops syncing on this device (data stays on the device and in the cloud). */
-export async function disconnectCloud() {
-  if (engine) { try { await syncNow(); } catch { /* best effort */ } engine.stop(); engine.reset(); engine = null; }
+/**
+ * Stops syncing on this device (data stays on the device and in the cloud). Refuses while
+ * edits are still waiting to upload, since unlinking forgets them; `force` (after a backup)
+ * drops them on purpose.
+ * @returns {Promise<{ ok: boolean, pending: number }>}
+ */
+export async function disconnectCloud({ force = false } = {}) {
+  if (engine) {
+    try { await syncNow(); } catch { /* best effort */ }
+    const pending = engine.pending();
+    if (pending && !force) return { ok: false, pending };
+    engine.stop(); engine.reset(); engine = null;
+  }
   clearInterval(timer);
   setEnabled(false);
   await cloudSignOut();
   publish({ state: 'off', error: '' });
+  return { ok: true, pending: 0 };
 }
 
 /** Signs in again after the session expired (keeps the queue and position). */

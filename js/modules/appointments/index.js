@@ -105,6 +105,8 @@ export default {
 
     const filtered = () => rows.filter((a) => (!st.doctor || a.doctorId === st.doctor) && (!st.chair || a.chairId === st.chair));
 
+    let scrolledFor = '';
+    let keptScroll = 0;
     const draw = () => {
       el.querySelector('#appt-title').textContent = title();
       render(el.querySelector('#by-toggle'), st.view === 'day' && doctors.length > 1 ? html`
@@ -127,11 +129,19 @@ export default {
       } else {
         drawList(bodyEl, visible);
       }
-      // scroll the day/week body to "now" (or opening time)
+      // Scroll the day/week body to "now" (or opening time) only when a day or view is
+      // opened; redraws (every minute, after a change) keep where the user scrolled.
       const calBody = bodyEl.querySelector('.cal-body');
       if (calBody) {
-        const target = st.date === todayISO() ? Math.max(0, nowMinutes() - range.from - 60) : 0;
-        calBody.scrollTop = target * PX_PER_MIN;
+        const key = `${st.view}|${st.date}`;
+        if (key === scrolledFor) calBody.scrollTop = keptScroll;
+        else {
+          const target = st.date === todayISO() ? Math.max(0, nowMinutes() - range.from - 60) : 0;
+          calBody.scrollTop = target * PX_PER_MIN;
+          scrolledFor = key;
+        }
+        calBody.addEventListener('scroll', () => { keptScroll = calBody.scrollTop; }, { passive: true });
+        keptScroll = calBody.scrollTop;
       }
     };
 
@@ -228,12 +238,18 @@ export default {
       if (t.name === 'listTo') { const iso = parseDateInput(t.value); if (iso) { st.listTo = iso; load(); } }
     }, { signal });
 
-    // Live updates: any appointment change re-renders; the "now" line moves every minute.
-    const off = onEvent('data:changed', ({ store }) => { if (store === 'appointments' || store === 'treatmentItems') load(); });
+    // Live updates: any appointment change re-renders (once per burst of writes); the "now"
+    // line moves every minute.
+    let reloadTimer;
+    const off = onEvent('data:changed', ({ store }) => {
+      if (store !== 'appointments' && store !== 'treatmentItems') return;
+      clearTimeout(reloadTimer);
+      reloadTimer = setTimeout(load, 250);
+    });
     const tick = setInterval(() => { if (st.view === 'day' || st.view === 'week') draw(); }, 60_000);
 
     await load();
-    return () => { off(); clearInterval(tick); };
+    return () => { off(); clearInterval(tick); clearTimeout(reloadTimer); };
   },
 };
 

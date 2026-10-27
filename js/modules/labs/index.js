@@ -54,6 +54,7 @@ export async function labCaseDialog(preset = {}) {
 
   await openModal({
     title: editing ? 'تعديل حالة المعمل' : 'إرسال حالة للمعمل',
+    dirty: true,
     icon: 'flask-conical',
     size: 'lg',
     body: html`

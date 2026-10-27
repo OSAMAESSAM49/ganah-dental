@@ -247,8 +247,58 @@ export async function recordPayment(input) {
     voided: false,
     voidReason: '',
   });
-  if (payment.invoiceId) await refreshInvoiceStatus(payment.invoiceId);
-  return payment;
+  if (payment.invoiceId) {
+    await refreshInvoiceStatus(payment.invoiceId);
+    return payment;
+  }
+  // Money without an invoice settles what the patient still owes first, oldest invoice first;
+  // only what is left stays as credit for later.
+  const settled = await applyCreditToOpenInvoices(patient.id);
+  if (!settled.length) return payment;
+  const where = `خُصمت من ${settled.map((s) => formatInvoiceNo(s.number)).join('، ')}`;
+  return repos.payments.update(payment.id, { note: payment.note ? `${payment.note} · ${where}` : where });
+}
+
+/**
+ * Uses the patient's credit (money paid without an invoice) to settle open invoices, oldest
+ * first, through each invoice's appliedCredit. Receipts stay as they are.
+ * @returns {Promise<Array<{ invoiceId: string, number: number, amount: number }>>} what was settled
+ */
+export async function applyCreditToOpenInvoices(patientId) {
+  const account = await patientAccount(patientId);
+  let credit = account.credit;
+  const settled = [];
+  const open = account.invoices.filter((i) => i.status !== 'void' && i.remaining > 0)
+    .sort((a, b) => a.date.localeCompare(b.date) || a.number - b.number);
+  for (const inv of open) {
+    if (credit <= 0) break;
+    const amount = Math.min(credit, inv.remaining);
+    await repos.invoices.update(inv.id, { appliedCredit: (inv.appliedCredit ?? 0) + amount });
+    await refreshInvoiceStatus(inv.id);
+    credit -= amount;
+    settled.push({ invoiceId: inv.id, number: inv.number, amount });
+  }
+  if (settled.length) await logEvent({ action: 'update', entity: 'invoices', entityId: settled[0].invoiceId, summary: `خصم رصيد مقدم من ${settled.map((s) => formatInvoiceNo(s.number)).join('، ')}` });
+  return settled;
+}
+
+/**
+ * After an advance is voided the credit already used may exceed what is left: take it back
+ * from the newest invoices so they show what is really still owed.
+ */
+async function takeBackOverusedCredit(patientId) {
+  const [invoices, payments] = await Promise.all([repos.invoices.findBy('patientId', patientId), repos.payments.findBy('patientId', patientId)]);
+  const live = invoices.filter((i) => i.status !== 'void');
+  const liveIds = new Set(live.map((i) => i.id));
+  const unlinked = payments.filter((p) => !p.voided && (!p.invoiceId || !liveIds.has(p.invoiceId))).reduce((n, p) => n + p.amount, 0);
+  let excess = live.reduce((n, i) => n + (i.appliedCredit ?? 0), 0) - unlinked;
+  for (const inv of live.filter((i) => i.appliedCredit > 0).sort((a, b) => b.date.localeCompare(a.date) || b.number - a.number)) {
+    if (excess <= 0) break;
+    const back = Math.min(excess, inv.appliedCredit);
+    await repos.invoices.update(inv.id, { appliedCredit: inv.appliedCredit - back });
+    await refreshInvoiceStatus(inv.id);
+    excess -= back;
+  }
 }
 
 export async function voidPayment(id, reason) {
@@ -259,6 +309,7 @@ export async function voidPayment(id, reason) {
   const me = currentUser();
   const updated = await repos.payments.update(id, { voided: true, voidReason: reason.trim(), voidedAt: new Date().toISOString(), voidedBy: me?.displayName ?? null });
   if (p.invoiceId) await refreshInvoiceStatus(p.invoiceId);
+  else await takeBackOverusedCredit(p.patientId);
   return updated;
 }
 

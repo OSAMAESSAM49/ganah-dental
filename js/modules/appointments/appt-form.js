@@ -14,7 +14,7 @@ import { openModal, confirmDialog } from '../../components/modal.js';
 import { dateField, enhanceDateFields } from '../../components/date-field.js';
 import { textareaField, textField } from '../../components/form.js';
 import { toastSuccess, toastError } from '../../components/toast.js';
-import { searchPatients, getPatient, createPatient } from '../../services/patients.js';
+import { searchPatients, getPatient, createPatient, findByPhone } from '../../services/patients.js';
 import { listItems, listPlans } from '../../services/treatment.js';
 import { activeProcedures } from '../../services/procedures.js';
 import { getSchedule, activeChairs, slotsFor, listDoctors, hoursFor } from '../../services/schedule.js';
@@ -83,7 +83,7 @@ export async function openAppointmentForm(preset = {}) {
       return html`
         <div class="appt-patient">
           ${patientAvatar(st.patient)}
-          <div class="grow"><strong>${st.patient.name}</strong><div class="muted text-sm"><span class="ltr">${digits(st.patient.fileNo)}</span>${st.patient.phone ? html` · <span class="ltr">${digits(st.patient.phone)}</span>` : ''}</div></div>
+          <div class="grow"><strong>${st.patient.name}</strong><div class="muted text-sm">${st.patient.pending ? html`<span class="badge badge--accent">مريض جديد · يُسجَّل مع تأكيد الحجز</span>` : html`<span class="ltr">${digits(st.patient.fileNo)}</span>`}${st.patient.phone ? html` · <span class="ltr">${digits(st.patient.phone)}</span>` : ''}</div></div>
           ${editing ? '' : html`<button type="button" class="btn btn--ghost btn--sm" data-change-patient>تغيير</button>`}
         </div>
         ${medicalBanner(st.patient)}`;
@@ -97,7 +97,7 @@ export async function openAppointmentForm(preset = {}) {
             ${textField({ name: 'qp_phone', label: 'الموبايل', ltr: true, inputmode: 'tel' })}
           </div>
           <p class="muted text-sm">يمكن استكمال باقي البيانات والتاريخ الطبي من ملف المريض لاحقًا.</p>
-          <div class="row"><button type="button" class="btn btn--primary btn--sm" data-quick-save>${ico('user-plus', { size: 18 })} تسجيل واختيار</button><button type="button" class="btn btn--ghost btn--sm" data-quick-cancel>رجوع للبحث</button></div>
+          <div class="row"><button type="button" class="btn btn--primary btn--sm" data-quick-save>${ico('user-plus', { size: 18 })} اختيار</button><button type="button" class="btn btn--ghost btn--sm" data-quick-cancel>رجوع للبحث</button></div>
         </div></div>`;
     }
     return html`
@@ -197,6 +197,7 @@ export async function openAppointmentForm(preset = {}) {
   let saved = null;
   await openModal({
     title: editing ? 'تعديل الموعد' : 'حجز موعد',
+    dirty: true,
     icon: 'calendar-check',
     size: 'lg',
     body: bodyMarkup(),
@@ -250,13 +251,17 @@ export async function openAppointmentForm(preset = {}) {
           const data = { qp_name: $('[name=qp_name]').value, qp_phone: $('[name=qp_phone]').value };
           const errors = validate(data, { qp_name: (v) => required(v, 'الاسم'), qp_phone: (v) => phoneRule(v) });
           if (!showFieldErrors(/** @type {any} */ (box), errors)) return;
-          try {
-            const p = await createPatient({ name: data.qp_name, phone: data.qp_phone });
-            toastSuccess(`تم تسجيل المريض · ملف ${p.fileNo}`);
-            st.quickAdd = false;
-            await setPatient(p.id);
-            redraw('patient', 'link', 'time');
-          } catch (err) { toastError(err.message); }
+          // Same check as the full form; the patient is only saved when the booking is confirmed.
+          const same = data.qp_phone ? await findByPhone(data.qp_phone) : [];
+          if (same.length && !(await confirmDialog({
+            title: 'رقم الموبايل مسجّل لمريض آخر',
+            message: html`<p>الرقم مسجّل باسم: <strong>${same.map((x) => `${x.name} (${x.fileNo})`).join('، ')}</strong>.</p><p class="muted">إن كان هو نفس المريض فارجع للبحث واختره. قد يكون من نفس العائلة.</p>`,
+            confirmLabel: 'مريض جديد على أي حال', cancelLabel: 'رجوع',
+          }))) return;
+          st.quickAdd = false;
+          st.patient = { id: null, pending: true, name: data.qp_name.trim(), phone: data.qp_phone.trim() };
+          st.planItems = [];
+          redraw('patient', 'link', 'time');
           return;
         }
         const rm = t.closest('[data-remove-proc]');
@@ -305,6 +310,12 @@ export async function openAppointmentForm(preset = {}) {
           confirmLabel: 'احجز على أي حال',
         });
         if (!ok) return false;
+      }
+      if (st.patient.pending) {
+        try {
+          st.patient = await createPatient({ name: st.patient.name, phone: st.patient.phone });
+          toastSuccess(`تم تسجيل المريض · ملف ${st.patient.fileNo}`);
+        } catch (err) { toastError(err.message); return false; }
       }
       const linkedItems = st.planItems.filter((i) => st.linked.has(i.id));
       const input = {

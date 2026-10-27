@@ -111,6 +111,7 @@ export async function renderTab({ body, actions, query, signal }) {
   on(actions, 'click', '[data-add-role]', async () => {
     const res = await openModal({
       title: 'دور جديد',
+      dirty: true,
       icon: 'shield-check',
       body: html`
         <form class="form" novalidate>
@@ -141,6 +142,7 @@ async function askRoleName({ title, value }) {
   let name = null;
   const res = await openModal({
     title, icon: 'pencil',
+    dirty: true,
     body: html`<form class="form" novalidate>${textField({ name: 'name', label: 'اسم الدور', value, required: true })}</form>`,
     actions: [{ label: 'حفظ', value: 'save', variant: 'primary' }, { label: 'إلغاء', value: null }],
     onOpen(d, close) { const f = d.querySelector('form'); f.addEventListener('submit', (e) => { e.preventDefault(); close('save'); }); f.querySelector('input').select(); },

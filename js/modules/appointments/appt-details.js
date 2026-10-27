@@ -128,12 +128,31 @@ export async function openAppointmentDetails(appt) {
     size: 'lg',
     body: await bodyMarkup(),
     actions: [],
+    // Notes typed but not saved yet: ask before closing.
+    dirty: (d) => {
+      const notes = /** @type {HTMLTextAreaElement|null} */ (d.querySelector('#clin-notes'));
+      return !!notes && notes.value.trim() !== (a.clinicalNotes ?? '').trim();
+    },
     async onOpen(dialog, close) {
       const bodyEl = dialog.querySelector('.modal__body');
-      const refresh = async () => { a = await repos.appointments.get(a.id, { includeDeleted: true }); render(bodyEl, await bodyMarkup()); };
+      /** Redraws after a change, keeping notes the doctor has typed but not saved. */
+      const refresh = async () => {
+        const typed = /** @type {HTMLTextAreaElement|null} */ (bodyEl.querySelector('#clin-notes'))?.value;
+        a = await repos.appointments.get(a.id, { includeDeleted: true });
+        render(bodyEl, await bodyMarkup());
+        const notes = /** @type {HTMLTextAreaElement|null} */ (bodyEl.querySelector('#clin-notes'));
+        if (notes && typed != null) notes.value = typed;
+      };
+      /** Closes (asking first about unsaved notes); false when the user chose to stay. */
+      const leave = async () => { await close(null); return !dialog.isConnected; };
       bodyEl.addEventListener('click', async (e) => {
         const t = /** @type {HTMLElement} */ (e.target);
-        if (t.closest('a[data-close]')) { close(null); return; }
+        const link = /** @type {HTMLAnchorElement|null} */ (t.closest('a[data-close]'));
+        if (link) {
+          e.preventDefault();
+          if (await leave()) location.hash = link.hash;
+          return;
+        }
         const step = t.closest('[data-step]');
         try {
           if (step) {
@@ -182,12 +201,12 @@ export async function openAppointmentDetails(appt) {
             return;
           }
           if (t.closest('[data-edit]')) {
-            close(null);
+            if (!(await leave())) return;
             if (await openAppointmentForm({ appt: a })) changed = true;
             return;
           }
           if (t.closest('[data-followup]')) {
-            close(null);
+            if (!(await leave())) return;
             if (await openAppointmentForm({ patientId: a.patientId, date: addDays(a.date, 7), doctorId: a.doctorId, chairId: a.chairId })) changed = true;
             return;
           }

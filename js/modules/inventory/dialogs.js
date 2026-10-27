@@ -22,6 +22,7 @@ export async function itemDialog(item = null) {
   let saved = null;
   await openModal({
     title: item ? `تعديل ${item.name}` : 'صنف جديد',
+    dirty: true,
     icon: item ? 'pencil' : 'package',
     body: html`
       <form class="form" novalidate>
@@ -60,6 +61,7 @@ export async function receiveDialog(item = null) {
   let ok = false;
   await openModal({
     title: 'استلام بضاعة',
+    dirty: true,
     icon: 'download',
     body: html`
       <form class="form" novalidate>
@@ -122,6 +124,7 @@ export async function adjustDialog(item) {
   let ok = false;
   await openModal({
     title: `تسوية مخزون ${item.name}`,
+    dirty: true,
     icon: 'refresh-cw',
     body: html`
       <form class="form" novalidate>
@@ -177,6 +180,7 @@ export async function itemDetails(item) {
   const soon = addDays(todayISO(), EXPIRY_WARNING_DAYS);
   await openModal({
     title: item.name,
+    dirty: true,
     icon: 'package',
     size: 'lg',
     body: html`

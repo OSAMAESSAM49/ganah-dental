@@ -9,7 +9,17 @@ import { html, ico, render } from '../core/dom.js';
  * @param {{ header?: import('../core/dom.js').SafeHTML,
  *           items: Array<{ label: string, icon?: string, danger?: boolean, onSelect: () => void } | 'sep'> }} opts
  */
+let closeOpen = null;
+
+/** Closes the open menu, if any. @returns {boolean} true when one was open */
+export function closeMenu() {
+  if (!closeOpen) return false;
+  closeOpen();
+  return true;
+}
+
 export function openMenu(anchor, { header, items }) {
+  closeOpen?.();
   document.querySelector('.menu[data-popover]')?.remove();
   const menu = document.createElement('div');
   menu.className = 'menu';
@@ -38,6 +48,7 @@ export function openMenu(anchor, { header, items }) {
   buttons[0]?.focus();
 
   const close = () => {
+    if (closeOpen === close) closeOpen = null;
     menu.remove();
     anchor.setAttribute('aria-expanded', 'false');
     document.removeEventListener('pointerdown', outside, true);
@@ -46,6 +57,7 @@ export function openMenu(anchor, { header, items }) {
   const outside = (e) => { if (!menu.contains(e.target) && !anchor.contains(e.target)) close(); };
   document.addEventListener('pointerdown', outside, true);
   window.addEventListener('resize', close);
+  closeOpen = close;
 
   menu.addEventListener('click', (e) => {
     const b = /** @type {HTMLElement} */ (e.target).closest('[data-i]');

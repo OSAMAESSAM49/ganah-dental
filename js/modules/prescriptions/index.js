@@ -29,6 +29,7 @@ async function medicineDialog(med) {
   let saved = null;
   await openModal({
     title: med ? 'تعديل الدواء' : 'دواء جديد', icon: 'pill',
+    dirty: true,
     body: html`<form class="form" novalidate>
       ${textField({ name: 'name', label: 'الاسم العلمي / التجاري (بالإنجليزية)', value: med?.name ?? '', required: true, ltr: true, placeholder: 'Amoxicillin 500 mg' })}
       <div class="form-grid">
@@ -63,6 +64,7 @@ async function templateDialog(tpl) {
   let saved = null;
   await openModal({
     title: tpl ? 'تعديل قالب الروشتة' : 'قالب روشتة جديد', icon: 'file-text', size: 'lg',
+    dirty: true,
     body: html`<form class="form" novalidate>
       ${textField({ name: 'name', label: 'اسم القالب', value: tpl?.name ?? '', required: true, placeholder: 'مثال: بعد الخلع' })}
       <div id="tpl-lines" class="stack-sm">${linesMarkup(st)}</div>

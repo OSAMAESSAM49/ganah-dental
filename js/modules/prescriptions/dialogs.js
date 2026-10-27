@@ -127,6 +127,7 @@ export async function prescriptionDialog(preset = {}) {
 
   const res = await openModal({
     title: editing ? `تعديل الروشتة ${formatRxNo(editing.number)}` : 'روشتة جديدة',
+    dirty: true,
     icon: 'pill', size: 'lg',
     body: html`<form class="form" novalidate>
       <div data-pp>${patientPicker({ patient: st.patient, locked: !!(editing || preset.patientId) })}</div>

@@ -79,6 +79,7 @@ async function completeDialog(f) {
   let outcome = null;
   await openModal({
     title: `تمت ${FOLLOWUP_TYPES[f.type]?.short ?? 'المتابعة'} — ${f.patientName}`,
+    dirty: true,
     icon: 'circle-check',
     body: html`<form class="form" novalidate>
       ${textareaField({ name: 'outcome', label: 'النتيجة (اختياري)', rows: 3, placeholder: 'مثال: الحالة مستقرة، لا يوجد ألم' })}
@@ -110,6 +111,7 @@ export async function newFollowUpDialog(preset = {}) {
   let saved = null;
   await openModal({
     title: 'متابعة جديدة',
+    dirty: true,
     icon: 'bell',
     body: html`<form class="form" novalidate>
       <div data-pp>${patientPicker({ patient, locked: !!preset.patientId })}</div>

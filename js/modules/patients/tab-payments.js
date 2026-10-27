@@ -6,7 +6,8 @@ import { can, ownsOrAdmin } from '../../core/permissions.js';
 import { onEvent } from '../../core/bus.js';
 import { openMenu } from '../../components/menu.js';
 import { emptyState } from '../../components/states.js';
-import { patientAccount, uninvoicedItems, invoiceInstallments, formatInvoiceNo, formatReceiptNo, lineFromItem } from '../../services/billing.js';
+import { toastSuccess } from '../../components/toast.js';
+import { patientAccount, applyCreditToOpenInvoices, uninvoicedItems, invoiceInstallments, formatInvoiceNo, formatReceiptNo, lineFromItem } from '../../services/billing.js';
 import { openInvoiceDialog, openPaymentDialog, voidPaymentFlow, voidInvoiceFlow, editInstallmentsDialog } from '../billing/dialogs.js';
 import { printInvoice, printReceipt, choosePrintSize } from '../billing/print.js';
 
@@ -28,6 +29,13 @@ export async function renderTab({ body, patient, signal }) {
           ${acc.credit ? html`<div class="totals__item"><div class="totals__label">رصيد دائن (مقدم)</div><div class="totals__value">${formatMoney(acc.credit)}</div></div>` : ''}
           ${unbilled.length ? html`<div class="totals__item"><div class="totals__label">علاجات لم تُفوتر</div><div class="totals__value">${formatMoney(unbilledTotal)}</div></div>` : ''}
         </div>
+
+        ${acc.credit && perm.create && acc.invoices.some((i) => i.status !== 'void' && i.remaining > 0) ? html`
+          <div class="alert alert--info">${ico('banknote')}
+            <div class="alert__content"><div class="alert__title">للمريض رصيد مقدم ${formatMoney(acc.credit)} وعليه فواتير مفتوحة</div>
+              <div class="alert__body">يُخصم الرصيد من الفواتير بالأقدم أولًا، فتظهر مدفوعة.</div></div>
+            <button type="button" class="btn btn--primary btn--sm" data-apply-credit>خصم الرصيد من الفواتير</button>
+          </div>` : ''}
 
         ${unbilled.length && perm.create ? html`
           <div class="alert alert--warning">${ico('receipt')}
@@ -119,6 +127,10 @@ export async function renderTab({ body, patient, signal }) {
     if (t.name === 'accView') { view = t.value; draw(); }
   }, { signal });
   on(body, 'click', '[data-new-invoice]', () => openInvoiceDialog(p.id), { signal });
+  on(body, 'click', '[data-apply-credit]', async () => {
+    const settled = await applyCreditToOpenInvoices(p.id);
+    if (settled.length) toastSuccess(`تم خصم ${formatMoney(settled.reduce((n, x) => n + x.amount, 0))} من ${settled.map((x) => formatInvoiceNo(x.number)).join('، ')}`);
+  }, { signal });
   on(body, 'click', '[data-pay]', () => openPaymentDialog({ patientId: p.id }), { signal });
   on(body, 'click', '[data-pay-inv]', (_, b) => openPaymentDialog({ patientId: p.id, invoiceId: b.dataset.payInv }), { signal });
   on(body, 'click', '[data-print-inv]', (_, b) => choosePrintSize(b, (size) => printInvoice(b.dataset.printInv, size)), { signal });

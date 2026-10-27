@@ -9,7 +9,7 @@
 import { applyTheme } from './core/theme.js';
 import { html, render } from './core/dom.js';
 import { setDigitStyle } from './core/format.js';
-import { defineRoutes, startRouter, navigate } from './core/router.js';
+import { defineRoutes, startRouter, navigate, setBackInterceptor, hasLeaveGuard } from './core/router.js';
 import { ROUTES, NOT_FOUND_ROUTE, FORBIDDEN_ROUTE } from './core/nav.js';
 import { mountShell, setActiveRoute } from './core/shell.js';
 import { can } from './core/permissions.js';
@@ -26,6 +26,8 @@ import { generateRecurringExpenses } from './services/expenses.js';
 import { startCloudSync } from './services/cloud-sync.js';
 import { pageSkeleton, errorState } from './components/states.js';
 import { toast, toastError } from './components/toast.js';
+import { closeAllModals, dismissTopModal, hasDirtyModal } from './components/modal.js';
+import { closeMenu } from './components/menu.js';
 
 applyTheme();
 
@@ -77,8 +79,8 @@ const idleMs = () => (getSettings('app').idleLogoutMinutes || 0) * 60_000;
 async function lockForIdle() {
   const user = currentUser();
   if (!user) return;
-  document.querySelectorAll('dialog').forEach((d) => d.remove());
-  document.querySelector('.menu[data-popover]')?.remove();
+  closeAllModals();
+  closeMenu();
   await logout('lock');
   navigate(`/login?user=${encodeURIComponent(user.id)}&reason=idle`, { replace: true });
 }
@@ -134,6 +136,13 @@ async function boot() {
       el.querySelector('[data-retry]')?.addEventListener('click', retry);
       toastError('تعذّر فتح الصفحة');
     },
+  });
+
+  // Back closes the open menu or window first (like a phone app); leaving a page closes them.
+  setBackInterceptor(() => closeMenu() || dismissTopModal());
+  onEvent('route:leaving', () => { closeMenu(); closeAllModals(); });
+  window.addEventListener('beforeunload', (e) => {
+    if (hasLeaveGuard() || hasDirtyModal()) { e.preventDefault(); e.returnValue = ''; }
   });
 
   onEvent('settings:changed', ({ key, value }) => { if (key === 'app') setDigitStyle(value.digitStyle); });

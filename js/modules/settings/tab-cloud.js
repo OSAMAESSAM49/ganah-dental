@@ -96,7 +96,18 @@ export async function renderTab({ body, signal }) {
 
   on(body, 'click', '[data-disconnect]', async () => {
     if (!(await confirmDialog({ title: 'إلغاء ربط هذا الجهاز؟', message: 'ستبقى البيانات على هذا الجهاز وعلى السحابة، لكن التعديلات الجديدة لن تنتقل بين الأجهزة حتى تربطه مرة أخرى.', confirmLabel: 'إلغاء الربط', danger: true }))) return;
-    await disconnectCloud();
+    const res = await disconnectCloud();
+    if (!res.ok) {
+      // Unlinking would forget edits that never reached the cloud: upload first, or keep a backup.
+      const backupFirst = await confirmDialog({
+        title: `${digits(res.pending)} تعديل لم يُرفع للسحابة بعد`,
+        message: 'إلغاء الربط الآن يمنع وصول هذه التعديلات للأجهزة الأخرى. الأفضل: اتصل بالإنترنت واضغط «مزامنة الآن» ثم ألغِ الربط. أو نزّل نسخة احتياطية فيها كل شيء ثم ألغِ الربط.',
+        confirmLabel: 'نسخة احتياطية ثم إلغاء الربط', cancelLabel: 'رجوع', danger: true,
+      });
+      if (!backupFirst) return;
+      await exportBackup();
+      await disconnectCloud({ force: true });
+    }
     toastSuccess('تم إلغاء الربط');
     draw();
   }, { signal });

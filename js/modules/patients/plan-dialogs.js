@@ -24,6 +24,7 @@ export async function addItemDialog(plan, catalog) {
   const all = catalog.flatMap((c) => c.procedures);
   const res = await openModal({
     title: `إضافة إجراء إلى «${plan.name}»`,
+    dirty: true,
     icon: 'plus',
     body: html`
       <form class="form" novalidate>
@@ -67,6 +68,7 @@ export async function editItemDialog(item) {
   const editingLocked = !!item.invoiceId;
   const res = await openModal({
     title: `تعديل «${item.procedureName}»`,
+    dirty: true,
     icon: 'pencil',
     body: html`
       <form class="form" novalidate>
@@ -161,6 +163,7 @@ export async function confirmDone(item) {
   let consumption = lines.map((l) => ({ itemId: l.itemId, qty: l.qty }));
   const res = await openModal({
     title: `تم «${item.procedureName}»؟`,
+    dirty: true,
     icon: 'circle-check',
     body: html`
       <div class="stack">
