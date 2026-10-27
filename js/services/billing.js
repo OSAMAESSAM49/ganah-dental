@@ -298,13 +298,30 @@ export async function setInstallments(invoiceId, installments) {
 /**
  * What needs collecting for a day: invoices dated that day with what is left on each, and
  * patients whose treatment was started (or completed) that day but has no invoice yet.
+ * Patients booked that day also bring their older invoices: every one still owing, or the
+ * latest one when all are paid (so reception sees «تم السداد»).
  * `due` counts both (the number shown on the card).
  */
 export async function dayBilling(day) {
   const invoices = [];
-  for (const inv of await repos.invoices.list({ index: 'date', range: { eq: day } })) {
-    if (inv.status === 'void') continue;
+  const seen = new Set();
+  const add = async (inv) => {
+    if (inv.status === 'void' || seen.has(inv.id)) return;
+    seen.add(inv.id);
     invoices.push({ invoice: inv, ...invoiceState(inv, await repos.payments.findBy('invoiceId', inv.id)) });
+  };
+  for (const inv of await repos.invoices.list({ index: 'date', range: { eq: day } })) await add(inv);
+  const booked = new Set((await repos.appointments.list({ index: 'date', range: { eq: day } }))
+    .filter((a) => a.status !== 'cancelled' && !a.deletedAt).map((a) => a.patientId));
+  for (const patientId of booked) {
+    const own = (await repos.invoices.findBy('patientId', patientId)).filter((i) => i.status !== 'void')
+      .sort((a, b) => b.date.localeCompare(a.date) || b.number - a.number);
+    let shown = own.some((i) => seen.has(i.id));
+    for (const inv of own) {
+      if (seen.has(inv.id)) continue;
+      if (invoiceState(inv, await repos.payments.findBy('invoiceId', inv.id)).remaining > 0) { await add(inv); shown = true; }
+    }
+    if (!shown && own.length) await add(own[0]);
   }
   const byPatient = new Map();
   for (const it of await repos.treatmentItems.list()) {
@@ -319,7 +336,8 @@ export async function dayBilling(day) {
     const p = await repos.patients.get(g.patientId, { includeDeleted: true });
     if (p && !p.deletedAt) uninvoiced.push({ ...g, patientName: p.name });
   }
-  invoices.sort((a, b) => b.invoice.number - a.invoice.number);
+  // Still owing first, then the newest.
+  invoices.sort((a, b) => (b.remaining > 0) - (a.remaining > 0) || b.invoice.number - a.invoice.number);
   return { invoices, uninvoiced, due: uninvoiced.length + invoices.filter((i) => i.remaining > 0).length };
 }
 

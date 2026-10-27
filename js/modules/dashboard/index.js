@@ -7,7 +7,7 @@
  * for that user (core/dashboard-cards.js).
  */
 import { html, ico, render, on, toElement } from '../../core/dom.js';
-import { formatBytes, formatMoney, digits, todayISO, toISODate, parseDateInput } from '../../core/format.js';
+import { formatBytes, formatMoney, formatDate, digits, todayISO, toISODate, parseDateInput } from '../../core/format.js';
 import { getAdapter, repos } from '../../data/index.js';
 import { getSettings } from '../../data/settings.js';
 import { emptyState } from '../../components/states.js';
@@ -35,7 +35,7 @@ import { onEvent } from '../../core/bus.js';
 import { toastSuccess, toastError } from '../../components/toast.js';
 
 const QUICK = { arrived: 'وصل', in_chair: 'على الكرسي', done: 'انتهى' };
-const INV_STATUS = { paid: ['مدفوعة', 'success'], partial: ['مدفوعة جزئيًا', 'warning'], open: ['غير مدفوعة', 'danger'] };
+const INV_STATUS = { paid: ['تم السداد', 'success'], partial: ['مدفوعة جزئيًا', 'warning'], open: ['غير مدفوعة', 'danger'] };
 
 function greeting(d = new Date()) {
   const h = d.getHours();
@@ -150,7 +150,7 @@ export default {
           </li>`)}
           ${b.invoices.map((i) => html`<li class="inv-row">
             <span class="inv-row__main"><a href="${href('/patients/:id', { id: i.invoice.patientId }, { tab: 'payments' })}" class="bold">${i.invoice.patientName}</a>
-              <span class="muted text-sm"><span class="ltr">${formatInvoiceNo(i.invoice.number)}</span> · ${formatMoney(i.total)}</span></span>
+              <span class="muted text-sm"><span class="ltr">${formatInvoiceNo(i.invoice.number)}</span> · ${formatMoney(i.total)}${i.invoice.date !== day ? ` · فاتورة ${formatDate(i.invoice.date)}` : ''}</span></span>
             <span class="inv-row__end">
               <span class="badge badge--dot badge--${INV_STATUS[i.status]?.[1] ?? ''}">${INV_STATUS[i.status]?.[0] ?? i.status}</span>
               ${i.remaining > 0 && canCollect ? html`<button type="button" class="btn btn--soft btn--sm" data-collect="${i.invoice.id}" data-patient="${i.invoice.patientId}">تحصيل ${formatMoney(i.remaining)}</button>` : ''}</span>

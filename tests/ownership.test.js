@@ -108,6 +108,27 @@ test('treatment is charged from the moment it starts', async () => {
       assert.ok(await fails(() => treatment.updateItem(ti.id, { unitPrice: 1 })), 'invoiced price is locked');
       await treatment.setItemStatus(ti.id, 'done');
       assert.equal((await repos.treatmentItems.get(ti.id)).status, 'done', 'invoiced work can still be finished');
+
+      // Booked today: older invoices come along — owing ones, or the latest when all are paid.
+      const today = todayISO();
+      const old = (patientId, number, date, total) => repos.invoices.create({ patientId, patientName: 'قديم', number, date, status: 'open', lines: [{ description: 'كشف', qty: 1, unitPrice: total, discount: 0, total }] });
+      const paidUp = await patients.createPatient({ name: 'مسدد', phone: '01014141414' });
+      const owes = await patients.createPatient({ name: 'عليه باقي', phone: '01015151515' });
+      const notBooked = await patients.createPatient({ name: 'بدون موعد', phone: '01016161616' });
+      const paidOld = await old(paidUp.id, 901, '2025-01-01', 10000);
+      const paidNew = await old(paidUp.id, 902, '2025-03-01', 20000);
+      for (const inv of [paidOld, paidNew]) await repos.payments.create({ patientId: paidUp.id, invoiceId: inv.id, amount: inv.lines[0].total, method: 'cash', date: inv.date, at: `${inv.date}T10:00:00.000Z` });
+      const owing = await old(owes.id, 903, '2025-02-01', 15000);
+      await old(notBooked.id, 904, '2025-02-01', 5000);
+      for (const [pt, status] of [[paidUp, 'booked'], [owes, 'done'], [notBooked, 'cancelled']]) {
+        await repos.appointments.create({ patientId: pt.id, patientName: pt.name, date: today, startMin: 600, duration: 30, status });
+      }
+      const shown = await billing.dayBilling(today);
+      const ids = shown.invoices.map((i) => i.invoice.id);
+      assert.ok(ids.includes(paidNew.id) && !ids.includes(paidOld.id), 'paid-up patient: only the latest invoice');
+      assert.equal(shown.invoices.find((i) => i.invoice.id === paidNew.id).status, 'paid');
+      assert.equal(shown.invoices[0].invoice.id, owing.id, 'owing invoices come first');
+      assert.ok(!shown.invoices.some((i) => i.invoice.number === 904), 'cancelled appointment brings nothing');
     } finally {
       adapter.close();
       await deleteDatabase(name);
