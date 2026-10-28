@@ -71,6 +71,12 @@ describe('quick add: price and discount (temporary database)', () => {
       assert.equal(items.reduce((n, i) => n + treatment.itemMath(i).total, 0), 110000);
       const pct = await treatment.addItems(plan.id, { procedure: { ...proc, perTooth: false }, teeth: [], unitPrice: 20000, discountType: 'percent', discountValue: 10 });
       assert.equal(treatment.itemMath(pct[0]).total, 18000);
+      // Several teeth chosen: one charge per tooth even when the procedure isn't marked «لكل سن».
+      const implant = { ...proc, id: 'p-implant', name: 'زراعة', perTooth: false, price: 800000 };
+      const three = await treatment.addItems(plan.id, { procedure: implant, teeth: [36, 46, 26] });
+      assert.deepEqual(three.map((i) => i.teeth), [[36], [46], [26]]);
+      assert.equal(three.reduce((n, i) => n + i.total, 0), 2400000);
+      assert.equal((await treatment.addItems(plan.id, { procedure: implant, teeth: [11] })).length, 1);
     } finally {
       adapter.close();
       await deleteDatabase(name);

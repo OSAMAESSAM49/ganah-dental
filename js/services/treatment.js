@@ -187,12 +187,18 @@ function historyEntry(status) {
  *           discountType?: 'amount'|'percent', discountValue?: number|number[] }} input
  *   discountValue: piasters (amount) or % — an array gives each created item its own value.
  */
+/**
+ * Each chosen tooth is its own item (and charge) when the procedure is priced per tooth, or
+ * whenever more than one tooth is chosen: 3 teeth of anything = 3 × the price.
+ */
+export const chargedPerTooth = (procedure, teeth = []) => !!procedure?.perTooth || teeth.length > 1;
+
 export async function addItems(planId, { procedure, teeth = [], surfaces = [], unitPrice, notes = '', discountType = 'amount', discountValue = 0 }) {
   const plan = await repos.treatmentPlans.require(planId);
   if (procedure.perTooth && !teeth.length) throw new TreatmentError('اختر السن أو الأسنان لهذا الإجراء');
   const existing = await repos.treatmentItems.findBy('planId', planId);
   let order = Math.max(-1, ...existing.map((i) => i.order ?? 0)) + 1;
-  const groups = procedure.perTooth ? teeth.map((t) => [t]) : [teeth];
+  const groups = chargedPerTooth(procedure, teeth) ? teeth.map((t) => [t]) : [teeth];
   const created = [];
   for (const [n, group] of groups.entries()) {
     const base = {

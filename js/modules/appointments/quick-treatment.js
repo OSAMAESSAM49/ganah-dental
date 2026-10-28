@@ -15,7 +15,7 @@ import { odontogram } from '../../components/odontogram.js';
 import { openModal } from '../../components/modal.js';
 import { toastSuccess, toastError } from '../../components/toast.js';
 import { getChart } from '../../services/chart.js';
-import { ensureActivePlan, addItems, setItemStatus, listItems, listPlans, plannedByTooth, itemMath } from '../../services/treatment.js';
+import { ensureActivePlan, addItems, setItemStatus, listItems, listPlans, plannedByTooth, itemMath, chargedPerTooth } from '../../services/treatment.js';
 import { loadCatalog } from '../../services/procedures.js';
 import { getPatient } from '../../services/patients.js';
 import { defaultDentition } from '../patients/tab-chart.js';
@@ -55,7 +55,8 @@ export async function openQuickTreatment({ patientId, appt }) {
       ${p ? html`<span class="qt__price">${p.name}: <strong>${formatMoney(totals().total)}</strong>${totals().discount ? html` <span class="muted text-sm">بعد خصم ${formatMoney(totals().discount)}</span>` : ''}</span>` : ''}`;
   };
   /** How many items this adds (one per tooth for per-tooth procedures). */
-  const count = () => (proc()?.perTooth ? Math.max(1, ui.selected.size) : 1);
+  const perTooth = () => chargedPerTooth(proc(), [...ui.selected]);
+  const count = () => (perTooth() ? Math.max(1, ui.selected.size) : 1);
   const totals = () => {
     const gross = ui.price * count();
     const discount = ui.discountType === 'percent' ? Math.round((gross * Math.min(100, ui.discount)) / 100) : Math.min(gross, ui.discount);
@@ -65,9 +66,9 @@ export async function openQuickTreatment({ patientId, appt }) {
     const p = proc();
     if (!p) return '';
     return html`<div class="qt__money">
-      <label class="field"><span class="field__label">السعر${p.perTooth ? ' (للسن)' : ''} ج.م</span>
+      <label class="field"><span class="field__label">السعر${p.perTooth || ui.selected.size > 1 ? ' (للسن)' : ''} ج.م</span>
         <input class="input input--ltr" id="qt-price" inputmode="decimal" value="${piastersToInput(ui.price)}" placeholder="0"></label>
-      <div class="field"><span class="field__label">خصم${p.perTooth && ui.selected.size > 1 && ui.discountType === 'amount' ? ' (على الإجمالي)' : ''}</span>
+      <div class="field"><span class="field__label">خصم${ui.selected.size > 1 && ui.discountType === 'amount' ? ' (على الإجمالي)' : ''}</span>
         <div class="qt__discount">
           <input class="input input--ltr" id="qt-discount" inputmode="decimal" value="${ui.discount ? (ui.discountType === 'percent' ? ui.discount : piastersToInput(ui.discount)) : ''}" placeholder="0" aria-label="قيمة الخصم">
           <div class="segmented" role="radiogroup" aria-label="نوع الخصم">
@@ -107,7 +108,7 @@ export async function openQuickTreatment({ patientId, appt }) {
       const plan = await ensureActivePlan(patientId);
       const surfaces = CONDITION[p.chartEffect]?.surface ? [...ui.surfaces] : [];
       // A discount in pounds covers the whole addition: split it over the items (per tooth).
-      const n = p.perTooth ? teeth.length : 1;
+      const n = chargedPerTooth(p, teeth) ? teeth.length : 1;
       const per = ui.discountType === 'amount' ? Array.from({ length: n }, (_, i) => {
         const each = Math.floor(Math.min(ui.discount, ui.price * n) / n);
         return each + (i === 0 ? Math.min(ui.discount, ui.price * n) - each * n : 0);
@@ -143,7 +144,7 @@ export async function openQuickTreatment({ patientId, appt }) {
       const redraw = () => {
         render(d.querySelector('#qt-chart'), chart());
         render(d.querySelector('#qt-sel'), selection());
-        if (proc()?.perTooth) render(d.querySelector('#qt-money'), priceFields()); // "(على الإجمالي)" follows the teeth
+        if (proc()) render(d.querySelector('#qt-money'), priceFields()); // "(للسن)" / "(على الإجمالي)" follow the teeth
       };
       // On a phone the chart is wider than the screen: start at the middle (between 11 and 21).
       const wrap = d.querySelector('#qt-chart');

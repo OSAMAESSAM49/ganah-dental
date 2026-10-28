@@ -14,7 +14,7 @@ import { odontogram } from '../../components/odontogram.js';
 import { confirmDialog } from '../../components/modal.js';
 import { toast, toastSuccess, toastError } from '../../components/toast.js';
 import { getChart, historyDays, recordToothEvents, voidToothEvent } from '../../services/chart.js';
-import { listPlans, listItems, ensureActivePlan, addItems, plannedByTooth } from '../../services/treatment.js';
+import { listPlans, listItems, ensureActivePlan, addItems, plannedByTooth, chargedPerTooth } from '../../services/treatment.js';
 import { loadCatalog } from '../../services/procedures.js';
 import { ageYears } from '../../services/patients.js';
 
@@ -99,7 +99,7 @@ export async function renderTab({ body, patient, signal }) {
         ${targets.length > 1 ? html`<select class="select" id="plan-pick" aria-label="الخطة">
           ${targets.map((pl) => html`<option value="${pl.id}" ${pl.id === ui.planId ? 'selected' : ''}>${pl.name}${pl.status === 'proposal' ? ' (بديلة)' : ''}</option>`)}
         </select>` : ''}
-        ${proc ? html`<p class="muted text-sm">${proc.perTooth ? `بند لكل سن (${digits(ui.selected.size)})` : 'بند واحد لكل الأسنان المختارة'}${CONDITION[proc.chartEffect]?.surface && ui.surfaces.size ? ` · الأسطح: ${[...ui.surfaces].join('')}` : ''}${proc.price ? ` · ${formatMoney(proc.price * (proc.perTooth ? ui.selected.size : 1))}` : ' · بدون سعر'}</p>` : ''}
+        ${proc ? html`<p class="muted text-sm">${chargedPerTooth(proc, [...ui.selected]) ? `بند لكل سن (${digits(ui.selected.size)})` : 'بند واحد'}${CONDITION[proc.chartEffect]?.surface && ui.surfaces.size ? ` · الأسطح: ${[...ui.surfaces].join('')}` : ''}${proc.price ? ` · ${formatMoney(proc.price * (chargedPerTooth(proc, [...ui.selected]) ? ui.selected.size : 1))}` : ' · بدون سعر'}</p>` : ''}
         <button type="button" class="btn btn--dark btn--sm" data-add-plan ${proc ? '' : 'disabled'} style="align-self:flex-start">${ico('plus', { size: 18 })} أضف للخطة</button>
       </div>`;
   };
