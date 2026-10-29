@@ -35,6 +35,28 @@ describe('teeth (FDI)', () => {
     assert.deepEqual(regionSurfaces(26), { center: 'O', top: 'B', bottom: 'L', left: 'M', right: 'D' });
     assert.deepEqual(regionSurfaces(36), { center: 'O', top: 'L', bottom: 'B', left: 'M', right: 'D' });
   });
+  test('picture chart: every tooth has its pictures and five surfaces; the right side is mirrored', async () => {
+    const { odontogram } = await import('../js/components/odontogram.js');
+    const { TOOTH_ART } = await import('../js/core/tooth-art.js');
+    for (const jaw of ['u', 'l']) for (let p = 1; p <= 8; p++) {
+      const a = TOOTH_ART[`${jaw}${p}`];
+      assert.ok(a?.b?.w && a?.o?.w && a.b.cej > 0 && a.b.cej < 1, `${jaw}${p} described`);
+    }
+    for (const dentition of ['adult', 'primary', 'mixed']) {
+      const el = document.createElement('div');
+      el.innerHTML = String(odontogram({ dentition, state: new Map(), style: 'art' }));
+      const teeth = [...el.querySelectorAll('[data-tooth]')];
+      assert.equal(teeth.length, { adult: 32, primary: 20, mixed: 52 }[dentition], dentition);
+      for (const g of teeth) {
+        const t = Number(g.getAttribute('data-tooth'));
+        const zones = [...g.querySelectorAll('[data-surface]')].map((z) => z.getAttribute('data-surface')).sort();
+        assert.deepEqual(zones, Object.values(regionSurfaces(t)).sort(), `surfaces of ${t}`);
+        assert.equal(g.querySelectorAll('image').length, 2, `two views of ${t}`);
+        const mirrored = g.innerHTML.includes('scale(-1,1)');
+        assert.equal(mirrored, [1, 4, 5, 8].includes(Math.floor(t / 10)), `${t} mirrored only on the patient's right`);
+      }
+    }
+  });
 });
 
 describe('chart fold', () => {

@@ -136,3 +136,14 @@
 .totals__value { font-size: var(--fs-xl); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; }
 .totals__item--hero { background: var(--c-hero-bg); color: var(--c-hero-fg); }
 .totals__item--hero .totals__label { color: var(--c-hero-muted); }
+
+/* Picture chart (odontogram-art.js) */
+.odo--art { min-inline-size: 760px; }
+.odo--art image { pointer-events: none; }
+.odo-zone { fill: transparent; }
+.odo:not(.is-readonly) .odo-zone { cursor: pointer; }
+.odo:not(.is-readonly) .odo-zone:hover { fill: var(--c-primary); fill-opacity: .14; }
+.odo-zone.is-on { fill: var(--c-primary); fill-opacity: .3; stroke: var(--c-primary); stroke-width: 2px; vector-effect: non-scaling-stroke; }
+.odo-art.is-missing image { opacity: .22; }
+.odo-art:not(.is-readonly):hover .odo-views { filter: drop-shadow(0 0 4px var(--odo-hover)); }
+@media (max-width: 767px) { .odo--art { min-inline-size: 900px; } }

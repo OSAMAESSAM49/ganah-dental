@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>تجهيز صور الأسنان</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 24px; background: #eee; }
+  .grid { display: flex; flex-wrap: wrap; gap: 12px; margin-block-start: 16px; }
+  figure { margin: 0; padding: 8px; background: repeating-conic-gradient(#ddd 0 25%, #fff 0 50%) 0 0 / 16px 16px; border-radius: 8px; text-align: center; }
+  figcaption { font-size: 12px; direction: ltr; }
+  canvas { display: block; max-block-size: 160px; }
+</style>
+</head>
+<body>
+<h1>تجهيز صور الأسنان للخريطة</h1>
+<p>للمطوّر فقط. الصور الأصلية في <code>references/teeth/</code> (لا تُرفع). شغّل
+  <code>node tools/prepare-teeth-server.mjs</code> ثم <code>python -m http.server</code> أو خادم التطوير، وافتح هذه الصفحة واضغط «تجهيز».</p>
+<button id="go">تجهيز وحفظ</button> <span id="status"></span>
+<div class="grid" id="out"></div>
+<script type="module">
+/*
+ * For each source picture (white background, one side of the mouth, mesial on the left):
+ *   1. white background → transparent (flood fill from the edges, soft edge kept)
+ *   2. trimmed to the tooth, one common scale per view so sizes stay true to each other
+ *   3. buccal views: where the crown meets the root (CEJ) and a traced line down each root
+ *      canal (used for «حشو عصب»)
+ * Writes assets/teeth/{u|l}{1-8}-{b|o}.webp and js/core/tooth-art.js through the helper server.
+ */
+const NAMES = { 1: 'central', 2: 'lateral', 3: 'canine', 4: 'first premolar', 5: 'second premolar', 6: 'first molar', 7: 'second molar', 8: 'third molar' };
+const SRC = '../references/teeth/';
+const SAVE = 'http://127.0.0.1:5198/';
+const BUCCAL_H = 300;   // tallest buccal picture, px
+const OCCL_W = 220;     // widest occlusal picture, px
+
+const sourceName = (jaw, pos, view) => {
+  if (jaw === 'upper' && pos === 1 && view === 'b') return 'upper incisor.png';
+  return `${jaw} ${NAMES[pos]}${view === 'o' ? ' occlusal surface' : ''}.png`;
+};
+
+async function loadImage(url) {
+  const img = new Image();
+  img.src = url;
+  await img.decode();
+  return img;
+}
+
+/** White background → transparent; returns { data, w, h, bbox } at full size. */
+function cutOut(img) {
+  const w = img.naturalWidth, h = img.naturalHeight;
+  const c = new OffscreenCanvas(w, h);
+  const g = c.getContext('2d');
+  g.drawImage(img, 0, 0);
+  const id = g.getImageData(0, 0, w, h);
+  const d = id.data;
+  const minC = (i) => Math.min(d[i], d[i + 1], d[i + 2]);
+  const BG = 242;               // near-white counts as background when reached from the edge
+  const bg = new Uint8Array(w * h);
+  const stack = [];
+  for (let x = 0; x < w; x++) stack.push(x, (h - 1) * w + x);
+  for (let y = 0; y < h; y++) stack.push(y * w, y * w + w - 1);
+  while (stack.length) {
+    const p = stack.pop();
+    if (bg[p] || minC(p * 4) < BG) continue;
+    bg[p] = 1;
+    const x = p % w, y = (p / w) | 0;
+    if (x > 0) stack.push(p - 1);
+    if (x < w - 1) stack.push(p + 1);
+    if (y > 0) stack.push(p - w);
+    if (y < h - 1) stack.push(p + w);
+  }
+  const colN = new Uint32Array(w), rowN = new Uint32Array(h);
+  for (let p = 0; p < w * h; p++) {
+    const i = p * 4;
+    if (bg[p]) { d[i + 3] = 0; continue; }
+    // Soften the outline: pixels next to the background fade by how close to white they are.
+    const x = p % w, y = (p / w) | 0;
+    const edge = (x > 0 && bg[p - 1]) || (x < w - 1 && bg[p + 1]) || (y > 0 && bg[p - w]) || (y < h - 1 && bg[p + w]);
+    if (edge) {
+      const a = Math.min(1, Math.max(0.15, (255 - minC(i)) / 40));
+      for (let k = 0; k < 3; k++) d[i + k] = Math.min(255, Math.max(0, Math.round((d[i + k] - (1 - a) * 255) / a)));
+      d[i + 3] = Math.round(a * 255);
+    }
+    if (d[i + 3] > 128) { colN[x]++; rowN[y]++; }
+  }
+  // the tooth: the longest stretch of columns/rows with real content (≥ 6 px each)
+  const span = (counts) => {
+    let best = [0, 0], start = -1;
+    for (let k = 0; k <= counts.length; k++) {
+      const on = k < counts.length && counts[k] >= 6;
+      if (on && start < 0) start = k;
+      if (!on && start >= 0) { if (k - start > best[1] - best[0]) best = [start, k]; start = -1; }
+    }
+    return best;
+  };
+  const [x0, x1e] = span(colN), [y0, y1e] = span(rowN);
+  const x1 = x1e - 1, y1 = y1e - 1;
+  // anything outside the tooth's box becomes transparent
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (x < x0 || x > x1 || y < y0 || y > y1) d[(y * w + x) * 4 + 3] = 0;
+  g.putImageData(id, 0, 0);
+  return { canvas: c, bbox: { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 } };
+}
+
+/** Crop + scale; returns a canvas. */
+function crop(cut, scale) {
+  const { bbox } = cut;
+  const w = Math.max(1, Math.round(bbox.w * scale)), h = Math.max(1, Math.round(bbox.h * scale));
+  const c = new OffscreenCanvas(w, h);
+  const g = c.getContext('2d');
+  g.imageSmoothingQuality = 'high';
+  g.drawImage(cut.canvas, bbox.x, bbox.y, bbox.w, bbox.h, 0, 0, w, h);
+  return c;
+}
+
+/**
+ * Buccal analysis on the final picture: crown/root boundary and root canal lines.
+ * Enamel is near-white grey; root is beige (red well above blue).
+ */
+function analyseBuccal(c, upper) {
+  const { width: w, height: h } = c;
+  const d = c.getContext('2d').getImageData(0, 0, w, h).data;
+  const at = (x, y) => (y * w + x) * 4;
+  const rowRoot = [];
+  for (let y = 0; y < h; y++) {
+    let enamel = 0, root = 0;
+    for (let x = 0; x < w; x++) {
+      const i = at(x, y);
+      if (d[i + 3] < 200) continue;
+      const warm = (d[i] - d[i + 2]) / Math.max(1, d[i]);
+      if (warm > 0.17) root++; else if (warm < 0.13) enamel++;
+    }
+    rowRoot.push(root + enamel > 3 ? root / (root + enamel) : null);
+  }
+  // Walk from the crown end until the rows turn mostly root.
+  let cej = upper ? h - 1 : 0;
+  // from the crown end, the first run of 4 rows that are mostly root
+  const isRoot = (y) => rowRoot[y] !== null && rowRoot[y] > 0.5;
+  if (upper) { for (let y = h - 1; y >= 3; y--) { if (isRoot(y) && isRoot(y - 1) && isRoot(y - 2) && isRoot(y - 3)) { cej = y; break; } } }
+  else { for (let y = 0; y < h - 3; y++) { if (isRoot(y) && isRoot(y + 1) && isRoot(y + 2) && isRoot(y + 3)) { cej = y; break; } } }
+
+  // Root canals: sample rows from just past the CEJ to the apex, follow each opaque run.
+  const apex = upper ? 0 : h - 1;
+  const steps = 14;
+  const lines = [];
+  for (let s = 0; s <= steps; s++) {
+    const t = 0.06 + (s / steps) * 0.86;
+    const y = Math.round(cej + (apex - cej) * t);
+    const runs = [];
+    let start = -1;
+    for (let x = 0; x <= w; x++) {
+      const solid = x < w && d[at(x, y) + 3] > 160;
+      if (solid && start < 0) start = x;
+      if (!solid && start >= 0) { if (x - start > w * 0.04) runs.push((start + x - 1) / 2); start = -1; }
+    }
+    if (!runs.length) continue;
+    if (!lines.length) { for (const r of runs) lines.push([[r, y]]); continue; }
+    const used = new Set();
+    for (const r of runs) {
+      let best = -1, dist = Infinity;
+      lines.forEach((l, k) => { const dx = Math.abs(l.at(-1)[0] - r); if (!used.has(k) && dx < dist) { dist = dx; best = k; } });
+      if (best >= 0 && dist < w * 0.18) { lines[best].push([r, y]); used.add(best); }
+      else {
+        // a root splitting off: start it from the nearest line's previous point
+        let near = 0, nd = Infinity;
+        lines.forEach((l, k) => { const dx = Math.abs(l.at(-1)[0] - r); if (dx < nd) { nd = dx; near = k; } });
+        const from = lines[near].at(-2) ?? lines[near].at(-1);
+        lines.push([from, [r, y]]);
+        used.add(lines.length - 1);
+      }
+    }
+  }
+  const norm = (p) => [+(p[0] / w).toFixed(3), +(p[1] / h).toFixed(3)];
+  return { cej: +(cej / h).toFixed(3), canals: lines.filter((l) => l.length > 3).map((l) => l.map(norm)) };
+}
+
+async function put(path, body) {
+  const r = await fetch(SAVE + path, { method: 'PUT', body });
+  if (!r.ok) throw new Error(`save failed: ${path}`);
+}
+
+document.getElementById('go').addEventListener('click', async () => {
+  const status = document.getElementById('status');
+  const out = document.getElementById('out');
+  out.textContent = '';
+  const items = [];
+  for (const jaw of ['upper', 'lower']) for (let pos = 1; pos <= 8; pos++) for (const view of ['b', 'o']) items.push({ jaw, pos, view });
+  status.textContent = 'قراءة الصور…';
+  for (const it of items) it.cut = cutOut(await loadImage(SRC + encodeURIComponent(sourceName(it.jaw, it.pos, it.view))));
+  // One scale per view keeps the teeth's real sizes relative to each other.
+  const bScale = BUCCAL_H / Math.max(...items.filter((i) => i.view === 'b').map((i) => i.cut.bbox.h));
+  const oScale = OCCL_W / Math.max(...items.filter((i) => i.view === 'o').map((i) => i.cut.bbox.w));
+  const art = {};
+  for (const it of items) {
+    const c = crop(it.cut, it.view === 'b' ? bScale : oScale);
+    const key = `${it.jaw[0]}${it.pos}`;
+    const file = `${key}-${it.view}`;
+    art[key] ??= {};
+    art[key][it.view] = { w: c.width, h: c.height, ...(it.view === 'b' ? analyseBuccal(c, it.jaw === 'upper') : {}) };
+    const blob = await c.convertToBlob({ type: 'image/webp', quality: 0.86 });
+    status.textContent = `حفظ ${file}…`;
+    await put(`assets/teeth/${file}.webp`, blob);
+    const fig = document.createElement('figure');
+    const view = document.createElement('canvas');
+    view.width = c.width; view.height = c.height;
+    view.getContext('2d').drawImage(c, 0, 0);
+    // preview the traced canals and CEJ
+    if (it.view === 'b') {
+      const g = view.getContext('2d');
+      const a = art[key].b;
+      g.strokeStyle = '#9333EA'; g.lineWidth = 3;
+      for (const l of a.canals) { g.beginPath(); l.forEach(([x, y], k) => (k ? g.lineTo(x * c.width, y * c.height) : g.moveTo(x * c.width, y * c.height))); g.stroke(); }
+      g.strokeStyle = '#E0312B'; g.lineWidth = 2; g.beginPath(); g.moveTo(0, a.cej * c.height); g.lineTo(c.width, a.cej * c.height); g.stroke();
+    }
+    fig.append(view, Object.assign(document.createElement('figcaption'), { textContent: `${file} ${(blob.size / 1024).toFixed(0)}KB` }));
+    out.append(fig);
+  }
+  const js = `/* Generated by tools/prepare-teeth.html — do not edit by hand.
+ * Tooth pictures for the chart: key = u|l + position 1–8; b = buccal (with roots), o = occlusal.
+ * Pictures show the patient's LEFT side (mesial on the left); the right side is drawn mirrored.
+ * w/h in px · cej: crown/root boundary (fraction of the height from the top) ·
+ * canals: root canal lines, points as fractions of w/h.
+ */
+export const TOOTH_ART = ${JSON.stringify(art)};
+`;
+  await put('js/core/tooth-art.js', new Blob([js], { type: 'text/javascript' }));
+  status.textContent = 'تم ✔';
+});
+</script>
+</body>
+</html>

@@ -114,7 +114,7 @@ export async function renderTab({ body, patient, signal }) {
     const sel = sortTeeth([...ui.selected]);
     if (!sel.length) {
       return html`<div class="stack">
-        <p class="muted">${canEdit ? 'اضغط على سن لاختياره، أو على أكثر من سن لتحديدها معًا. اضغط على السطح (وسط المربع أو أطرافه) لاختيار الأسطح.' : 'اضغط على سن لعرض حالته.'}</p>
+        <p class="muted">${canEdit ? 'اضغط على سن لاختياره، أو على أكثر من سن لتحديدها معًا. لاختيار الأسطح اضغط على صورة السطح الماضغ (الوسط أو الأطراف).' : 'اضغط على سن لعرض حالته.'}</p>
         <div class="legend-grid">${CONDITIONS.map((c) => html`<span class="legend__item"><span class="cond-dot" style="background:${c.color}"></span>${c.label}</span>`)}<span class="legend__item"><span class="cond-dot" style="background: var(--brand-lime); border-radius: 50%; box-shadow: inset 0 0 0 1px #000"></span>إجراء مخطط</span></div>
       </div>`;
     }

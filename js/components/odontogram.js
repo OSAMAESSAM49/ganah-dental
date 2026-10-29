@@ -1,6 +1,8 @@
 /**
- * Interactive odontogram (SVG, FDI). Each tooth = a 5-surface box (M O D B L) plus a root
- * strip for root-level conditions (RCT, implant). Drawn facing the patient: the patient's
+ * Interactive odontogram (SVG, FDI). Two looks, chosen per device («شكل خريطة الأسنان»):
+ *   - pictures (default): real tooth pictures, buccal + occlusal (components/odontogram-art.js)
+ *   - squares: each tooth = a 5-surface box (M O D B L) plus a root strip for root-level
+ *     conditions (RCT, implant). Drawn facing the patient: the patient's
  * right is on the viewer's left. Upper roots point up, lower roots point down.
  *
  * Markup only — the chart tab wires clicks/keys through data-tooth / data-surface.
@@ -8,6 +10,12 @@
 import { html, raw } from '../core/dom.js';
 import { ROWS, DENTITIONS, isUpper, isScreenLeft, position, isPrimary, toothName, surfacesText } from '../core/teeth.js';
 import { CONDITION, toothConditions } from '../core/chart-conditions.js';
+import { getPref } from '../core/prefs.js';
+import { artOdontogram } from './odontogram-art.js';
+
+/** «صور» (pictures) or «مربعات» (squares), per device. */
+export const CHART_STYLES = { art: 'صور الأسنان', boxes: 'مربعات' };
+export const chartStyle = () => (getPref('chartStyle', 'art') === 'boxes' ? 'boxes' : 'art');
 
 const CELL = 54;          // horizontal space per tooth
 const BOX = 44;           // surface box size
@@ -126,9 +134,14 @@ function drawTooth(t, cx, y, { state, planned, selected, selectedSurfaces, reado
 
 /**
  * @param {{ dentition: 'adult'|'primary'|'mixed', state: Map, planned?: Map<number, object[]>,
- *           selected?: Set<number>, selectedSurfaces?: Set<string>, readonly?: boolean }} o
+ *           selected?: Set<number>, selectedSurfaces?: Set<string>, readonly?: boolean,
+ *           style?: 'art'|'boxes' }} o  style defaults to this device's choice
  */
-export function odontogram({ dentition = 'adult', state, planned = new Map(), selected = new Set(), selectedSurfaces = new Set(), readonly = false }) {
+export function odontogram(o) {
+  return (o.style ?? chartStyle()) === 'boxes' ? boxOdontogram(o) : artOdontogram(o);
+}
+
+function boxOdontogram({ dentition = 'adult', state, planned = new Map(), selected = new Set(), selectedSurfaces = new Set(), readonly = false }) {
   const rows = DENTITIONS[dentition].rows.map((key) => ({ key, teeth: ROWS[key], upper: key.endsWith('Upper') }));
   const width = 16 * CELL + MID_GAP + PAD * 2;
   const midX = width / 2;
