@@ -72,7 +72,7 @@ export async function collectArchive({ includeDeleted = false } = {}) {
 
   // One summary row per patient (with totals) for the first sheet and the PDF headers.
   const count = (list) => { const m = new Map(); for (const r of list) m.set(r.patientId, (m.get(r.patientId) ?? 0) + 1); return m; };
-  const apptCount = count(out.appointments), photoCount = count(media);
+  const apptCount = count(out.appointments), photoCount = count(media.filter((m) => m.kind !== 'voice'));
   const billed = new Map(), paid = new Map(), lastVisit = new Map();
   for (const inv of out.invoices) if (inv.status !== 'void') billed.set(inv.patientId, (billed.get(inv.patientId) ?? 0) + invoiceTotals(inv).total);
   for (const p of out.payments) if (!p.voided) paid.set(p.patientId, (paid.get(p.patientId) ?? 0) + p.amount);

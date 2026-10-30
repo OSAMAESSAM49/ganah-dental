@@ -7,6 +7,7 @@ import { can } from '../../core/permissions.js';
 import { repos } from '../../data/index.js';
 import { listPatientMedia, urlPool } from '../../services/media.js';
 import { medicalSummary } from './medical.js';
+import { mountVoiceNotes } from './voice-notes.js';
 import { canChangePatient } from '../../services/patients.js';
 import { tr } from '../../core/i18n.js';
 
@@ -46,6 +47,7 @@ export async function renderTab({ body, patient }) {
           <a class="round-btn" href="${href('/patients/:id', { id: p.id }, { tab: 'medical' })}" aria-label="فتح التاريخ الطبي">${ico('arrow-up-left', { size: 18 })}</a></div>
         <div class="card__body">${medicalSummary(p)}</div>
       </section>
+      <section class="card span-12" id="pf-voice"></section>
       <section class="card span-12">
         <div class="card__header"><div class="card__heading"><h2 class="card__title">أحدث الصور والأشعة</h2><p class="card__subtitle">${media.length ? tr`${digits(media.length)} ملف` : 'لا توجد صور بعد'}</p></div>
           <a class="round-btn" href="${href('/patients/:id', { id: p.id }, { tab: 'photos' })}" aria-label="كل الصور">${ico('arrow-up-left', { size: 18 })}</a></div>
@@ -58,5 +60,6 @@ export async function renderTab({ body, patient }) {
         </div>
       </section>
     </div>`);
-  return () => pool.revokeAll();
+  const stopVoice = mountVoiceNotes(/** @type {HTMLElement} */ (body.querySelector('#pf-voice')), { patient: p });
+  return () => { pool.revokeAll(); stopVoice(); };
 }

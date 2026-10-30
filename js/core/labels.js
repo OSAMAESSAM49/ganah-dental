@@ -25,7 +25,7 @@ export const ENTITY_LABELS = {
   medicines: 'دواء',
   rxTemplates: 'قالب روشتة',
   prescriptions: 'روشتة',
-  media: 'صورة / أشعة',
+  media: 'صورة / أشعة / ملاحظة صوتية',
   backup: 'النسخ الاحتياطي',
   import: 'استيراد بيانات',
   stockBatches: 'تشغيلة مخزون',

@@ -166,3 +166,20 @@
 @media (max-width: 767px) {
   #psource, #psort { flex: 1 1 calc(50% - var(--sp-2)); min-inline-size: 0 !important; }
 }
+
+/* ---------- Voice notes ---------- */
+.voice-rec { display: grid; justify-items: center; gap: var(--sp-3); padding: var(--sp-4); margin-block-end: var(--sp-4); border-radius: var(--radius-lg); background: var(--c-surface-2); text-align: center; }
+.voice-rec__live { display: flex; align-items: baseline; gap: var(--sp-2); }
+.voice-rec__dot { inline-size: 12px; block-size: 12px; border-radius: 50%; background: var(--c-danger); align-self: center; animation: rec-pulse 1.2s ease-in-out infinite; }
+.voice-rec__time { font-size: var(--fs-2xl); font-weight: var(--fw-bold); }
+.voice-rec__error { color: var(--c-danger); margin: 0; }
+.voice-rec audio, .voice-item audio { inline-size: 100%; block-size: 40px; }
+@keyframes rec-pulse { 50% { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { .voice-rec__dot { animation: none; } }
+
+.voice-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); }
+.voice-item { display: grid; gap: var(--sp-2); padding: var(--sp-3); border: 1px solid var(--c-border); border-radius: var(--radius-lg); background: var(--c-surface); }
+.voice-item__head { display: flex; align-items: center; gap: var(--sp-2); }
+.voice-item__icon { display: grid; place-items: center; inline-size: 32px; block-size: 32px; border-radius: 50%; background: var(--c-primary-soft); color: var(--c-primary-text); flex-shrink: 0; }
+.voice-item__text { display: grid; min-inline-size: 0; flex: 1; }
+.voice-item__text strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

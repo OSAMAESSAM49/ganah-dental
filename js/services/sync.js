@@ -18,7 +18,7 @@ import { buildSearchText } from './patients.js';
 const PAGE = 500;
 const PUSH_BATCH = 200;
 const OVERLAP_MS = 60_000;
-const EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'application/pdf': 'pdf' };
+const EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'application/pdf': 'pdf', 'audio/mp4': 'm4a', 'audio/webm': 'webm', 'audio/ogg': 'ogg' };
 
 /** Unique numbers that may clash between devices: field, index, counter, how to make the next one. */
 const NUMBERED = {
@@ -82,7 +82,7 @@ export function createSyncEngine({ adapter, api, state, deviceId, onChange = () 
   async function encode(v, store, id, counter) {
     if (v instanceof Blob) {
       const mime = v.type || 'application/octet-stream';
-      const path = `${api.clinicId()}/${store}/${id}/${counter.n++}.${EXT[mime] ?? 'bin'}`;
+      const path = `${api.clinicId()}/${store}/${id}/${counter.n++}.${EXT[mime.split(';')[0]] ?? 'bin'}`;
       await api.upload(path, v);
       return { __file: path, __blob: mime };
     }

@@ -19,6 +19,7 @@ import { nextAppointment, listForPatient } from '../../services/appointments.js'
 import { patientAccount } from '../../services/billing.js';
 import { dayLabel, formatClock } from '../../core/time.js';
 import { patientAvatar } from './list.js';
+import { openVoiceRecorder, canRecord } from './voice-notes.js';
 import { tr, t } from '../../core/i18n.js';
 
 const TABS = [
@@ -79,6 +80,7 @@ export default {
             <div class="pfile-head__actions">
               ${can('treatment', 'create') && !patient.deletedAt ? html`<button type="button" class="btn btn--primary btn--sm" data-quick-add>${ico('tooth', { size: 18 })} إضافة إجراء</button>` : ''}
               ${can('appointments', 'create') ? html`<button type="button" class="btn btn--primary btn--sm" data-book-appt>${ico('calendar-check', { size: 18 })} حجز موعد</button>` : ''}
+              ${can('patients', 'edit') && !patient.deletedAt && canRecord() ? html`<button type="button" class="btn btn--sm btn--icon" data-voice-note aria-label="ملاحظة صوتية" title="ملاحظة صوتية">${ico('mic', { size: 18 })}</button>` : ''}
               ${patient.phone ? html`<a class="btn btn--sm" href="tel:${patient.phone}" data-secondary>${ico('phone', { size: 18 })} اتصال</a>` : ''}
               ${wa ? html`<a class="btn btn--whatsapp btn--sm" href="https://wa.me/${wa}" target="_blank" rel="noopener" data-secondary>${ico('message-circle', { size: 18 })} واتساب</a>` : ''}
               ${can('patients', 'edit') && changeable ? html`<a class="btn btn--sm btn--soft" href="${href('/patients/:id/edit', { id: patient.id })}" data-secondary>${ico('pencil', { size: 18 })} تعديل</a>` : ''}
@@ -129,6 +131,11 @@ export default {
     on(el, 'click', '[data-quick-add]', async () => {
       const { openQuickTreatment } = await import('../appointments/quick-treatment.js');
       if (await openQuickTreatment({ patientId: patient.id })) await showTab();
+    }, { signal });
+
+    // Voice note from any tab; the open tab is redrawn so the overview list shows it.
+    on(el, 'click', '[data-voice-note]', async () => {
+      if (await openVoiceRecorder({ patientId: patient.id })) await showTab();
     }, { signal });
 
     // On phones the ⋮ menu also holds call / WhatsApp / edit (only two big buttons stay).

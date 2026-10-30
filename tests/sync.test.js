@@ -81,6 +81,14 @@ describe('sync between two devices (temporary databases, fake server)', () => {
       assert.deepEqual([...new Uint8Array(await bImg.arrayBuffer())], [9, 8, 7]);
       assert.equal(bImg.type, 'image/jpeg');
       assert.equal(B.engine.pending(), 0, 'pulled records are not pushed back');
+
+      // Voice notes travel the same way (codec suffix ignored for the file name).
+      const clip = new Blob([new Uint8Array([4, 5])], { type: 'audio/mp4' });
+      const v1 = await A.media.create({ patientId: p1.id, kind: 'voice', blob: clip, durationSec: 3 });
+      await A.engine.syncNow();
+      assert.ok([...server.files.keys()].some((k) => k.endsWith('.m4a')), 'audio stored as .m4a');
+      await B.engine.syncNow();
+      assert.equal((await B.media.get(v1.id)).blob.type, 'audio/mp4');
       assert.equal((await B.adapter.list('procedures')).length, (await A.adapter.list('procedures')).length, 'no duplicated catalog');
 
       // Edit on B, delete on A (different records); both converge.

@@ -1,6 +1,7 @@
 /**
  * Patient photos and X-rays, stored as Blobs in IndexedDB (a full image ≤ 2000px plus a
  * small thumbnail for galleries). Use objectUrl() to display and revokeAll() on view exit.
+ * Voice notes live in the same store (kind 'voice'), so they sync and back up the same way.
  */
 import { repos } from '../data/index.js';
 import { resizeImage } from '../core/image.js';
@@ -9,13 +10,29 @@ import { todayISO } from '../core/format.js';
 export const MEDIA_KINDS = { photo: 'صورة', xray: 'أشعة' };
 export const MEDIA_TAGS = { before: 'قبل', after: 'بعد' };
 
-/** Newest first. */
+const isVoice = (m) => m.kind === 'voice';
+
+/** Photos and X-rays, newest first. */
 export async function listPatientMedia(patientId) {
-  const rows = await repos.media.findBy('patientId', patientId);
+  const rows = (await repos.media.findBy('patientId', patientId)).filter((m) => !isVoice(m));
   return rows.sort((a, b) => (b.takenAt || '').localeCompare(a.takenAt || '') || b.createdAt.localeCompare(a.createdAt));
 }
 
-export const countPatientMedia = async (patientId) => (await repos.media.findBy('patientId', patientId)).length;
+export const countPatientMedia = async (patientId) => (await repos.media.findBy('patientId', patientId)).filter((m) => !isVoice(m)).length;
+
+/** Voice notes, newest first. */
+export async function listVoiceNotes(patientId) {
+  const rows = (await repos.media.findBy('patientId', patientId)).filter(isVoice);
+  return rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+/** @param {string} patientId @param {Blob} blob @param {{ durationSec: number, caption?: string }} meta */
+export function addVoiceNote(patientId, blob, { durationSec, caption = '' }) {
+  return repos.media.create({
+    patientId, kind: 'voice', tag: '', caption: caption.trim(), takenAt: todayISO(), teeth: [],
+    blob, size: blob.size, mime: blob.type, durationSec: Math.round(durationSec * 10) / 10,
+  });
+}
 
 /**
  * Stores uploaded image files for a patient.
