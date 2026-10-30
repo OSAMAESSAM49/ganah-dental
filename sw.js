@@ -10,7 +10,17 @@ const CACHE = `ganah-${self.ASSET_VERSION}`;
 const IS_DEV = ['localhost', '127.0.0.1', '[::1]'].includes(self.location.hostname);
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(self.ASSETS)));
+  // Each file is fetched as ?v=VERSION so neither the browser's HTTP cache nor GitHub's CDN can
+  // hand back a copy from before the deploy (a mix of old and new files breaks pages).
+  // Any failure fails the install, and the current version keeps running.
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE);
+    await Promise.all(self.ASSETS.map(async (url) => {
+      const res = await fetch(`${url}${url.includes('?') ? '&' : '?'}v=${self.ASSET_VERSION}`, { cache: 'reload' });
+      if (!res.ok) throw new Error(`${url}: ${res.status}`);
+      await cache.put(url, res);
+    }));
+  })());
 });
 
 self.addEventListener('activate', (event) => {

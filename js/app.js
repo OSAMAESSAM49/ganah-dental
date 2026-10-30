@@ -54,7 +54,8 @@ function fatal(title, message) {
 
 function registerServiceWorker() {
   if (!('serviceWorker' in navigator) || location.protocol === 'file:') return;
-  navigator.serviceWorker.register('./sw.js').then((reg) => {
+  // updateViaCache 'none': update checks read sw.js and asset-list.js fresh, never the HTTP cache.
+  navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then((reg) => {
     let prompted = false;
     const promptUpdate = (worker) => {
       if (prompted) return;
