@@ -29,6 +29,12 @@
 .odo-tooth:focus-visible .odo-select, .odo-tooth:focus-visible .odo-outline { stroke: var(--c-focus); stroke-width: 3.5; }
 .odo-tooth.is-missing .odo-surface, .odo-tooth.is-missing .odo-root { opacity: .28; }
 .odo-missing { stroke: #94A3B8; }
+/* Braces: metal brackets joined by the wire; drawn over the teeth but never in the way of taps */
+.odo-braces { pointer-events: none; }
+.odo-wire { fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.odo-bracket { fill: #E2E8F0; stroke: #334155; stroke-width: .9; }
+.odo-bracket-slot { stroke: #334155; stroke-width: .8; }
+.odo-quick { margin-block-end: var(--sp-3); }
 .odo-planned { fill: var(--brand-lime); stroke: #000; stroke-width: 1; }
 .odo-midline { stroke: var(--c-border-strong); stroke-dasharray: 4 5; }
 .odo-occlusal { stroke: var(--c-border); stroke-dasharray: 2 6; }

@@ -25,6 +25,8 @@ export const ENTITY_LABELS = {
   medicines: 'دواء',
   rxTemplates: 'قالب روشتة',
   prescriptions: 'روشتة',
+  cases: 'ملف تقويم / زراعة',
+  caseVisits: 'زيارة متابعة تقويم / زراعة',
   media: 'صورة / أشعة / ملاحظة صوتية',
   backup: 'النسخ الاحتياطي',
   import: 'استيراد بيانات',

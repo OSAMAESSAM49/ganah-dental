@@ -22,6 +22,7 @@ export const CONDITIONS = [
   { key: 'veneer', label: 'فينير', short: 'فينير', color: '#DB2777' },
   { key: 'bridge', label: 'كوبري', short: 'كوبري', color: '#0D9488', whole: true },
   { key: 'implant', label: 'زراعة', short: 'زراعة', color: '#475569', whole: true },
+  { key: 'braces', label: 'تقويم', short: 'تقويم', color: '#0E7490', whole: true },
   { key: 'fractured', label: 'كسر', short: 'كسر', color: '#EA580C' },
   { key: 'extract', label: 'يحتاج خلع', short: 'خلع', color: '#B91C1C', whole: true },
   { key: 'missing', label: 'مفقود', short: 'مفقود', color: '#94A3B8', whole: true },
@@ -108,6 +109,8 @@ export function inferChartEffect(name = '') {
   if (/كوبري/.test(n)) return 'bridge';
   if (/كراون|تاج/.test(n)) return 'crown';
   if (/خلع/.test(n)) return 'missing';
+  if (/فك (ال)?تقويم/.test(n)) return ''; // debond, not «الفك العلوي»
+  if (/تركيب تقويم|براكيت/.test(n)) return 'braces';
   if (/زراعة|زرع/.test(n)) return 'implant';
   if (/سيلانت/.test(n)) return 'sealant';
   return '';

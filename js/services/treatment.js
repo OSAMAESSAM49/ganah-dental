@@ -190,8 +190,10 @@ function historyEntry(status) {
 /**
  * Each chosen tooth is its own item (and charge) when the procedure is priced per tooth, or
  * whenever more than one tooth is chosen: 3 teeth of anything = 3 × the price.
+ * Except procedures priced once for the whole case (braces, full-arch implants): one charge
+ * listing all the chosen teeth.
  */
-export const chargedPerTooth = (procedure, teeth = []) => !!procedure?.perTooth || teeth.length > 1;
+export const chargedPerTooth = (procedure, teeth = []) => !procedure?.oncePerCase && (!!procedure?.perTooth || teeth.length > 1);
 
 export async function addItems(planId, { procedure, teeth = [], surfaces = [], unitPrice, notes = '', discountType = 'amount', discountValue = 0 }) {
   const plan = await repos.treatmentPlans.require(planId);

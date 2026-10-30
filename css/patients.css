@@ -183,3 +183,20 @@
 .voice-item__icon { display: grid; place-items: center; inline-size: 32px; block-size: 32px; border-radius: 50%; background: var(--c-primary-soft); color: var(--c-primary-text); flex-shrink: 0; }
 .voice-item__text { display: grid; min-inline-size: 0; flex: 1; }
 .voice-item__text strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------- Ortho / implant case files ---------- */
+.case-list, .case-visits { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-2); }
+.case-row { display: flex; align-items: center; gap: var(--sp-3); inline-size: 100%; padding: var(--sp-3); border: 1px solid var(--c-border); border-radius: var(--radius-lg); background: var(--c-surface); color: inherit; font: inherit; text-align: start; cursor: pointer; }
+.case-row:hover { background: var(--c-surface-2); }
+.case-row__icon { display: grid; place-items: center; inline-size: 36px; block-size: 36px; border-radius: 50%; background: var(--c-primary-soft); color: var(--c-primary-text); flex-shrink: 0; }
+.case-row__icon[data-type="implant"] { background: var(--c-surface-sunken); color: var(--c-text); }
+.case-row__text { display: grid; flex: 1; min-inline-size: 0; }
+.case-tabs { align-self: flex-start; }
+.case-visit { padding: var(--sp-3); border: 1px solid var(--c-border); border-radius: var(--radius-lg); background: var(--c-surface); display: grid; gap: var(--sp-2); justify-items: start; }
+.case-visit__head { inline-size: 100%; }
+.case-visit__body { display: grid; gap: 2px; font-size: var(--fs-sm); }
+.case-implant { padding: var(--sp-3); border: 1px solid var(--c-border); border-radius: var(--radius-lg); background: var(--c-surface-2); display: grid; gap: var(--sp-2); }
+.case-implant__extras { display: grid; gap: var(--sp-2); }
+.case-chips { border: 0; padding: 0; margin: 0; }
+.case-chips .chips { flex-wrap: wrap; }
+.case-form hr { margin-block: var(--sp-1); }

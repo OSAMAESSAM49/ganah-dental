@@ -14,6 +14,7 @@
  */
 import { onLocalWrite, keyPathOf, LOCAL_ONLY, newRev } from '../data/tracking.js';
 import { buildSearchText } from './patients.js';
+import { STORE_ADDED_AT } from '../data/migrations.js';
 
 const PAGE = 500;
 const PUSH_BATCH = 200;
@@ -58,7 +59,7 @@ export function createSyncEngine({ adapter, api, state, deviceId, onChange = () 
   // outbox: key → change number · tombs: key → when it was deleted here (until uploaded)
   const s = { outbox: {}, tombs: {}, seq: 0, fullStores: [], cursor: null, ...state.load() };
   s.deviceId ||= deviceId || crypto.randomUUID();
-  const save = () => state.save({ outbox: s.outbox, tombs: s.tombs, seq: s.seq, fullStores: s.fullStores, cursor: s.cursor, deviceId: s.deviceId, lastSyncAt: s.lastSyncAt });
+  const save = () => state.save({ outbox: s.outbox, tombs: s.tombs, seq: s.seq, fullStores: s.fullStores, cursor: s.cursor, stores: s.stores, deviceId: s.deviceId, lastSyncAt: s.lastSyncAt });
   save();
 
   const syncedStores = () => adapter.storeNames().filter((n) => !LOCAL_ONLY.has(n));
@@ -205,19 +206,31 @@ export function createSyncEngine({ adapter, api, state, deviceId, onChange = () 
     return touched;
   }
 
-  async function pull() {
-    let since = s.cursor ? new Date(Date.parse(s.cursor) - OVERLAP_MS).toISOString() : '1970-01-01T00:00:00Z';
-    let newest = s.cursor;
-    const touched = new Set();
+  /** Pages through server rows changed since `since` (only `only` stores when given). */
+  async function pullFrom(since, only, touched) {
+    let newest = null;
     for (;;) {
       const rows = (await api.pull(since, PAGE)) ?? [];
-      for (const st of await applyPage(rows)) touched.add(st);
+      for (const st of await applyPage(only ? rows.filter((r) => only.has(r.store)) : rows)) touched.add(st);
       if (rows.length) newest = !newest || rows.at(-1).server_updated_at > newest ? rows.at(-1).server_updated_at : newest;
       if (rows.length < PAGE) break;
       if (rows.at(-1).server_updated_at === since) break; // a page of identical stamps: avoid looping forever
       since = rows.at(-1).server_updated_at;
     }
-    s.cursor = newest;
+    return newest;
+  }
+
+  async function pull() {
+    const touched = new Set();
+    const known = syncedStores();
+    // Stores an app update added: before updating, this device skipped their rows while its
+    // cursor moved on. Read just those stores again from the day they shipped.
+    const before = s.stores ?? known.filter((n) => !STORE_ADDED_AT[n]);
+    const fresh = s.cursor ? known.filter((n) => !before.includes(n)) : [];
+    if (fresh.length) await pullFrom(fresh.map((n) => STORE_ADDED_AT[n] ?? '1970-01-01T00:00:00Z').sort()[0], new Set(fresh), touched);
+    const newest = await pullFrom(s.cursor ? new Date(Date.parse(s.cursor) - OVERLAP_MS).toISOString() : '1970-01-01T00:00:00Z', null, touched);
+    if (newest && (!s.cursor || newest > s.cursor)) s.cursor = newest;
+    s.stores = known;
     save();
     if (touched.size) onChange(touched);
     return touched;
@@ -248,6 +261,6 @@ export function createSyncEngine({ adapter, api, state, deviceId, onChange = () 
     },
     stop() { stopTracking(); },
     /** Forget everything about sync on this device (after signing out of the cloud). */
-    reset() { s.outbox = {}; s.tombs = {}; s.seq = 0; s.fullStores = []; s.cursor = null; s.lastSyncAt = null; save(); },
+    reset() { s.outbox = {}; s.tombs = {}; s.seq = 0; s.fullStores = []; s.cursor = null; s.stores = null; s.lastSyncAt = null; save(); },
   };
 }

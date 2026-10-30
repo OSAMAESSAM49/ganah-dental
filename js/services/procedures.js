@@ -74,7 +74,8 @@ function cleanProcedure(input) {
     price: Math.max(0, Math.round(Number(input.price) || 0)),
     durationMin: int(input.durationMin, 5, 480, 30),
     sessions: int(input.sessions, 1, 20, 1),
-    perTooth: !!input.perTooth,
+    perTooth: !!input.perTooth && !input.oncePerCase,
+    oncePerCase: !!input.oncePerCase, // one charge however many teeth (braces, full arch)
     needsLab: !!input.needsLab,
     notes: String(input.notes ?? '').trim(),
     recipe: (Array.isArray(input.recipe) ? input.recipe : [])

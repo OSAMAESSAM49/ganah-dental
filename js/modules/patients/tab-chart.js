@@ -10,7 +10,7 @@ import { href } from '../../core/router.js';
 import { TREATMENT_STATUS } from '../../core/labels.js';
 import { DENTITIONS, ROWS, toothName, surfaceLabel, surfacesText, sortTeeth, isUpper, isScreenLeft } from '../../core/teeth.js';
 import { CONDITIONS, CONDITION, toothConditions } from '../../core/chart-conditions.js';
-import { odontogram } from '../../components/odontogram.js';
+import { odontogram, archTeeth, archButtons } from '../../components/odontogram.js';
 import { confirmDialog } from '../../components/modal.js';
 import { toast, toastSuccess, toastError } from '../../components/toast.js';
 import { getChart, historyDays, recordToothEvents, voidToothEvent } from '../../services/chart.js';
@@ -82,6 +82,7 @@ export async function renderTab({ body, patient, signal }) {
         </div>` : ''}
       <div class="row">
         <button type="button" class="btn btn--primary btn--sm" data-apply ${c.surface && !ui.surfaces.size ? 'disabled' : ''}>${ico('check', { size: 18 })} تسجيل «${c.label}»</button>
+        ${!c.surface && [...ui.selected].some((t) => state.get(t)?.[c.key]) ? html`<button type="button" class="btn btn--soft btn--sm" data-unapply>${ico('x', { size: 16 })} إزالة «${c.label}»</button>` : ''}
         <button type="button" class="btn btn--ghost btn--sm" data-clear-teeth title="مسح كل الحالات من الأسنان المختارة">${ico('refresh-cw', { size: 16 })} سليم</button>
       </div>`;
   };
@@ -184,6 +185,7 @@ export async function renderTab({ body, patient, signal }) {
             </label>
           </div>
           <div class="card__body">
+            ${canEdit && !ui.day ? archButtons() : ''}
             <div class="odo-wrap" id="odo">${odontogram({ dentition: ui.dentition, state, planned: ui.day ? new Map() : plannedByTooth(items, plans), selected: ui.selected, selectedSurfaces: ui.surfaces, readonly: !!ui.day })}</div>
           </div>
           <div class="card__footer">
@@ -256,6 +258,8 @@ export async function renderTab({ body, patient, signal }) {
   on(body, 'click', '[data-cond]', (_, b) => { ui.condition = b.dataset.cond; if (!CONDITION[ui.condition].surface) ui.surfaces.clear(); draw(); }, { signal });
   on(body, 'click', '[data-surface-btn]', (_, b) => { const s = b.dataset.surfaceBtn; if (ui.surfaces.has(s)) ui.surfaces.delete(s); else ui.surfaces.add(s); draw(); }, { signal });
   on(body, 'click', '[data-unselect]', () => { ui.selected.clear(); ui.surfaces.clear(); draw(); }, { signal });
+  // Orthodontics / full-arch work: the whole mouth or one arch in one tap.
+  on(body, 'click', '[data-select-arch]', (_, b) => { ui.selected = new Set(archTeeth(ui.dentition, b.dataset.selectArch, state)); ui.surfaces.clear(); draw(); }, { signal });
   on(body, 'click', '[data-live]', () => { ui.day = ''; redraw(); }, { signal });
   on(body, 'click', '[data-toggle-log]', () => { ui.showLog = !ui.showLog; draw(); }, { signal });
 
@@ -276,22 +280,37 @@ export async function renderTab({ body, patient, signal }) {
     const changes = teeth.map((tooth) => ({ tooth, type: 'add', condition: c.key, surfaces: c.surface ? [...ui.surfaces] : [] }));
     try {
       const recorded = await recordToothEvents(p.id, changes);
-      undoToast(tr`تم تسجيل «${c.label}» على ${teeth.join('، ')}`, recorded);
+      undoToast(tr`تم تسجيل «${c.label}» على ${teethList(teeth)}`, recorded);
       ui.surfaces.clear();
       ui.selected.clear(); // next tap starts a fresh selection
       await redraw();
     } catch (err) { toastError(err.message); }
   }, { signal });
 
+  // Take one condition off several teeth at once (e.g. braces at debond).
+  on(body, 'click', '[data-unapply]', async () => {
+    const c = CONDITION[ui.condition];
+    const teeth = sortTeeth([...ui.selected]).filter((t) => state.get(t)?.[c.key]);
+    try {
+      const recorded = await recordToothEvents(p.id, teeth.map((tooth) => ({ tooth, type: 'remove', condition: c.key })));
+      undoToast(tr`أُزيلت «${c.label}» من ${teethList(teeth)}`, recorded);
+      ui.selected.clear();
+      await redraw();
+    } catch (err) { toastError(err.message); }
+  }, { signal });
+
   on(body, 'click', '[data-clear-teeth]', async () => {
     const teeth = sortTeeth([...ui.selected]);
-    if (!(await confirmDialog({ title: 'تحديد الأسنان كسليمة؟', message: tr`ستُزال كل الحالات المسجّلة على ${teeth.join('، ')}. يبقى ذلك في سجل التغييرات.`, confirmLabel: 'نعم، سليمة' }))) return;
+    if (!(await confirmDialog({ title: 'تحديد الأسنان كسليمة؟', message: tr`ستُزال كل الحالات المسجّلة على ${teethList(teeth)}. يبقى ذلك في سجل التغييرات.`, confirmLabel: 'نعم، سليمة' }))) return;
     const recorded = await recordToothEvents(p.id, teeth.map((tooth) => ({ tooth, type: 'clear' })));
-    undoToast(tr`${teeth.join('، ')}: سليمة`, recorded);
+    undoToast(tr`${teethList(teeth)}: سليمة`, recorded);
     ui.selected.clear();
     ui.surfaces.clear();
     await redraw();
   }, { signal });
+
+  /** Up to 6 teeth by number; a whole arch or mouth as a count. */
+  const teethList = (teeth) => (teeth.length <= 6 ? teeth.join('، ') : teeth.length <= 10 ? tr`${digits(teeth.length)} أسنان` : tr`${digits(teeth.length)} سنًا`);
 
   /** Chart changes can be taken back from the toast (the events stay in the log as voided). */
   function undoToast(message, recorded) {

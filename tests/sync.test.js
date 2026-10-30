@@ -18,9 +18,9 @@ describe('sync rules (pure)', () => {
 });
 
 /** In-memory stand-in for Supabase with the same rules as supabase/schema.sql. */
-function fakeServer() {
+function fakeServer(start = '2026-01-01T00:00:00Z') {
   const rows = new Map(); const files = new Map();
-  let clock = Date.parse('2026-01-01T00:00:00Z');
+  let clock = Date.parse(start);
   return {
     rows, files,
     api: {
@@ -127,6 +127,46 @@ describe('sync between two devices (temporary databases, fake server)', () => {
       assert.equal((await B.patients.get(p1.id)).notes, 'من B');
     } finally {
       for (const d of devices) { d.engine.stop(); d.adapter.close(); }
+      for (const n of names) await deleteDatabase(n);
+    }
+  });
+});
+
+describe('sync after an app update adds stores (temporary databases, fake server)', () => {
+  test('a device that synced before updating still gets the new stores, and only those', async () => {
+    const { createIndexedDBAdapter } = await import('../js/data/adapter-indexeddb.js');
+    const { MIGRATIONS } = await import('../js/data/migrations.js');
+    const { trackAdapter } = await import('../js/data/tracking.js');
+    const { Repository } = await import('../js/data/repository.js');
+    const { deleteDatabase } = await import('../js/data/idb.js');
+    const { createSyncEngine } = await import('../js/services/sync.js');
+    const server = fakeServer('2026-11-01T00:00:00Z');
+    const names = [`ganah-test-${crypto.randomUUID()}`, `ganah-test-${crypto.randomUUID()}`];
+    const adapters = [];
+    try {
+      for (const name of names) adapters.push(trackAdapter(await createIndexedDBAdapter(name, MIGRATIONS)));
+      const [a, b] = adapters;
+      for (const st of b.storeNames().filter((x) => x !== 'meta')) await b.raw.clear(st);
+      const A = createSyncEngine({ adapter: a, api: server.api, state: { load: () => ({}), save: () => {} } });
+      const cases = new Repository(a, 'cases', { softDelete: true });
+      const patients = new Repository(a, 'patients', { softDelete: true });
+      const c = await cases.create({ patientId: 'p1', type: 'ortho', status: 'active', plan: {}, implants: [] });
+      const p = await patients.create({ name: 'لم يتغير', fileNo: 'G-00009', searchText: '' });
+      await A.syncNow();
+      // B pulled everything before updating, so its cursor is already past these rows,
+      // and it did not have the cases / caseVisits stores then.
+      let saved = null;
+      const B = createSyncEngine({ adapter: b, api: server.api, state: {
+        load: () => ({ cursor: '2027-01-01T00:00:00Z', stores: b.storeNames().filter((x) => !['meta', 'cases', 'caseVisits'].includes(x)) }),
+        save: (x) => { saved = x; },
+      } });
+      await B.syncNow();
+      assert.ok(await b.get('cases', c.id), 'case caught up');
+      assert.ok(!(await b.get('patients', p.id)), 'other stores are not read again');
+      assert.ok(saved.stores.includes('cases'), 'next time cases are known');
+      A.stop(); B.stop();
+    } finally {
+      for (const ad of adapters) ad.close();
       for (const n of names) await deleteDatabase(n);
     }
   });

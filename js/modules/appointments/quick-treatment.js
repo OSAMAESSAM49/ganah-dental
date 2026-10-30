@@ -11,9 +11,10 @@ import { sortTeeth, toothName, DENTITIONS } from '../../core/teeth.js';
 import { CONDITION } from '../../core/chart-conditions.js';
 import { normalizeDigits } from '../../core/text.js';
 import { repos } from '../../data/index.js';
-import { odontogram } from '../../components/odontogram.js';
+import { odontogram, archTeeth, archButtons } from '../../components/odontogram.js';
 import { openModal } from '../../components/modal.js';
-import { toastSuccess, toastError } from '../../components/toast.js';
+import { toast, toastSuccess, toastError } from '../../components/toast.js';
+import { can } from '../../core/permissions.js';
 import { getChart } from '../../services/chart.js';
 import { ensureActivePlan, addItems, setItemStatus, listItems, listPlans, plannedByTooth, itemMath, chargedPerTooth } from '../../services/treatment.js';
 import { loadCatalog } from '../../services/procedures.js';
@@ -43,6 +44,7 @@ export async function openQuickTreatment({ patientId, appt }) {
   const ui = { dentition: defaultDentition(patient), selected: new Set(), surfaces: new Set(), procedureId: '', start: true, price: 0, discountType: 'amount', discount: 0 };
   let planned = plannedByTooth(items, plans);
   let added = 0;
+  let caseType = ''; // an ortho / implant procedure was added: offer its follow-up file after
 
   const proc = () => all.find((p) => p.id === ui.procedureId);
   const chart = () => odontogram({ dentition: ui.dentition, state, planned, selected: ui.selected, selectedSurfaces: ui.surfaces });
@@ -67,9 +69,9 @@ export async function openQuickTreatment({ patientId, appt }) {
     const p = proc();
     if (!p) return '';
     return html`<div class="qt__money">
-      <label class="field"><span class="field__label">السعر${p.perTooth || ui.selected.size > 1 ? ' (للسن)' : ''} ج.م</span>
+      <label class="field"><span class="field__label">السعر${perTooth() ? ' (للسن)' : ''} ج.م</span>
         <input class="input input--ltr" id="qt-price" inputmode="decimal" value="${piastersToInput(ui.price)}" placeholder="0"></label>
-      <div class="field"><span class="field__label">خصم${ui.selected.size > 1 && ui.discountType === 'amount' ? ' (على الإجمالي)' : ''}</span>
+      <div class="field"><span class="field__label">خصم${perTooth() && ui.selected.size > 1 && ui.discountType === 'amount' ? ' (على الإجمالي)' : ''}</span>
         <div class="qt__discount">
           <input class="input input--ltr" id="qt-discount" inputmode="decimal" value="${ui.discount ? (ui.discountType === 'percent' ? ui.discount : piastersToInput(ui.discount)) : ''}" placeholder="0" aria-label="قيمة الخصم">
           <div class="segmented" role="radiogroup" aria-label="نوع الخصم">
@@ -87,6 +89,7 @@ export async function openQuickTreatment({ patientId, appt }) {
           ${Object.entries(DENTITIONS).map(([k, d]) => html`<label><input type="radio" name="qt-dent" value="${k}" ${ui.dentition === k ? 'checked' : ''}><span>${d.label}</span></label>`)}
         </div>
       </div>
+      ${archButtons()}
       <div class="odo-wrap qt__chart" id="qt-chart">${chart()}</div>
       <div class="qt__sel" id="qt-sel">${selection()}</div>
       <div class="field">
@@ -125,8 +128,12 @@ export async function openQuickTreatment({ patientId, appt }) {
       }
       if (ui.start) for (const i of created) await setItemStatus(i.id, 'in_progress');
       added += created.length;
+      if (p.chartEffect === 'braces') caseType = 'ortho';
+      if (p.chartEffect === 'implant') caseType = 'implant';
       const total = created.reduce((s, i) => s + itemMath(i).total, 0);
-      toastSuccess(tr`أُضيف «${p.name}»${teeth.length ? tr` على ${teeth.join('، ')}` : ''} — ${formatMoney(total)}${ui.start ? ' وبدأ العلاج' : ''}`);
+      // a whole arch or mouth: the count, not 28 numbers
+      const where = !teeth.length ? '' : teeth.length <= 6 ? tr` على ${teeth.join('، ')}` : teeth.length <= 10 ? tr` على ${digits(teeth.length)} أسنان` : tr` على ${digits(teeth.length)} سنًا`;
+      toastSuccess(tr`أُضيف «${p.name}»${where} — ${formatMoney(total)}${ui.start ? ' وبدأ العلاج' : ''}`);
       return true;
     } catch (err) { toastError(err.message); return false; }
   };
@@ -153,6 +160,8 @@ export async function openQuickTreatment({ patientId, appt }) {
       d.addEventListener('click', (e) => {
         const t = /** @type {Element} */ (e.target);
         if (t.closest('[data-qt-clear]')) { ui.selected.clear(); ui.surfaces.clear(); redraw(); return; }
+        const arch = t.closest('[data-select-arch]');
+        if (arch) { ui.selected = new Set(archTeeth(ui.dentition, arch.dataset.selectArch, state)); ui.surfaces.clear(); redraw(); return; }
         const g = t.closest('[data-tooth]');
         if (!g) return;
         const tooth = Number(g.getAttribute('data-tooth'));
@@ -202,5 +211,16 @@ export async function openQuickTreatment({ patientId, appt }) {
       return false;
     },
   });
+  if (caseType && can('treatment', 'edit')) offerCaseFile(patient, caseType);
   return added;
+}
+
+/** After an ortho / implant procedure: «فتح ملف المتابعة» when the patient has none open. */
+async function offerCaseFile(patient, type) {
+  const { noOpenCase, openCases } = await import('../patients/case-dialogs.js');
+  if (!patient || !(await noOpenCase(patient.id, type))) return;
+  toast(type === 'ortho' ? 'حالة تقويم جديدة؟ افتح ملف المتابعة لتسجيل الخطة والزيارات.' : 'حالة زراعة جديدة؟ افتح ملف المتابعة لتسجيل الزرعات والمواعيد.', {
+    type: 'info', duration: 12000,
+    action: { label: 'فتح ملف المتابعة', onClick: () => openCases(patient, { start: type }) },
+  });
 }

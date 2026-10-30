@@ -3,7 +3,7 @@
  * stops and saves in one tap) and the list with a player on the overview tab.
  * Audio is recorded on the device (no internet needed) and stored like photos.
  */
-import { html, ico, render, on } from '../../core/dom.js';
+import { html, ico, render, on, keep } from '../../core/dom.js';
 import { digits, formatDateTime } from '../../core/format.js';
 import { can } from '../../core/permissions.js';
 import { currentUser } from '../../core/session.js';
@@ -148,7 +148,7 @@ export function mountVoiceNotes(box, { patient }) {
           <li class="voice-item">
             <div class="voice-item__head">
               <span class="voice-item__icon" aria-hidden="true">${ico('mic', { size: 16 })}</span>
-              <div class="voice-item__text"><strong>${n.caption || 'ملاحظة صوتية'}</strong>
+              <div class="voice-item__text"><strong>${n.caption ? keep(n.caption) : 'ملاحظة صوتية'}</strong>
                 <span class="muted text-sm">${formatDateTime(n.createdAt)} · ${formatDuration(n.durationSec)}${users.get(n.createdBy) ? html` · ${users.get(n.createdBy)}` : ''}</span></div>
               ${can('patients', 'delete') || n.createdBy === me ? html`<button type="button" class="btn btn--ghost btn--icon btn--sm" data-vn-delete="${n.id}" aria-label="حذف الملاحظة">${ico('trash-2', { size: 16 })}</button>` : ''}
             </div>

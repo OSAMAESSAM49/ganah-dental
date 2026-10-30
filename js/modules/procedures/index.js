@@ -92,6 +92,7 @@ export default {
                       <td data-label="الإجراء"><span class="proc-name"><strong>${p.name}</strong>
                         <span class="proc-flags">
                           ${p.perTooth ? html`<span class="badge">${ico('tooth', { size: 13 })} لكل سن</span>` : ''}
+                          ${p.oncePerCase ? html`<span class="badge">${ico('tooth', { size: 13 })} سعر واحد للحالة</span>` : ''}
                           ${p.needsLab ? html`<span class="badge badge--info">${ico('flask-conical', { size: 13 })} معمل</span>` : ''}
                           ${CONDITION[p.chartEffect] ? html`<span class="badge"><span class="cond-dot" style="background:${CONDITION[p.chartEffect].color}"></span> ${CONDITION[p.chartEffect].short}</span>` : ''}
                           ${p.active ? '' : html`<span class="badge badge--danger">موقوف</span>`}
@@ -234,7 +235,8 @@ async function procedureDialog(proc, catalog, items = []) {
           ${textField({ name: 'sessions', label: 'عدد الجلسات المعتاد', value: proc?.sessions ?? 1, ltr: true, inputmode: 'numeric' })}
         </div>
         <div class="row" style="gap: var(--sp-6)">
-          <label class="check"><input type="checkbox" name="perTooth" ${proc?.perTooth ? 'checked' : ''}> السعر لكل سن</label>
+          <label class="check"><input type="checkbox" name="perTooth" data-price-mode ${proc?.perTooth ? 'checked' : ''}> السعر لكل سن</label>
+          <label class="check"><input type="checkbox" name="oncePerCase" data-price-mode ${proc?.oncePerCase ? 'checked' : ''}> سعر واحد للحالة كلها (مهما كان عدد الأسنان)</label>
           <label class="check"><input type="checkbox" name="needsLab" ${proc?.needsLab ? 'checked' : ''}> يحتاج معمل تركيبات</label>
         </div>
         ${selectField({ name: 'chartEffect', label: 'أثره على خريطة الأسنان عند الانتهاء', value: proc?.chartEffect ?? '', placeholder: 'لا يغيّر الخريطة', hint: 'مثال: الحشو يُسجّل «حشو» على السن والأسطح المختارة', options: CONDITIONS.filter((c) => !['caries', 'fractured', 'extract'].includes(c.key)).map((c) => ({ value: c.key, label: c.label })) })}
@@ -272,6 +274,11 @@ async function procedureDialog(proc, catalog, items = []) {
         if (srm) { schedule.splice(Number(srm.dataset.sRm), 1); redrawSchedule(); }
       });
       f.addEventListener('submit', (e) => { e.preventDefault(); close('save'); });
+      // «لكل سن» and «سعر واحد للحالة» exclude each other.
+      f.addEventListener('change', (e) => {
+        const t = /** @type {HTMLInputElement} */ (e.target);
+        if (t.matches('[data-price-mode]') && t.checked) f.querySelectorAll('[data-price-mode]').forEach((x) => { if (x !== t) /** @type {HTMLInputElement} */ (x).checked = false; });
+      });
       f.querySelector(isNew ? '[name=name]' : '[name=price]').focus();
     },
     async beforeClose(v, d) {

@@ -165,6 +165,28 @@ function drawTooth(t, cx, y, { state, planned, selected, selectedSurfaces, reado
     </g>`);
 }
 
+/** Chart point at the middle of a tooth's buccal crown, where a bracket sits. */
+function bracketPoint(t, cx, y) {
+  const k = isPrimary(t) ? PRIMARY_SCALE : 1;
+  const B = art(t).b;
+  const bh = B.h * SB * k, cej = B.cej * B.h * SB * k;
+  const up = isUpper(t);
+  const crownLine = up ? y + 16 + BUCCAL_H : y + GAP + OCCL_H + GAP;
+  const by = up ? crownLine - bh : crownLine;
+  return { x: cx + CELL / 2, y: by + (up ? (cej + bh) / 2 : cej / 2), k };
+}
+
+/** Braces on a row: a wire between neighbouring braced teeth, then a bracket on each. */
+export function bracesMarkup(points) {
+  const wire = points.slice(0, -1).map((b, j) => (b && points[j + 1] ? `M${f(b.x)},${f(b.y)} L${f(points[j + 1].x)},${f(points[j + 1].y)}` : '')).filter(Boolean).join(' ');
+  const brackets = points.filter(Boolean).map(({ x, y, k = 1 }) => {
+    const w = 11 * k, h = 9 * k;
+    return `<rect class="odo-bracket" x="${f(x - w / 2)}" y="${f(y - h / 2)}" width="${f(w)}" height="${f(h)}" rx="${f(2 * k)}"/><line class="odo-bracket-slot" x1="${f(x - w / 2)}" x2="${f(x + w / 2)}" y1="${f(y)}" y2="${f(y)}"/>`;
+  }).join('');
+  if (!brackets) return '';
+  return `<g class="odo-braces" aria-hidden="true">${wire ? `<path class="odo-wire" d="${wire}" stroke="${CONDITION.braces.color}"/>` : ''}${brackets}</g>`;
+}
+
 /** Masks (each picture's own outline) used to keep colours on the tooth. */
 function masks(keys) {
   return [...keys].flatMap((key) => ['b', 'o'].map((view) => {
@@ -196,6 +218,9 @@ export function artOdontogram({ dentition = 'adult', state, planned = new Map(),
       parts.push(raw(`<rect x="${xs[j] + CELL / 2}" y="${barY - 3}" width="${xs[j + 1] - xs[j]}" height="6" rx="3" fill="${CONDITION.bridge.color}"/>`));
     });
     row.teeth.forEach((t, j) => parts.push(drawTooth(t, xs[j], y, { state, planned, selected, selectedSurfaces, readonly })));
+    // braces go over the teeth (the wire crosses from one tooth to the next)
+    const braces = bracesMarkup(row.teeth.map((t, j) => (state.get(t)?.braces ? bracketPoint(t, xs[j], y) : null)));
+    if (braces) parts.push(raw(braces));
     y += ROW_H + (i < rows.length - 1 && row.upper === rows[i + 1].upper ? 10 : 0);
   });
   const height = y + PAD;

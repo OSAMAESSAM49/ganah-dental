@@ -20,6 +20,7 @@ import { patientAccount } from '../../services/billing.js';
 import { dayLabel, formatClock } from '../../core/time.js';
 import { patientAvatar } from './list.js';
 import { openVoiceRecorder, canRecord } from './voice-notes.js';
+import { openCasesSummary, CASE_TYPES } from '../../services/cases.js';
 import { tr, t } from '../../core/i18n.js';
 
 const TABS = [
@@ -51,6 +52,7 @@ export default {
     const loadSummary = async () => ({
       balance: can('billing', 'view') ? (await patientAccount(patient.id)).balance : null,
       lastVisit: can('appointments', 'view') ? (await listForPatient(patient.id)).filter((a) => a.status === 'done' && a.date <= todayISO()).at(-1)?.date ?? null : null,
+      cases: can('treatment', 'view') ? await openCasesSummary(patient.id) : [],
     });
     let summary = await loadSummary();
     // Patients with invoices: only the Admin or whoever registered them may edit or delete.
@@ -73,6 +75,7 @@ export default {
                 ${summary.balance > 0 ? html`<a class="badge badge--danger" href="${href('/patients/:id', { id: patient.id }, { tab: 'payments' })}" data-tab-link="payments">عليه ${formatMoney(summary.balance)}</a>` : ''}
                 ${summary.balance < 0 ? html`<a class="badge badge--success" href="${href('/patients/:id', { id: patient.id }, { tab: 'payments' })}" data-tab-link="payments">رصيد مقدم ${formatMoney(-summary.balance)}</a>` : ''}
                 ${summary.lastVisit ? html`<span class="badge">آخر زيارة ${formatDate(summary.lastVisit)}</span>` : ''}
+                ${summary.cases.map((c) => html`<button type="button" class="badge badge--primary" data-cases="${c.id}">${ico('tooth', { size: 14 })} ${CASE_TYPES[c.type].label} · ${tr`الزيارة ${digits(c.visits)}`}</button>`)}
                 ${next ? html`<a class="badge badge--accent" href="${href('/appointments', {}, { view: 'day', date: next.date })}">${ico('calendar-check', { size: 14 })} الموعد القادم: ${dayLabel(next.date)} ${formatClock(next.startMin)}</a>` : ''}
                 ${patient.phone ? html`<span class="muted ltr num">${digits(patient.phone)}</span>` : ''}
               </div>
@@ -80,6 +83,7 @@ export default {
             <div class="pfile-head__actions">
               ${can('treatment', 'create') && !patient.deletedAt ? html`<button type="button" class="btn btn--primary btn--sm" data-quick-add>${ico('tooth', { size: 18 })} إضافة إجراء</button>` : ''}
               ${can('appointments', 'create') ? html`<button type="button" class="btn btn--primary btn--sm" data-book-appt>${ico('calendar-check', { size: 18 })} حجز موعد</button>` : ''}
+              ${can('treatment', 'view') && !patient.deletedAt ? html`<button type="button" class="btn btn--sm btn--soft" data-cases data-secondary>${ico('tooth', { size: 18 })} التقويم والزراعة</button>` : ''}
               ${can('patients', 'edit') && !patient.deletedAt && canRecord() ? html`<button type="button" class="btn btn--sm btn--icon" data-voice-note aria-label="ملاحظة صوتية" title="ملاحظة صوتية">${ico('mic', { size: 18 })}</button>` : ''}
               ${patient.phone ? html`<a class="btn btn--sm" href="tel:${patient.phone}" data-secondary>${ico('phone', { size: 18 })} اتصال</a>` : ''}
               ${wa ? html`<a class="btn btn--whatsapp btn--sm" href="https://wa.me/${wa}" target="_blank" rel="noopener" data-secondary>${ico('message-circle', { size: 18 })} واتساب</a>` : ''}
@@ -109,6 +113,11 @@ export default {
         render(el.querySelector('#pf-head'), header());
         return;
       }
+      if (store === 'cases' || store === 'caseVisits') {
+        summary = await loadSummary();
+        render(el.querySelector('#pf-head'), header());
+        return;
+      }
       if (store === 'appointments') {
         next = await nextAppointment(patient.id);
         summary = await loadSummary();
@@ -133,6 +142,13 @@ export default {
       if (await openQuickTreatment({ patientId: patient.id })) await showTab();
     }, { signal });
 
+    // Ortho / implant case files (the header button opens the list, a case badge opens that case).
+    on(el, 'click', '[data-cases]', async (_, b) => {
+      const { openCases } = await import('./case-dialogs.js');
+      await openCases(patient, b.dataset.cases ? { open: b.dataset.cases } : {});
+      await showTab(); // braces may have been put on the chart
+    }, { signal });
+
     // Voice note from any tab; the open tab is redrawn so the overview list shows it.
     on(el, 'click', '[data-voice-note]', async () => {
       if (await openVoiceRecorder({ patientId: patient.id })) await showTab();
@@ -144,6 +160,7 @@ export default {
         ...(patient.phone ? [{ label: 'اتصال', icon: 'phone', onSelect: () => { location.href = `tel:${patient.phone}`; } }] : []),
         ...(toWhatsAppNumber(patient.phone) ? [{ label: 'واتساب', icon: 'message-circle', onSelect: () => window.open(`https://wa.me/${toWhatsAppNumber(patient.phone)}`, '_blank', 'noopener') }] : []),
         ...(can('patients', 'edit') && changeable ? [{ label: 'تعديل البيانات', icon: 'pencil', onSelect: () => navigate(`/patients/${patient.id}/edit`) }] : []),
+        ...(can('treatment', 'view') ? [{ label: 'التقويم والزراعة', icon: 'tooth', onSelect: async () => { const { openCases } = await import('./case-dialogs.js'); await openCases(patient); await showTab(); } }] : []),
       ] : []), ...(can('patients', 'delete') && changeable ? [{
         label: 'حذف ملف المريض', icon: 'trash-2', danger: true,
         onSelect: async () => {

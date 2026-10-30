@@ -60,6 +60,8 @@ export async function initData({ name = DB_NAME, ...handlers } = {}) {
   repos.medicines = new Repository(adapter, 'medicines');
   repos.rxTemplates = new Repository(adapter, 'rxTemplates');
   repos.prescriptions = new Repository(adapter, 'prescriptions', { softDelete: true });
+  repos.cases = new Repository(adapter, 'cases', { softDelete: true });
+  repos.caseVisits = new Repository(adapter, 'caseVisits');
   return adapter;
 }
 

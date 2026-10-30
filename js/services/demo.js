@@ -211,7 +211,7 @@ export async function removeDemoData() {
   const a = getAdapter();
   const patients = (await a.list('patients')).filter((p) => p.isDemo);
   const pids = new Set(patients.map((p) => p.id));
-  const byPatient = ['appointments', 'treatmentPlans', 'treatmentItems', 'toothEvents', 'invoices', 'payments', 'followUps', 'prescriptions', 'labCases', 'media', 'stockMovements'];
+  const byPatient = ['appointments', 'treatmentPlans', 'treatmentItems', 'toothEvents', 'invoices', 'payments', 'followUps', 'prescriptions', 'labCases', 'media', 'stockMovements', 'cases', 'caseVisits'];
   const doomed = new Map([['patients', patients.map((p) => p.id)]]);
   const demoBatches = (await a.list('stockBatches')).filter((b) => b.isDemo).map((b) => b.id);
   const batchSet = new Set(demoBatches);

@@ -13,7 +13,7 @@ export const AUDITED_STORES = new Set([
   'users', 'roles', 'settings',
   'patients', 'payments', 'invoices', 'inventoryItems',
   'appointments', 'treatmentItems', 'treatmentPlans', 'expenses', 'expenseCategories', 'recurringExpenses', 'procedures', 'procedureCategories', 'media', 'labCases',
-  'instructionTemplates', 'medicines', 'rxTemplates', 'prescriptions', 'followUps',
+  'instructionTemplates', 'medicines', 'rxTemplates', 'prescriptions', 'followUps', 'cases', 'caseVisits',
 ]);
 
 /** Derived cache fields per store that should not produce audit entries on their own. */

@@ -190,6 +190,25 @@ export const MIGRATIONS = [
       };
     },
   },
+  {
+    version: 9,
+    description: 'Orthodontic and implant case files with their follow-up visits',
+    up(db) {
+      const cases = db.createObjectStore('cases', { keyPath: 'id' });
+      cases.createIndex('patientId', 'patientId');
+      cases.createIndex('type', 'type');
+      const visits = db.createObjectStore('caseVisits', { keyPath: 'id' });
+      visits.createIndex('caseId', 'caseId');
+      visits.createIndex('patientId', 'patientId');
+    },
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;
+
+/**
+ * When each store added after cloud sync went live first shipped (no data can be older).
+ * A device that synced before updating skipped these rows; it reads them again from here.
+ * Add every new store to this list.
+ */
+export const STORE_ADDED_AT = { cases: '2026-10-30T00:00:00Z', caseVisits: '2026-10-30T00:00:00Z' };

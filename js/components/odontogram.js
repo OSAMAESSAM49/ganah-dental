@@ -11,8 +11,24 @@ import { html, raw } from '../core/dom.js';
 import { ROWS, DENTITIONS, isUpper, isScreenLeft, position, isPrimary, toothName, surfacesText } from '../core/teeth.js';
 import { CONDITION, toothConditions } from '../core/chart-conditions.js';
 import { getPref } from '../core/prefs.js';
-import { artOdontogram } from './odontogram-art.js';
+import { artOdontogram, bracesMarkup } from './odontogram-art.js';
 import { tr } from '../core/i18n.js';
+
+/** Quick selection: the whole mouth or one arch of the shown dentition, skipping missing teeth. */
+export function archTeeth(dentition, arch, state) {
+  return DENTITIONS[dentition].rows
+    .filter((k) => arch === 'all' || k.endsWith(arch === 'upper' ? 'Upper' : 'Lower'))
+    .flatMap((k) => ROWS[k])
+    .filter((t) => !state?.get(t)?.missing);
+}
+
+/** The buttons for archTeeth(); screens handle clicks on [data-select-arch]. */
+export const archButtons = () => html`
+  <div class="chips odo-quick" role="group" aria-label="تحديد سريع">
+    <button type="button" class="chip" data-select-arch="all">كل الأسنان</button>
+    <button type="button" class="chip" data-select-arch="upper">الفك العلوي</button>
+    <button type="button" class="chip" data-select-arch="lower">الفك السفلي</button>
+  </div>`;
 
 /** «صور» (pictures) or «مربعات» (squares), per device. */
 export const CHART_STYLES = { art: 'صور الأسنان', boxes: 'مربعات' };
@@ -161,6 +177,10 @@ function boxOdontogram({ dentition = 'adult', state, planned = new Map(), select
       parts.push(raw(`<rect x="${x1}" y="${boxY + BOX / 2 - 4}" width="${x2 - x1}" height="8" rx="4" fill="${CONDITION.bridge.color}"/>`));
     });
     row.teeth.forEach((t, j) => parts.push(drawTooth(t, xs[j], y, { state, planned, selected, selectedSurfaces, readonly })));
+    // braces: brackets on the buccal edge of each box, the wire joining neighbours
+    const boxY = row.upper ? y + 36 : y;
+    const braces = bracesMarkup(row.teeth.map((t, j) => (state.get(t)?.braces ? { x: xs[j] + CELL / 2, y: boxY + (row.upper ? IN / 2 : BOX - IN / 2) } : null)));
+    if (braces) parts.push(raw(braces));
     y += ROW_H + (i < rows.length - 1 && row.upper === rows[i + 1].upper ? 8 : 0);
   });
   const height = y + PAD;
