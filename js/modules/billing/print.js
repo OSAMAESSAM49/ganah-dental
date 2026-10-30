@@ -8,13 +8,14 @@ import { getSettings } from '../../data/settings.js';
 import { printHTML } from '../../components/print.js';
 import { openMenu } from '../../components/menu.js';
 import { invoiceState, invoiceInstallments, patientAccount, formatInvoiceNo, formatReceiptNo, dailyClosing } from '../../services/billing.js';
+import { tr, inArabicAsync } from '../../core/i18n.js';
 
 /** Small menu to choose paper size, remembering the last choice. */
 export function choosePrintSize(anchor, print) {
   const last = getPref('printSize', 'a4');
   openMenu(anchor, { items: [
-    { label: `ورق A4${last === 'a4' ? ' ✓' : ''}`, icon: 'file-text', onSelect: () => { setPref('printSize', 'a4'); print('a4'); } },
-    { label: `إيصال حراري 80مم${last === '80mm' ? ' ✓' : ''}`, icon: 'receipt', onSelect: () => { setPref('printSize', '80mm'); print('80mm'); } },
+    { label: tr`ورق A4${last === 'a4' ? ' ✓' : ''}`, icon: 'file-text', onSelect: () => { setPref('printSize', 'a4'); print('a4'); } },
+    { label: tr`إيصال حراري 80مم${last === '80mm' ? ' ✓' : ''}`, icon: 'receipt', onSelect: () => { setPref('printSize', '80mm'); print('80mm'); } },
   ] });
 }
 
@@ -34,7 +35,8 @@ function thermalHeader(title) {
 const row = (k, v, strong = false) => html`<div class="th-row ${strong ? 'th-strong' : ''}"><span>${k}</span><span>${v}</span></div>`;
 
 /* ---------- Invoice ---------- */
-export async function printInvoice(invoiceId, size = 'a4') {
+export const printInvoice = (invoiceId, size = 'a4') => inArabicAsync(() => invoicePrint(invoiceId, size));
+async function invoicePrint(invoiceId, size) {
   const inv = await repos.invoices.require(invoiceId);
   const payments = (await repos.payments.findBy('invoiceId', inv.id)).filter((p) => !p.voided).sort((a, b) => a.at.localeCompare(b.at));
   const st = invoiceState(inv, payments);
@@ -45,12 +47,12 @@ export async function printInvoice(invoiceId, size = 'a4') {
 
   if (size === '80mm') {
     printHTML(html`<div class="th">
-      ${thermalHeader(`فاتورة ${no}`)}
+      ${thermalHeader(tr`فاتورة ${no}`)}
       ${row('التاريخ', formatDate(inv.date))}
       ${row('المريض', inv.patientName)}
       ${row('رقم الملف', html`<span class="ltr">${patient?.fileNo ?? ''}</span>`)}
       <hr class="th-sep">
-      ${inv.lines.map((l) => html`<div class="th-line"><div>${l.description}${l.teeth?.length ? html` <span class="ltr">(${l.teeth.join(',')})</span>` : ''}</div>${row(l.discount ? `خصم ${formatMoney(l.discount)}` : '', formatMoney(l.total))}</div>`)}
+      ${inv.lines.map((l) => html`<div class="th-line"><div>${l.description}${l.teeth?.length ? html` <span class="ltr">(${l.teeth.join(',')})</span>` : ''}</div>${row(l.discount ? tr`خصم ${formatMoney(l.discount)}` : '', formatMoney(l.total))}</div>`)}
       <hr class="th-sep">
       ${row('الإجمالي', formatMoney(st.subtotal))}
       ${st.discount ? row('خصم', formatMoney(st.discount)) : ''}
@@ -96,11 +98,12 @@ export async function printInvoice(invoiceId, size = 'a4') {
     ${inv.notes ? html`<p style="margin-block-start: 4mm">${inv.notes}</p>` : ''}
     ${inv.status === 'void' ? html`<p style="margin-block-start: 4mm; color: #C1272D; font-weight: 700">فاتورة مُبطلة: ${inv.voidReason}</p>` : ''}
     <div style="display:flex; justify-content: space-between; margin-block-start: 14mm"><span>توقيع المحاسب: ....................</span><span>ختم العيادة</span></div>`,
-  { title: `فاتورة ${no}` });
+  { title: tr`فاتورة ${no}` });
 }
 
 /* ---------- Receipt ---------- */
-export async function printReceipt(paymentId, size = 'a4') {
+export const printReceipt = (paymentId, size = 'a4') => inArabicAsync(() => printReceiptAr(paymentId, size));
+async function printReceiptAr(paymentId, size) {
   const p = await repos.payments.require(paymentId);
   const inv = p.invoiceId ? await repos.invoices.get(p.invoiceId) : null;
   const patient = await repos.patients.get(p.patientId, { includeDeleted: true });
@@ -110,14 +113,14 @@ export async function printReceipt(paymentId, size = 'a4') {
 
   if (size === '80mm') {
     printHTML(html`<div class="th">
-      ${thermalHeader(`إيصال استلام ${no}`)}
+      ${thermalHeader(tr`إيصال استلام ${no}`)}
       ${row('التاريخ', formatDateTime(p.at))}
       ${row('المريض', p.patientName)}
       ${row('رقم الملف', html`<span class="ltr">${patient?.fileNo ?? ''}</span>`)}
       <hr class="th-sep">
       ${row('المبلغ المستلم', formatMoney(p.amount), true)}
       ${row('طريقة الدفع', methodLabel(p.method))}
-      ${row('عن', inv ? `فاتورة ${formatInvoiceNo(inv.number)}` : 'رصيد مقدم')}
+      ${row('عن', inv ? tr`فاتورة ${formatInvoiceNo(inv.number)}` : 'رصيد مقدم')}
       ${invState ? row('المتبقي على الفاتورة', formatMoney(invState.remaining)) : ''}
       ${row('إجمالي المتبقي', formatMoney(Math.max(0, account.balance)), true)}
       ${p.voided ? html`<div class="th-center th-strong">— إيصال مُبطل —</div>` : ''}
@@ -150,13 +153,14 @@ export async function printReceipt(paymentId, size = 'a4') {
 }
 
 /* ---------- Daily closing ---------- */
-export async function printClosing(day, size = 'a4') {
+export const printClosing = (day, size = 'a4') => inArabicAsync(() => printClosingAr(day, size));
+async function printClosingAr(day, size) {
   const c = await dailyClosing(day);
   const methods = Object.entries(c.byMethod);
   const users = Object.entries(c.byUser);
   if (size === '80mm') {
     printHTML(html`<div class="th">
-      ${thermalHeader(`إقفال يومية ${formatDate(day)}`)}
+      ${thermalHeader(tr`إقفال يومية ${formatDate(day)}`)}
       ${methods.map(([m, v]) => row(`${methodLabel(m)} (${digits(c.countByMethod[m])})`, formatMoney(v)))}
       <hr class="th-sep">${row('إجمالي المقبوضات', formatMoney(c.total), true)}
       <hr class="th-sep"><div class="th-small">حسب المستخدم</div>${users.map(([u, v]) => row(u, formatMoney(v)))}

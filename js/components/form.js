@@ -3,6 +3,7 @@
  * hint and error wired with aria-describedby) that showFieldErrors() understands.
  */
 import { html, ico, render } from '../core/dom.js';
+import { t } from '../core/i18n.js';
 
 let seq = 0;
 const fid = (name) => `f-${name}-${++seq}`;
@@ -94,7 +95,7 @@ export function enhancePasswordFields(root, strength, signal) {
     const show = input.type === 'password';
     input.type = show ? 'text' : 'password';
     btn.setAttribute('aria-pressed', String(show));
-    btn.setAttribute('aria-label', show ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور');
+    btn.setAttribute('aria-label', t(show ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'));
     render(btn, ico(show ? 'eye-off' : 'eye', { size: 20 }));
   }, { signal });
   if (!strength) return;

@@ -17,6 +17,7 @@ import {
 } from '../../services/auth.js';
 import { openChangePasswordDialog } from '../account/dialogs.js';
 import { authLayout, recoveryCodeBox, printRecoveryCode } from '../auth/shared.js';
+import { tr, t } from '../../core/i18n.js';
 
 const MAX_TILES = 12;
 
@@ -25,7 +26,7 @@ const safeNext = (next) => (typeof next === 'string' && next.startsWith('/') && 
 
 async function afterLogin(user, next) {
   if (user.mustChangePassword) await openChangePasswordDialog({ forced: true });
-  toastSuccess(`أهلًا ${user.displayName}`);
+  toastSuccess(tr`أهلًا ${user.displayName}`);
   navigate(safeNext(next), { replace: true });
 }
 
@@ -106,7 +107,7 @@ export default {
 
     const setError = (msg) => {
       const box = el.querySelector('[data-error-for="form"]');
-      if (box) box.textContent = msg;
+      if (box) box.textContent = t(msg);
     };
 
     const submitPin = async () => {

@@ -17,6 +17,7 @@ import { searchPatients, getPatient } from '../../services/patients.js';
 import { listItems as listTreatmentItems } from '../../services/treatment.js';
 import { listLabCases, createLabCase, updateLabCase, setLabStatus, deleteLabCase, knownLabs, isOverdue, LAB_FLOW } from '../../services/labs.js';
 import { patientAvatar } from '../patients/list.js';
+import { tr } from '../../core/i18n.js';
 
 const NEXT = { sent: ['received', 'استلام من المعمل'], received: ['try_in', 'تمت التجربة'], try_in: ['cemented', 'تم التركيب'] };
 
@@ -197,7 +198,7 @@ export default {
       const idx = LAB_FLOW.indexOf(c.status);
       openMenu(b, { items: [
         ...(perm.edit ? [{ label: 'تعديل', icon: 'pencil', onSelect: () => labCaseDialog({ labCase: c }) }] : []),
-        ...(perm.edit && idx > 0 ? [{ label: `رجوع إلى «${LAB_STATUS[LAB_FLOW[idx - 1]].label}»`, icon: 'refresh-cw', onSelect: () => setLabStatus(c.id, LAB_FLOW[idx - 1]) }] : []),
+        ...(perm.edit && idx > 0 ? [{ label: tr`رجوع إلى «${LAB_STATUS[LAB_FLOW[idx - 1]].label}»`, icon: 'refresh-cw', onSelect: () => setLabStatus(c.id, LAB_FLOW[idx - 1]) }] : []),
         ...(perm.edit && c.status !== 'cancelled' && c.status !== 'cemented' ? [{ label: 'إلغاء الحالة', icon: 'circle-x', onSelect: async () => { if (await confirmDialog({ title: 'إلغاء الحالة؟', message: 'يُحذف مصروفها المرتبط من المصروفات.', confirmLabel: 'إلغاء الحالة', danger: true })) setLabStatus(c.id, 'cancelled'); } }] : []),
         ...(perm.edit && c.status === 'cancelled' ? [{ label: 'إعادة فتح', icon: 'refresh-cw', onSelect: () => setLabStatus(c.id, 'sent') }] : []),
         ...(perm.del ? ['sep', { label: 'حذف', icon: 'trash-2', danger: true, onSelect: async () => { if (await confirmDialog({ title: 'حذف الحالة؟', message: c.patientName, confirmLabel: 'حذف', danger: true })) { await deleteLabCase(c.id); toastSuccess('تم الحذف'); } } }] : []),

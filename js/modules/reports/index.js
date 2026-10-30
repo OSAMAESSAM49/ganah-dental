@@ -14,6 +14,7 @@ import { toastError, toastSuccess } from '../../components/toast.js';
 import { mountChart, wireCharts, barList } from '../../components/chart.js';
 import { exportExcel, printReport, cellText } from '../../components/export.js';
 import { unitLabel } from '../../services/inventory.js';
+import { tr, inArabic, inArabicAsync } from '../../core/i18n.js';
 import {
   presetRange, financialReport, treatmentsReport, patientsReport, appointmentsReport, receivablesReport, inventoryReport,
 } from '../../services/reports.js';
@@ -70,10 +71,10 @@ async function financeTab(from, to) {
     summary: [['المقبوضات', money(r.collections)], ['المصروفات', money(r.expenses)], ['صافي الربح', money(r.net)], ['قيمة الفواتير', money(r.billed)]],
     view: html`
       <div class="stat-grid">
-        ${stat('المقبوضات', moneyValue(r.collections), `${digits(r.paymentsCount)} عملية دفع`, true)}
+        ${stat('المقبوضات', moneyValue(r.collections), tr`${digits(r.paymentsCount)} عملية دفع`, true)}
         ${stat('المصروفات', moneyValue(r.expenses), 'شاملة المعامل والمشتريات المسجلة')}
-        ${stat('صافي الربح', moneyValue(r.net), margin === null ? '' : `هامش ${formatPercent(margin * 100, { decimals: 1 })} من المقبوضات`)}
-        ${stat('قيمة الفواتير', moneyValue(r.billed), `${digits(r.invoicesCount)} فاتورة${r.discounts ? ` · خصومات ${formatMoney(r.discounts)}` : ''}`)}
+        ${stat('صافي الربح', moneyValue(r.net), margin === null ? '' : tr`هامش ${formatPercent(margin * 100, { decimals: 1 })} من المقبوضات`)}
+        ${stat('قيمة الفواتير', moneyValue(r.billed), tr`${digits(r.invoicesCount)} فاتورة${r.discounts ? tr` · خصومات ${formatMoney(r.discounts)}` : ''}`)}
       </div>
       <div class="bento">
         ${card(r.unit === 'day' ? 'المقبوضات والمصروفات يوميًا' : 'المقبوضات والمصروفات شهريًا', html`<div class="chart-box" data-chart-slot="cash"></div>`, { sub: 'مرّر على العمود لرؤية القيم' })}
@@ -107,7 +108,7 @@ async function treatmentsTab(from, to) {
     summary: [['عدد العلاجات', digits(r.count)], ['قيمة العمل المنجز', money(r.value)], ['تكلفة الخامات', money(r.materials)]],
     view: html`
       <div class="stat-grid">
-        ${stat('قيمة العمل المنجز', moneyValue(r.value), `${digits(r.count)} بند منتهٍ`, true)}
+        ${stat('قيمة العمل المنجز', moneyValue(r.value), tr`${digits(r.count)} بند منتهٍ`, true)}
         ${stat('تكلفة الخامات الفعلية', moneyValue(r.materials), 'من خصم المخزون عند «تم»')}
         ${stat('الربح التقريبي', moneyValue(r.margin), 'القيمة ناقص الخامات (بدون المصروفات الثابتة)')}
         ${stat('لم تُفوتر بعد', moneyValue(r.uninvoiced), r.uninvoiced ? html`<a href="#/billing">إنشاء الفواتير</a>` : 'كل البنود مفوترة')}
@@ -162,10 +163,10 @@ async function appointmentsTab(from, to) {
     summary: [['المواعيد', digits(r.total)], ['انتهى', digits(r.done)], ['نسبة عدم الحضور', formatPercent(r.noShowRate * 100)]],
     view: html`
       <div class="stat-grid">
-        ${stat('المواعيد', digits(r.total), `${digits(r.cancelled)} ملغي غير محسوب`, true)}
+        ${stat('المواعيد', digits(r.total), tr`${digits(r.cancelled)} ملغي غير محسوب`, true)}
         ${stat('زيارات منتهية', digits(r.done))}
-        ${stat('نسبة عدم الحضور', formatPercent(r.noShowRate * 100), `${digits(r.noShow)} موعد`)}
-        ${stat('المتابعات', `${digits(r.followUps.done)} / ${digits(r.followUps.total)}`, r.followUps.pending ? `${digits(r.followUps.pending)} لم تتم بعد` : 'تمت كلها')}
+        ${stat('نسبة عدم الحضور', formatPercent(r.noShowRate * 100), tr`${digits(r.noShow)} موعد`)}
+        ${stat('المتابعات', `${digits(r.followUps.done)} / ${digits(r.followUps.total)}`, r.followUps.pending ? tr`${digits(r.followUps.pending)} لم تتم بعد` : 'تمت كلها')}
       </div>
       <div class="bento">
         ${card(r.unit === 'day' ? 'المواعيد يوميًا' : 'المواعيد شهريًا', html`<div class="chart-box" data-chart-slot="appts"></div>`)}
@@ -190,9 +191,9 @@ async function receivablesTab() {
     summary: [['إجمالي المستحق', money(r.total)], ['أقساط متأخرة', money(r.overdueTotal)]],
     view: html`
       <div class="stat-grid">
-        ${stat('إجمالي المستحق', moneyValue(r.total), `على ${digits(r.balances.length)} مريض`, true)}
-        ${stat('أقساط متأخرة', moneyValue(r.overdueTotal), `${digits(r.overdue.length)} قسط`)}
-        ${stat('مستحق خلال 30 يومًا', moneyValue(r.upcomingTotal), `${digits(r.upcoming30.length)} قسط`)}
+        ${stat('إجمالي المستحق', moneyValue(r.total), tr`على ${digits(r.balances.length)} مريض`, true)}
+        ${stat('أقساط متأخرة', moneyValue(r.overdueTotal), tr`${digits(r.overdue.length)} قسط`)}
+        ${stat('مستحق خلال 30 يومًا', moneyValue(r.upcomingTotal), tr`${digits(r.upcoming30.length)} قسط`)}
       </div>
       <div class="bento">${sections.map((s) => card(s.heading, table(s)))}</div>`,
     charts: {},
@@ -233,7 +234,7 @@ export default {
     const preset = PRESETS[query.preset] ? query.preset : (query.from && query.to ? '' : 'month');
     const [from, to] = preset ? presetRange(preset) : [query.from, query.to];
     const canExport = can('reports', 'export');
-    const periodText = from === to ? formatDate(from) : `من ${formatDate(from)} إلى ${formatDate(to)}`;
+    const periodText = from === to ? formatDate(from) : tr`من ${formatDate(from)} إلى ${formatDate(to)}`;
     const qs = (extra) => ({ tab, ...(preset ? { preset } : { from, to }), ...extra });
 
     render(el, html`
@@ -281,14 +282,14 @@ export default {
     wireCharts(body, signal);
 
     const tabLabel = TABS.find(([k]) => k === tab)[1];
-    const sub = built.noPeriod ? `حتى ${formatDate(todayISO())}` : periodText;
+    const sub = built.noPeriod ? tr`حتى ${formatDate(todayISO())}` : periodText;
     on(el, 'click', '[data-xlsx]', async (_, b) => {
       b.disabled = true;
       try {
-        await exportExcel({ fileName: `ganah-report-${tab}-${from}_${to}`, title: `تقرير ${tabLabel}`, subtitle: sub, sheets: built.sections.map((s) => ({ name: s.name, columns: s.columns, rows: s.rows, totals: s.totals })) });
+        await inArabicAsync(() => exportExcel({ fileName: `ganah-report-${tab}-${from}_${to}`, title: tr`تقرير ${tabLabel}`, subtitle: built.noPeriod ? tr`حتى ${formatDate(todayISO())}` : periodText, sheets: built.sections.map((s) => ({ name: s.name, columns: s.columns, rows: s.rows, totals: s.totals })) }));
         toastSuccess('تم تنزيل ملف Excel');
       } catch (err) { toastError(err.message); } finally { b.disabled = false; }
     }, { signal });
-    on(el, 'click', '[data-pdf]', () => printReport({ title: `تقرير ${tabLabel}`, subtitle: sub, summary: built.summary, sections: built.sections }), { signal });
+    on(el, 'click', '[data-pdf]', () => inArabic(() => printReport({ title: tr`تقرير ${tabLabel}`, subtitle: built.noPeriod ? tr`حتى ${formatDate(todayISO())}` : periodText, summary: built.summary, sections: built.sections })), { signal });
   },
 };

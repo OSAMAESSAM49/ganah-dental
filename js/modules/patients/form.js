@@ -14,6 +14,7 @@ import { emptyState } from '../../components/states.js';
 import { createPatient, updatePatient, updateMedical, getPatient, findByPhone, dobFromAge, canChangePatient } from '../../services/patients.js';
 import { medicalFields, readMedical, sameMedical } from './medical.js';
 import { patientAvatar } from './list.js';
+import { tr, t } from '../../core/i18n.js';
 
 export default {
   async render({ el, params, signal }) {
@@ -31,7 +32,7 @@ export default {
     let photo = p.photo ?? null;
     let dobMode = p.dobEstimated ? 'age' : 'dob';
     const age = p.dob ? ageFromDOB(p.dob)?.years : '';
-    document.title = isNew ? 'مريض جديد' : `تعديل ${p.name}`;
+    document.title = isNew ? t('مريض جديد') : tr`تعديل ${p.name}`;
 
     render(el, html`
       <header class="page-header">
@@ -191,7 +192,7 @@ export default {
           if (!sameMedical(p.medical, medical)) await updateMedical(p.id, medical);
         }
         setLeaveGuard(null);
-        toastSuccess(isNew ? `تم تسجيل المريض · ملف ${saved.fileNo}` : 'تم حفظ التعديلات');
+        toastSuccess(isNew ? tr`تم تسجيل المريض · ملف ${saved.fileNo}` : 'تم حفظ التعديلات');
         navigate(`/patients/${saved.id}`, { replace: isNew });
       } catch (err) {
         console.error(err);

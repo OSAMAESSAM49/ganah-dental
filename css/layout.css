@@ -315,3 +315,7 @@
 .sync-btn[data-state="syncing"] .icon { animation: spin 1.2s linear infinite; }
 .sync-btn[data-state="offline"] { color: var(--c-warning); }
 .sync-btn[data-state="error"], .sync-btn[data-state="auth"] { color: var(--c-danger); }
+
+/* Language switch: shows the other language (EN / ع) */
+.lang-btn { font-weight: var(--fw-bold); font-size: var(--fs-sm); font-family: var(--font-sans-en); }
+.lang-btn:lang(ar) { font-family: "Thmanyah Local", "IBM Plex Sans Arabic", system-ui, sans-serif; font-size: var(--fs-md); }

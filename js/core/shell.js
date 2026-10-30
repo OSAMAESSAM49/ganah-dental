@@ -3,7 +3,7 @@
  * The shell renders once; route changes only update the active link, title and layout.
  * Menu items the user cannot view are hidden (not just blocked).
  */
-import { html, ico, on, render } from './dom.js';
+import { html, ico, on, render, keep } from './dom.js';
 import { NAV_GROUPS, BOTTOM_NAV, NAV_ITEMS } from './nav.js';
 import { getPref, setPref } from './prefs.js';
 import { cycleTheme, getTheme, THEME_ICONS, THEME_LABELS } from './theme.js';
@@ -22,7 +22,10 @@ import { attachPatientSearch } from '../components/patient-search.js';
 import { backupStatus } from '../services/backup.js';
 import { collectAlerts } from '../services/alerts.js';
 import { syncStatus, syncNow } from '../services/cloud-sync.js';
+import { LANGS, t } from './i18n.js';
+import { otherLanguage, switchLanguage } from '../services/language.js';
 import { digits, formatDateTime } from './format.js';
+import { tr } from './i18n.js';
 
 /** @type {HTMLElement} */
 let app;
@@ -96,8 +99,8 @@ function ago(iso) {
   if (!iso) return 'لم تتم بعد';
   const min = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
   if (min < 1) return 'الآن';
-  if (min < 60) return `منذ ${digits(min)} دقيقة`;
-  if (min < 24 * 60) return `منذ ${digits(Math.round(min / 60))} ساعة`;
+  if (min < 60) return tr`منذ ${digits(min)} دقيقة`;
+  if (min < 24 * 60) return tr`منذ ${digits(Math.round(min / 60))} ساعة`;
   return formatDateTime(iso);
 }
 
@@ -106,7 +109,7 @@ async function openSyncSheet() {
   const draw = (st) => html`<dl class="dl">
       <dt>الحالة</dt><dd>${SYNC_UI[st.state]?.[1] ?? 'غير مربوط بالسحابة'}</dd>
       <dt>آخر مزامنة</dt><dd>${ago(st.lastSyncAt)}</dd>
-      <dt>بانتظار الرفع</dt><dd>${st.pending ? `${digits(st.pending)} تعديل` : 'لا شيء'}</dd>
+      <dt>بانتظار الرفع</dt><dd>${st.pending ? tr`${digits(st.pending)} تعديل` : 'لا شيء'}</dd>
       ${st.error ? html`<dt>السبب</dt><dd>${st.error}</dd>` : ''}
     </dl>
     <p class="muted text-sm">${st.state === 'auth' ? 'اطلب من مدير النظام إعادة تسجيل الدخول بحساب العيادة من الإعدادات ← المزامنة.' : 'البرنامج يعمل بدون إنترنت، والتعديلات تُرفع تلقائيًا عند عودة الاتصال.'}</p>`;
@@ -138,9 +141,9 @@ function drawSync(st = syncStatus()) {
   btn.hidden = !ui || !getSession();
   if (!ui) return;
   btn.dataset.state = st.state;
-  const label = `${ui[1]}${st.pending ? ` · ${digits(st.pending)} تعديل لم يُرفع` : ''}`;
+  const label = `${ui[1]}${st.pending ? tr` · ${digits(st.pending)} تعديل لم يُرفع` : ''}`;
   btn.title = label;
-  btn.setAttribute('aria-label', `المزامنة: ${label}`);
+  btn.setAttribute('aria-label', tr`المزامنة: ${label}`);
   render(btn, html`${ico(ui[0], { size: 20 })}${st.pending && st.state !== 'syncing' ? html`<span class="icon-btn__badge"></span>` : ''}`);
 }
 
@@ -153,13 +156,13 @@ async function drawBell() {
   if (!btn) return;
   try { alerts = getSession() ? await collectAlerts() : []; } catch (err) { console.error(err); alerts = []; }
   render(btn, html`${ico('bell', { size: 20 })}${alerts.length ? html`<span class="icon-btn__badge"></span>` : ''}`);
-  btn.setAttribute('aria-label', alerts.length ? `التنبيهات (${alerts.length})` : 'التنبيهات');
+  btn.setAttribute('aria-label', alerts.length ? tr`التنبيهات (${alerts.length})` : 'التنبيهات');
 }
 const scheduleBell = () => { clearTimeout(bellTimer); bellTimer = setTimeout(drawBell, 600); };
 
 function openBell(anchor) {
   openMenu(anchor, {
-    header: html`<div class="menu__header"><div class="menu__header-text"><strong>يحتاج انتباهك</strong><small>${alerts.length ? `${alerts.length} تنبيه` : 'لا شيء عاجل الآن'}</small></div></div>`,
+    header: html`<div class="menu__header"><div class="menu__header-text"><strong>يحتاج انتباهك</strong><small>${alerts.length ? tr`${alerts.length} تنبيه` : 'لا شيء عاجل الآن'}</small></div></div>`,
     items: alerts.map((a) => ({ label: `${a.title} — ${a.sub}`, icon: a.icon, onSelect: () => navigate(a.link.replace(/^#/, '')) })),
   });
 }
@@ -175,7 +178,7 @@ async function drawBackupCard() {
   render(card, html`
     <div class="sidebar-card__title">${s.due ? 'حان وقت النسخ الاحتياطي' : 'بياناتك محفوظة على هذا الجهاز'}</div>
     <p class="sidebar-card__text">${s.lastAt
-      ? (s.days === 0 ? 'آخر نسخة احتياطية: اليوم' : `آخر نسخة احتياطية: منذ ${s.days === 1 ? 'يوم' : s.days === 2 ? 'يومين' : `${s.days} ${s.days <= 10 ? 'أيام' : 'يومًا'}`}`)
+      ? (s.days === 0 ? 'آخر نسخة احتياطية: اليوم' : tr`آخر نسخة احتياطية: منذ ${s.days === 1 ? 'يوم' : s.days === 2 ? 'يومين' : `${s.days} ${s.days <= 10 ? 'أيام' : 'يومًا'}`}`)
       : 'لم تؤخذ أي نسخة احتياطية بعد.'}</p>
     <a class="btn btn--accent btn--sm btn--block" href="#/settings?tab=backup">${ico('database', { size: 18 })} ${s.due ? 'خذ نسخة الآن' : 'النسخ الاحتياطي'}</a>`);
 }
@@ -210,7 +213,7 @@ function openUserMenu(anchor) {
       { label: 'تبديل المستخدم', icon: 'users', onSelect: () => signOut({ switchUser: true }) },
       { label: 'تغيير كلمة المرور', icon: 'key-round', onSelect: async () => (await import('../modules/account/dialogs.js')).openChangePasswordDialog() },
       { label: s.user.hasPin ? 'تغيير الرمز السريع' : 'تعيين رمز سريع (PIN)', icon: 'lock', onSelect: async () => (await import('../modules/account/dialogs.js')).openPinDialog() },
-      { label: `المظهر: ${THEME_LABELS[getTheme()]}`, icon: 'palette', onSelect: () => { const t = cycleTheme(); toast(`المظهر: ${THEME_LABELS[t]}`, { duration: 1800 }); document.querySelectorAll('[data-action="theme"]').forEach((b) => render(b, themeButton())); } },
+      { label: tr`المظهر: ${THEME_LABELS[getTheme()]}`, icon: 'palette', onSelect: () => { const t = cycleTheme(); toast(tr`المظهر: ${THEME_LABELS[t]}`, { duration: 1800 }); document.querySelectorAll('[data-action="theme"]').forEach((b) => render(b, themeButton())); } },
       'sep',
       { label: 'تسجيل الخروج', icon: 'log-out', danger: true, onSelect: () => signOut() },
     ],
@@ -247,6 +250,7 @@ export function mountShell(root) {
         <div class="topbar__actions">
           <button type="button" class="icon-btn topbar__search-btn" data-action="open-search" aria-label="بحث عن مريض">${ico('search', { size: 20 })}</button>
           <button type="button" class="icon-btn sync-btn" data-action="sync" hidden></button>
+          <button type="button" class="icon-btn lang-btn" data-action="lang" lang="${otherLanguage()}" aria-label="${keep(LANGS[otherLanguage()].label)}" title="${keep(LANGS[otherLanguage()].label)}">${keep(LANGS[otherLanguage()].short)}</button>
           <button type="button" class="icon-btn" data-action="theme" aria-live="polite">${themeButton()}</button>
           <button type="button" class="icon-btn" data-action="notifications" aria-label="التنبيهات" aria-haspopup="menu">
             ${ico('bell', { size: 20 })}
@@ -290,10 +294,11 @@ export function mountShell(root) {
       case 'close-search': closeSearch(); break;
       case 'open-drawer': app.dataset.drawer = 'open'; app.querySelector('.sidebar a')?.focus(); break;
       case 'close-drawer': closeDrawer(); break;
+      case 'lang': switchLanguage(); break;
       case 'theme': {
         const t = cycleTheme();
         render(el, themeButton());
-        toast(`المظهر: ${THEME_LABELS[t]}`, { duration: 1800 });
+        toast(tr`المظهر: ${THEME_LABELS[t]}`, { duration: 1800 });
         break;
       }
       case 'notifications': openBell(el); break;
@@ -325,5 +330,5 @@ export function setActiveRoute(path, title, route) {
   else delete app.dataset.layout;
   drawNav();
   const clinic = getSettings('clinic');
-  document.title = title ? `${title} · ${clinic.shortName}` : clinic.shortName;
+  document.title = title ? `${t(title)} · ${clinic.shortName}` : clinic.shortName;
 }

@@ -11,6 +11,7 @@ import { confirmDialog } from '../../components/modal.js';
 import { toast, toastSuccess, toastError } from '../../components/toast.js';
 import { syncStatus, syncNow, connectMainDevice, joinCloud, disconnectCloud, reconnectCloud, cloudEnabled } from '../../services/cloud-sync.js';
 import { exportBackup } from '../../services/backup.js';
+import { tr } from '../../core/i18n.js';
 
 export const SYNC_STATE = {
   off: { label: 'غير مربوط', tone: '', icon: 'cloud-off' },
@@ -100,7 +101,7 @@ export async function renderTab({ body, signal }) {
     if (!res.ok) {
       // Unlinking would forget edits that never reached the cloud: upload first, or keep a backup.
       const backupFirst = await confirmDialog({
-        title: `${digits(res.pending)} تعديل لم يُرفع للسحابة بعد`,
+        title: tr`${digits(res.pending)} تعديل لم يُرفع للسحابة بعد`,
         message: 'إلغاء الربط الآن يمنع وصول هذه التعديلات للأجهزة الأخرى. الأفضل: اتصل بالإنترنت واضغط «مزامنة الآن» ثم ألغِ الربط. أو نزّل نسخة احتياطية فيها كل شيء ثم ألغِ الربط.',
         confirmLabel: 'نسخة احتياطية ثم إلغاء الربط', cancelLabel: 'رجوع', danger: true,
       });

@@ -16,6 +16,8 @@ import { printHTML } from '../../components/print.js';
 import { formatInvoiceNo, formatReceiptNo } from '../../services/billing.js';
 import { formatRxNo } from '../../services/prescriptions.js';
 import { collectArchive, logArchiveExport } from '../../services/patient-archive.js';
+import { tr } from '../../core/i18n.js';
+import { inArabicAsync } from '../../core/i18n.js';
 
 const who = [{ header: 'رقم الملف', key: 'fileNo', width: 12 }, { header: 'المريض', key: 'patientName', width: 24 }];
 const lbl = (map) => (k) => map[k]?.label ?? map[k] ?? k ?? '';
@@ -62,7 +64,7 @@ const COLS = {
     { header: 'رقم الإيصال', key: 'no', value: (p) => formatReceiptNo(p.receiptNo), width: 12 }, { header: 'التاريخ', key: 'date', type: 'date' }, ...who,
     { header: 'الفاتورة', key: 'inv', value: (p) => (p.invoiceNo ? formatInvoiceNo(p.invoiceNo) : 'تحت الحساب'), width: 12 },
     { header: 'المبلغ', key: 'amount', type: 'money' }, { header: 'الطريقة', key: 'm', value: (p) => lbl(PAYMENT_METHODS)(p.method) },
-    { header: 'بواسطة', key: 'userName' }, { header: 'ملاحظة', key: 'note' }, { header: 'الحالة', key: 'v', value: (p) => (p.voided ? `ملغي: ${p.voidReason ?? ''}` : 'ساري') },
+    { header: 'بواسطة', key: 'userName' }, { header: 'ملاحظة', key: 'note' }, { header: 'الحالة', key: 'v', value: (p) => (p.voided ? tr`ملغي: ${p.voidReason ?? ''}` : 'ساري') },
   ],
   prescriptions: [
     { header: 'رقم الروشتة', key: 'no', value: (r) => formatRxNo(r.number), width: 11 }, { header: 'التاريخ', key: 'date', type: 'date' }, ...who,
@@ -90,12 +92,13 @@ const SHEETS = [
 const stamp = () => { const d = new Date(); return `${todayISO()}_${String(d.getHours()).padStart(2, '0')}${String(d.getMinutes()).padStart(2, '0')}`; };
 
 /** @param {{ includeDeleted?: boolean }} o */
-export async function exportArchiveExcel(o = {}) {
+export const exportArchiveExcel = (o = {}) => inArabicAsync(() => exportArchiveExcelAr(o));
+async function exportArchiveExcelAr(o = {}) {
   const a = await collectArchive(o);
   await exportExcel({
     fileName: `ganah-all-patients-${stamp()}`,
     title: 'بيانات كل المرضى',
-    subtitle: `${digits(a.patients.length)} مريض · ${formatDateTime(a.generatedAt)}`,
+    subtitle: tr`${digits(a.patients.length)} مريض · ${formatDateTime(a.generatedAt)}`,
     sheets: SHEETS.map(([key, name]) => ({ name, columns: COLS[key], rows: a[key] })),
   });
   await logArchiveExport('Excel', a.patients.length);
@@ -126,7 +129,7 @@ function patientSection(p, a) {
       ${REFERRAL_SOURCES[p.referralSource] ? html`<span>المصدر: ${REFERRAL_SOURCES[p.referralSource]}</span>` : ''}
       <span>التسجيل: ${formatDate(p.registered)}</span>
     </div>
-    <p class="arch-med"><strong>التاريخ الطبي:</strong> ${p.medicalText || 'لا يوجد'}${m.allergyOther ? ` · حساسية أخرى: ${m.allergyOther}` : ''}${m.medications ? ` · الأدوية: ${m.medications}` : ''}${m.notes ? ` · ${m.notes}` : ''}</p>
+    <p class="arch-med"><strong>التاريخ الطبي:</strong> ${p.medicalText || 'لا يوجد'}${m.allergyOther ? tr` · حساسية أخرى: ${m.allergyOther}` : ''}${m.medications ? tr` · الأدوية: ${m.medications}` : ''}${m.notes ? ` · ${m.notes}` : ''}</p>
     ${p.notes ? html`<p class="arch-med"><strong>ملاحظات:</strong> ${p.notes}</p>` : ''}
     <p class="arch-med"><strong>الحساب:</strong> الفواتير ${formatMoney(p.billed)} · المدفوع ${formatMoney(p.paid)} · <strong>المتبقي ${formatMoney(p.balance)}</strong></p>
     ${sections.map(([key, heading]) => {
@@ -137,7 +140,8 @@ function patientSection(p, a) {
 }
 
 /** Opens the print dialog with every patient (choose "Save as PDF"). */
-export async function printArchive(o = {}) {
+export const printArchive = (o = {}) => inArabicAsync(() => printArchiveAr(o));
+async function printArchiveAr(o = {}) {
   const a = await collectArchive(o);
   const clinic = getSettings('clinic');
   printHTML(html`

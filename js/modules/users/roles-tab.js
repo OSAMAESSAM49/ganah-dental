@@ -8,6 +8,7 @@ import { openModal, confirmDialog } from '../../components/modal.js';
 import { textField, selectField } from '../../components/form.js';
 import { toastSuccess, toastError } from '../../components/toast.js';
 import { listRoles, roleUsage, createRole, updateRole, deleteRole } from '../../services/users.js';
+import { tr } from '../../core/i18n.js';
 
 export async function renderTab({ body, actions, query, signal }) {
   render(actions, html`<button type="button" class="btn btn--primary" data-add-role>${ico('plus')} دور جديد</button>`);
@@ -56,7 +57,7 @@ export async function renderTab({ body, actions, query, signal }) {
             </div>`}
           </div>
           <div class="card__body stack" id="grid-wrap">
-            ${role ? permissionGrid({ value: role.permissions, locked, caption: `صلاحيات ${role.name}` }) : ''}
+            ${role ? permissionGrid({ value: role.permissions, locked, caption: tr`صلاحيات ${role.name}` }) : ''}
             <div class="row" id="role-savebar" hidden>
               <button type="button" class="btn btn--primary" data-save>${ico('save')} حفظ الصلاحيات</button>
               <button type="button" class="btn btn--ghost" data-discard>تجاهل التغييرات</button>
@@ -98,7 +99,7 @@ export async function renderTab({ body, actions, query, signal }) {
 
   on(body, 'click', '[data-delete-role]', async () => {
     const role = roles.find((r) => r.id === selectedId);
-    if (!(await confirmDialog({ title: `حذف دور «${role.name}»؟`, message: 'لا يمكن حذف دور مُسند لمستخدمين.', confirmLabel: 'حذف', danger: true }))) return;
+    if (!(await confirmDialog({ title: tr`حذف دور «${role.name}»؟`, message: 'لا يمكن حذف دور مُسند لمستخدمين.', confirmLabel: 'حذف', danger: true }))) return;
     try {
       await deleteRole(role.id);
       setDirty(false);

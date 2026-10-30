@@ -16,6 +16,8 @@ import { toastSuccess } from '../../components/toast.js';
 import { printHTML } from '../../components/print.js';
 import { listItems, movementsBetween, inventoryAlerts, shoppingList, updateItem, deleteItem, unitLabel, batchesFor } from '../../services/inventory.js';
 import { itemDialog, receiveDialog, adjustDialog, itemDetails, qtyText } from './dialogs.js';
+import { tr } from '../../core/i18n.js';
+import { inArabic } from '../../core/i18n.js';
 
 const TABS = [['items', 'الأصناف', 'package'], ['movements', 'الحركات', 'arrow-up-down'], ['alerts', 'التنبيهات', 'triangle-alert'], ['shopping', 'قائمة المشتريات', 'clipboard-list']];
 const STATUS = { ok: ['متوفر', 'success'], low: ['قارب على النفاد', 'warning'], out: ['نفد', 'danger'], negative: ['رصيد سالب', 'danger'] };
@@ -166,11 +168,11 @@ export default {
         { label: i.active === false ? 'تفعيل الصنف' : 'إيقاف الصنف', icon: i.active === false ? 'eye' : 'eye-off', onSelect: async () => { await updateItem(i.id, { active: i.active === false }); toastSuccess('تم'); } },
         ...(perm.del ? ['sep', { label: 'حذف الصنف', icon: 'trash-2', danger: true, onSelect: async () => {
           const stock = (await batchesFor(i.id)).length;
-          if (await confirmDialog({ title: `حذف ${i.name}؟`, message: stock ? 'يوجد رصيد لهذا الصنف. يُفضّل «إيقاف الصنف» بدلًا من حذفه.' : 'سيختفي من القوائم والوصفات. الحركات السابقة تبقى في السجل.', confirmLabel: 'حذف', danger: true })) { await deleteItem(i.id); toastSuccess('تم حذف الصنف'); }
+          if (await confirmDialog({ title: tr`حذف ${i.name}؟`, message: stock ? 'يوجد رصيد لهذا الصنف. يُفضّل «إيقاف الصنف» بدلًا من حذفه.' : 'سيختفي من القوائم والوصفات. الحركات السابقة تبقى في السجل.', confirmLabel: 'حذف', danger: true })) { await deleteItem(i.id); toastSuccess('تم حذف الصنف'); }
         } }] : []),
       ] });
     }, { signal });
-    on(body, 'click', '[data-print-shopping]', () => printHTML(html`
+    on(body, 'click', '[data-print-shopping]', () => inArabic(() => printHTML(html`
       <table class="print-table"><thead><tr><th>#</th><th>الصنف</th><th>المتوفر</th><th>الكمية المطلوبة</th><th>المورد</th><th>ملاحظات</th></tr></thead>
       <tbody>${shopping.map((i, n) => html`<tr><td>${digits(n + 1)}</td><td>${i.name}</td><td>${qtyText(i.qty, i.unit)}</td><td><strong>${qtyText(i.suggested, i.unit)}</strong></td><td>${i.supplier || ''}</td><td></td></tr>`)}</tbody></table>`,
     { title: 'قائمة المشتريات' }), { signal });

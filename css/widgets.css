@@ -11,6 +11,7 @@
 /* ---------- Date field + calendar popover ---------- */
 .date-field { position: relative; display: flex; align-items: center; }
 .date-field .input { padding-left: 56px; padding-right: var(--sp-4); } /* LTR text, button on the left */
+[dir="ltr"] .date-field .input { padding-left: var(--sp-4); padding-right: 56px; } /* English: button on the right */
 .date-field__btn {
   position: absolute; inset-inline-end: 4px;
   display: grid; place-items: center; inline-size: 40px; block-size: 40px;

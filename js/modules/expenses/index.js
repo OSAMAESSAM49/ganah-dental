@@ -21,6 +21,7 @@ import {
 } from '../../services/expenses.js';
 import { revenueBetween } from '../../services/billing.js';
 import { urlPool } from '../../services/media.js';
+import { tr } from '../../core/i18n.js';
 
 const TABS = [['list', 'المصروفات', 'wallet'], ['recurring', 'المصروفات الشهرية الثابتة', 'repeat'], ['categories', 'التصنيفات', 'list-checks']];
 const SOURCE = { manual: ['يدوي', ''], inventory: ['من المخزون', 'info'], lab: ['معمل', 'primary'], recurring: ['شهري ثابت', 'accent'] };
@@ -173,7 +174,7 @@ export default {
       render(body, rows.length ? html`<ul class="list">${rows.map((r) => html`<li class="list__item" ${r.active ? '' : html`style="opacity:.6"`}>
         ${ico('repeat', { size: 20 })}
         <span class="list__main"><span class="list__title">${r.description || catName[r.categoryId]} · ${formatMoney(r.amount)}</span>
-          <span class="list__meta">${catName[r.categoryId]} · يوم ${digits(r.dayOfMonth)} من كل شهر${r.lastGenerated ? ` · آخر تسجيل ${monthLabel(`${r.lastGenerated}-01`)}` : ''}${r.active ? '' : ' · متوقف'}</span></span>
+          <span class="list__meta">${catName[r.categoryId]} · يوم ${digits(r.dayOfMonth)} من كل شهر${r.lastGenerated ? tr` · آخر تسجيل ${monthLabel(`${r.lastGenerated}-01`)}` : ''}${r.active ? '' : ' · متوقف'}</span></span>
         ${perm.edit ? html`<button type="button" class="btn btn--sm" data-rec-toggle="${r.id}">${r.active ? 'إيقاف' : 'استئناف'}</button>
           <button type="button" class="btn btn--ghost btn--sm" data-rec-amount="${r.id}">${ico('pencil', { size: 16 })} المبلغ</button>` : ''}
       </li>`)}</ul>` : html`<div class="card">${emptyState({ icon: 'repeat', title: 'لا توجد مصروفات شهرية ثابتة', hint: 'من «مصروف جديد» اختر «يتكرر كل شهر» للإيجار أو الرواتب، ليُسجّل تلقائيًا كل شهر.' })}</div>`);

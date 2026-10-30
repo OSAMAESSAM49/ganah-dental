@@ -15,6 +15,7 @@ import { html, raw } from '../core/dom.js';
 import { ROWS, DENTITIONS, isUpper, isScreenLeft, position, isPrimary, toothName, surfacesText } from '../core/teeth.js';
 import { CONDITION, toothConditions } from '../core/chart-conditions.js';
 import { TOOTH_ART } from '../core/tooth-art.js';
+import { tr } from '../core/i18n.js';
 
 const CELL = 64;            // horizontal space per tooth
 const MID_GAP = 22;
@@ -145,9 +146,9 @@ function drawTooth(t, cx, y, { state, planned, selected, selectedSurfaces, reado
   if (isSel) marks.push(`<rect class="odo-select" x="${f(cx + 2)}" y="${f(top)}" width="${CELL - 4}" height="${f(bottom - top)}" rx="14"/>`);
 
   const label = [
-    `سن ${t}، ${toothName(t)}`,
+    tr`سن ${t}، ${toothName(t)}`,
     ...toothConditions(state, t).map((c) => (c.surface && c.surfaces.length ? `${c.label} ${surfacesText(t, c.surfaces)}` : c.label)),
-    plan.length ? `مخطط: ${plan.map((p) => p.procedureName).join('، ')}` : '',
+    plan.length ? tr`مخطط: ${plan.map((p) => p.procedureName).join('، ')}` : '',
   ].filter(Boolean).join('، ');
 
   return raw(`
@@ -155,7 +156,7 @@ function drawTooth(t, cx, y, { state, planned, selected, selectedSurfaces, reado
       <title>${label.replace(/</g, '&lt;')}</title>
       <rect class="odo-hit" x="${cx}" y="${y}" width="${CELL}" height="${ROW_H}"/>
       <text class="odo-num" x="${f(center)}" y="${f(labelY)}" text-anchor="middle">${t}</text>
-      ${plan.length ? `<circle class="odo-planned" cx="${f(center + 14)}" cy="${f(labelY - 4)}" r="4.5"><title>${plan.length} إجراء مخطط</title></circle>` : ''}
+      ${plan.length ? tr`<circle class="odo-planned" cx="${f(center + 14)}" cy="${f(labelY - 4)}" r="4.5"><title>${plan.length} إجراء مخطط</title></circle>` : ''}
       <g class="odo-views">
         <g transform="${place(center - bw / 2, by, B.w, B.h, sb, flip)}">${bParts.join('')}</g>
         <g transform="${place(center - ow / 2, oy, O.w, O.h, so, flip)}">${oParts.join('')}</g>

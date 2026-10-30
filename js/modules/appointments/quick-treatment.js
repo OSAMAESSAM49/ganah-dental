@@ -19,6 +19,7 @@ import { ensureActivePlan, addItems, setItemStatus, listItems, listPlans, planne
 import { loadCatalog } from '../../services/procedures.js';
 import { getPatient } from '../../services/patients.js';
 import { defaultDentition } from '../patients/tab-chart.js';
+import { tr } from '../../core/i18n.js';
 
 /** The patient's visit today (not cancelled / no-show), if any. */
 async function visitToday(patientId) {
@@ -49,7 +50,7 @@ export async function openQuickTreatment({ patientId, appt }) {
     const teeth = sortTeeth([...ui.selected]);
     const p = proc();
     return html`${teeth.length
-      ? html`<span class="qt__teeth">${ico('tooth', { size: 16 })} ${teeth.length === 1 ? toothName(teeth[0]) : `${digits(teeth.length)} أسنان: ${teeth.join('، ')}`}${ui.surfaces.size ? html` · <span class="ltr">${[...ui.surfaces].join('')}</span>` : ''}</span>
+      ? html`<span class="qt__teeth">${ico('tooth', { size: 16 })} ${teeth.length === 1 ? toothName(teeth[0]) : tr`${digits(teeth.length)} أسنان: ${teeth.join('، ')}`}${ui.surfaces.size ? html` · <span class="ltr">${[...ui.surfaces].join('')}</span>` : ''}</span>
         <button type="button" class="link-btn" data-qt-clear>مسح الاختيار</button>`
       : html`<span class="muted text-sm">اضغط على السن (أو على سطح منه). اتركه بدون اختيار للإجراءات العامة مثل التنظيف.</span>`}
       ${p ? html`<span class="qt__price">${p.name}: <strong>${formatMoney(totals().total)}</strong>${totals().discount ? html` <span class="muted text-sm">بعد خصم ${formatMoney(totals().discount)}</span>` : ''}</span>` : ''}`;
@@ -125,13 +126,13 @@ export async function openQuickTreatment({ patientId, appt }) {
       if (ui.start) for (const i of created) await setItemStatus(i.id, 'in_progress');
       added += created.length;
       const total = created.reduce((s, i) => s + itemMath(i).total, 0);
-      toastSuccess(`أُضيف «${p.name}»${teeth.length ? ` على ${teeth.join('، ')}` : ''} — ${formatMoney(total)}${ui.start ? ' وبدأ العلاج' : ''}`);
+      toastSuccess(tr`أُضيف «${p.name}»${teeth.length ? tr` على ${teeth.join('، ')}` : ''} — ${formatMoney(total)}${ui.start ? ' وبدأ العلاج' : ''}`);
       return true;
     } catch (err) { toastError(err.message); return false; }
   };
 
   await openModal({
-    title: `إضافة إجراء — ${patient?.name ?? appt?.patientName ?? ''}`,
+    title: tr`إضافة إجراء — ${patient?.name ?? appt?.patientName ?? ''}`,
     icon: 'tooth',
     size: 'lg',
     body,

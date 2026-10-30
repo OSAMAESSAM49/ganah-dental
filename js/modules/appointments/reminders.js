@@ -11,6 +11,7 @@ import { openModal } from '../../components/modal.js';
 import { toastSuccess, toastError } from '../../components/toast.js';
 import { emptyState } from '../../components/states.js';
 import { tomorrowsReminders, buildReminders, markReminded } from '../../services/appointments.js';
+import { tr } from '../../core/i18n.js';
 
 export async function openReminders() {
   const day = addDays(todayISO(), 1);
@@ -37,7 +38,7 @@ export async function openReminders() {
     </div>` : emptyState({ icon: 'calendar-check', title: 'لا توجد مواعيد محجوزة غدًا', hint: 'عند وجود مواعيد ليوم الغد ستظهر هنا مع زر واتساب لكل مريض.' }));
 
   await openModal({
-    title: `تذكيرات الغد — ${dayLabel(day)}`,
+    title: tr`تذكيرات الغد — ${dayLabel(day)}`,
     icon: 'message-circle',
     size: 'lg',
     body: markup(),

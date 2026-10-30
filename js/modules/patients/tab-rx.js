@@ -9,6 +9,7 @@ import { emptyState } from '../../components/states.js';
 import { toastSuccess } from '../../components/toast.js';
 import { prescriptionsForPatient, deletePrescription, formatRxNo } from '../../services/prescriptions.js';
 import { prescriptionDialog, printPrescription } from '../prescriptions/dialogs.js';
+import { tr } from '../../core/i18n.js';
 
 export async function renderTab({ body, patient, signal }) {
   const perm = { create: can('prescriptions', 'create'), edit: can('prescriptions', 'edit'), del: can('prescriptions', 'delete') };
@@ -44,7 +45,7 @@ export async function renderTab({ body, patient, signal }) {
       ...(perm.create ? [{ label: 'تكرار الروشتة', icon: 'repeat', onSelect: () => prescriptionDialog({ patientId: r.patientId, repeatOf: r }) }] : []),
       ...(perm.edit ? [{ label: 'تعديل', icon: 'pencil', onSelect: () => prescriptionDialog({ prescription: r }) }] : []),
       ...(perm.del ? ['sep', { label: 'حذف', icon: 'trash-2', danger: true, onSelect: async () => {
-        if (await confirmDialog({ title: `حذف الروشتة ${formatRxNo(r.number)}؟`, message: `${r.patientName} · ${formatDate(r.date)}`, confirmLabel: 'حذف', danger: true })) { await deletePrescription(r.id); toastSuccess('تم الحذف'); }
+        if (await confirmDialog({ title: tr`حذف الروشتة ${formatRxNo(r.number)}؟`, message: `${r.patientName} · ${formatDate(r.date)}`, confirmLabel: 'حذف', danger: true })) { await deletePrescription(r.id); toastSuccess('تم الحذف'); }
       } }] : []),
     ] });
   }, { signal });

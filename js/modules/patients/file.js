@@ -19,6 +19,7 @@ import { nextAppointment, listForPatient } from '../../services/appointments.js'
 import { patientAccount } from '../../services/billing.js';
 import { dayLabel, formatClock } from '../../core/time.js';
 import { patientAvatar } from './list.js';
+import { tr, t } from '../../core/i18n.js';
 
 const TABS = [
   { key: 'overview', label: 'نظرة عامة', icon: 'user-round', load: () => import('./tab-overview.js') },
@@ -42,7 +43,7 @@ export default {
     }
     const tabs = TABS.filter((t) => !t.module || can(t.module, 'view'));
     let tab = tabs.find((t) => t.key === query.tab) ?? tabs[0];
-    document.title = `${patient.name} · ${tab.label}`;
+    document.title = `${patient.name} · ${t(tab.label)}`;
 
     let next = can('appointments', 'view') ? await nextAppointment(patient.id) : null;
     // What reception asks first: does the patient owe anything, and when did they last come.
@@ -140,7 +141,7 @@ export default {
         label: 'حذف ملف المريض', icon: 'trash-2', danger: true,
         onSelect: async () => {
           const ok = await confirmDialog({
-            title: `حذف ملف ${patient.name}؟`,
+            title: tr`حذف ملف ${patient.name}؟`,
             message: 'سينتقل الملف إلى «المحذوفون» ويمكن استعادته لاحقًا. لن يظهر في البحث أو القوائم.',
             confirmLabel: 'حذف', danger: true,
           });
@@ -181,7 +182,7 @@ export default {
       }
       centerActive();
       replaceUrl(href('/patients/:id', { id: patient.id }, tab.key === 'overview' ? undefined : { tab: tab.key }));
-      document.title = `${patient.name} · ${tab.label}`;
+      document.title = `${patient.name} · ${t(tab.label)}`;
       mod = await tab.load();
       await showTab();
     }, { signal });

@@ -12,6 +12,7 @@ import { dateField, enhanceDateFields } from '../../components/date-field.js';
 import { textField, selectField } from '../../components/form.js';
 import { downloadBlob } from '../../services/backup.js';
 import { listPatientMedia, addPatientImages, updateMedia, deleteMedia, urlPool, MEDIA_KINDS, MEDIA_TAGS } from '../../services/media.js';
+import { tr } from '../../core/i18n.js';
 
 const FILTERS = [['all', 'الكل'], ['photo', 'صور'], ['xray', 'أشعة'], ['before', 'قبل'], ['after', 'بعد']];
 
@@ -95,11 +96,11 @@ export async function renderTab({ body, patient, query, signal }) {
     if (!list.length) { toastError('اختر ملفات صور (JPG أو PNG)'); return; }
     const kind = /** @type {HTMLInputElement} */ (body.querySelector('[name="up-kind"]:checked'))?.value ?? 'photo';
     const tag = /** @type {HTMLSelectElement} */ (body.querySelector('#up-tag'))?.value ?? '';
-    const dismiss = toast(`جارٍ حفظ ${digits(list.length)} صورة…`, { duration: 0 });
+    const dismiss = toast(tr`جارٍ حفظ ${digits(list.length)} صورة…`, { duration: 0 });
     try {
       await addPatientImages(p.id, list, { kind, tag });
       dismiss();
-      toastSuccess(list.length === 1 ? 'تم حفظ الصورة' : `تم حفظ ${digits(list.length)} صور`);
+      toastSuccess(list.length === 1 ? 'تم حفظ الصورة' : tr`تم حفظ ${digits(list.length)} صور`);
       await reload();
     } catch (err) {
       dismiss();

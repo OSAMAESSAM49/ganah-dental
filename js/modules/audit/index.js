@@ -9,6 +9,7 @@ import { openModal } from '../../components/modal.js';
 import { toastError } from '../../components/toast.js';
 import { listAudit } from '../../services/audit.js';
 import { repos } from '../../data/index.js';
+import { t } from '../../core/i18n.js';
 
 const PAGE = 300;
 const FIELDS = { one: 'حقل واحد', two: 'حقلان', few: 'حقول', many: 'حقلًا' };
@@ -121,7 +122,7 @@ export default {
       rows = rows.concat(page.filter((r) => matches(r, f)));
       const visible = shown();
       table.update(visible);
-      el.querySelector('#audit-count').textContent = visible.length ? `${arabicCount(visible.length, OPS)}${hasMore ? ' أو أكثر' : ''}` : '';
+      el.querySelector('#audit-count').textContent = visible.length ? t(`${arabicCount(visible.length, OPS)}${hasMore ? ' أو أكثر' : ''}`) : '';
       el.querySelector('#audit-more').hidden = !hasMore;
     };
 

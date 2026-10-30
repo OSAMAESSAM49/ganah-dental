@@ -6,6 +6,7 @@
 import { html, ico } from '../core/dom.js';
 import { formatBytes, formatDateTime, digits, formatPercent, formatNumber } from '../core/format.js';
 import { supabaseApi } from '../services/cloud.js';
+import { tr } from '../core/i18n.js';
 
 export const FREE_DB_BYTES = 500 * 1024 * 1024;
 export const FREE_STORAGE_BYTES = 1024 * 1024 * 1024;
@@ -63,7 +64,7 @@ export function usageItem({ usage, stale }) {
       <span class="list__title">مساحة السحابة</span>
       <span class="list__meta muted">${formatBytes(usage.dbBytes)} من 500 م.ب (خطة Supabase المجانية) · تكفي تقريبًا لـ <strong>${digits(formatNumber(round100(usage.morePatients), { decimals: 0 }))}</strong> مريض إضافي</span>
       <span class="progress progress--${tone(usage.dbPct)}" role="progressbar" aria-valuenow="${Math.round(usage.dbPct * 100)}" aria-valuemin="0" aria-valuemax="100" aria-label="المستخدم من مساحة قاعدة البيانات"><span class="progress__bar" style="inline-size: ${Math.max(1, Math.min(100, usage.dbPct * 100))}%"></span></span>
-      <span class="list__meta muted text-sm">${digits(usage.patients)} مريض على السحابة · الصور ${formatBytes(usage.storageBytes)} من 1 ج.ب${stale ? ` · آخر قراءة ${formatDateTime(usage.at)}` : ''}</span>
+      <span class="list__meta muted text-sm">${digits(usage.patients)} مريض على السحابة · الصور ${formatBytes(usage.storageBytes)} من 1 ج.ب${stale ? tr` · آخر قراءة ${formatDateTime(usage.at)}` : ''}</span>
     </div>
     <span class="badge badge--${tone(usage.dbPct)}">${formatPercent(usage.dbPct * 100, { decimals: usage.dbPct < 0.1 ? 1 : 0 })}</span>
   </li>`;

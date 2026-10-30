@@ -10,6 +10,7 @@ import { dateField, enhanceDateFields } from '../../components/date-field.js';
 import { toastSuccess, toastError } from '../../components/toast.js';
 import { createItem, updateItem, receiveStock, adjustStock, batchesFor, movementsFor, listItems, inventoryHints, unitLabel, EXPIRY_WARNING_DAYS } from '../../services/inventory.js';
 import { addDays } from '../../core/time.js';
+import { tr } from '../../core/i18n.js';
 
 const num = (v) => Number(normalizeDigits(v).replace(',', '.'));
 export const qtyText = (q, unit) => `${formatNumber(q, { decimals: 3 })} ${unitLabel(unit)}`;
@@ -21,7 +22,7 @@ export async function itemDialog(item = null) {
   const hints = await inventoryHints();
   let saved = null;
   await openModal({
-    title: item ? `تعديل ${item.name}` : 'صنف جديد',
+    title: item ? tr`تعديل ${item.name}` : 'صنف جديد',
     dirty: true,
     icon: item ? 'pencil' : 'package',
     body: html`
@@ -88,7 +89,7 @@ export async function receiveDialog(item = null) {
       enhanceDateFields(f);
       const total = () => {
         const q = num(f.querySelector('[name=qty]').value), c = toPiasters(f.querySelector('[name=unitCost]').value || '0');
-        d.querySelector('#rcv-total').textContent = q > 0 && c >= 0 ? `الإجمالي: ${formatMoney(Math.round(q * c))}` : '';
+        d.querySelector('#rcv-total').textContent = q > 0 && c >= 0 ? tr`الإجمالي: ${formatMoney(Math.round(q * c))}` : '';
       };
       f.addEventListener('input', total);
       f.addEventListener('submit', (e) => { e.preventDefault(); close('save'); });
@@ -123,7 +124,7 @@ export async function adjustDialog(item) {
   const batches = await batchesFor(item.id);
   let ok = false;
   await openModal({
-    title: `تسوية مخزون ${item.name}`,
+    title: tr`تسوية مخزون ${item.name}`,
     dirty: true,
     icon: 'refresh-cw',
     body: html`
@@ -145,7 +146,7 @@ export async function adjustDialog(item) {
       const drawBatch = () => {
         const mode = /** @type {HTMLInputElement} */ (f.querySelector('[name=mode]:checked')).value;
         render(f.querySelector('#batch-pick'), mode === 'out' && batches.length > 1 ? html`<label class="field"><span class="field__label">من تشغيلة</span>
-          <select class="select" name="batchId"><option value="">الأقرب انتهاءً أولًا</option>${batches.map((b) => html`<option value="${b.id}">${b.batchNo || 'بدون رقم'} · ${qtyText(b.qty, item.unit)}${b.expiry ? ` · ينتهي ${formatDate(b.expiry)}` : ''}</option>`)}</select></label>` : '');
+          <select class="select" name="batchId"><option value="">الأقرب انتهاءً أولًا</option>${batches.map((b) => html`<option value="${b.id}">${b.batchNo || 'بدون رقم'} · ${qtyText(b.qty, item.unit)}${b.expiry ? tr` · ينتهي ${formatDate(b.expiry)}` : ''}</option>`)}</select></label>` : '');
       };
       drawBatch();
       f.addEventListener('change', (e) => { if (/** @type {HTMLInputElement} */ (e.target).name === 'mode') drawBatch(); });

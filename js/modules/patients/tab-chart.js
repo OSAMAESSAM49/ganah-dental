@@ -17,6 +17,7 @@ import { getChart, historyDays, recordToothEvents, voidToothEvent } from '../../
 import { listPlans, listItems, ensureActivePlan, addItems, plannedByTooth, chargedPerTooth } from '../../services/treatment.js';
 import { loadCatalog } from '../../services/procedures.js';
 import { ageYears } from '../../services/patients.js';
+import { tr } from '../../core/i18n.js';
 
 /** Default dentition from age: under 6 primary, 6–12 mixed, otherwise adult. */
 export function defaultDentition(p) {
@@ -99,7 +100,7 @@ export async function renderTab({ body, patient, signal }) {
         ${targets.length > 1 ? html`<select class="select" id="plan-pick" aria-label="الخطة">
           ${targets.map((pl) => html`<option value="${pl.id}" ${pl.id === ui.planId ? 'selected' : ''}>${pl.name}${pl.status === 'proposal' ? ' (بديلة)' : ''}</option>`)}
         </select>` : ''}
-        ${proc ? html`<p class="muted text-sm">${chargedPerTooth(proc, [...ui.selected]) ? `بند لكل سن (${digits(ui.selected.size)})` : 'بند واحد'}${CONDITION[proc.chartEffect]?.surface && ui.surfaces.size ? ` · الأسطح: ${[...ui.surfaces].join('')}` : ''}${proc.price ? ` · ${formatMoney(proc.price * (chargedPerTooth(proc, [...ui.selected]) ? ui.selected.size : 1))}` : ' · بدون سعر'}</p>` : ''}
+        ${proc ? html`<p class="muted text-sm">${chargedPerTooth(proc, [...ui.selected]) ? tr`بند لكل سن (${digits(ui.selected.size)})` : 'بند واحد'}${CONDITION[proc.chartEffect]?.surface && ui.surfaces.size ? tr` · الأسطح: ${[...ui.surfaces].join('')}` : ''}${proc.price ? ` · ${formatMoney(proc.price * (chargedPerTooth(proc, [...ui.selected]) ? ui.selected.size : 1))}` : ' · بدون سعر'}</p>` : ''}
         <button type="button" class="btn btn--dark btn--sm" data-add-plan ${proc ? '' : 'disabled'} style="align-self:flex-start">${ico('plus', { size: 18 })} أضف للخطة</button>
       </div>`;
   };
@@ -145,17 +146,17 @@ export async function renderTab({ body, patient, signal }) {
 
   /* ---------- change log ---------- */
   const describeEvent = (e) => {
-    if (e.type === 'clear') return `تحديد السن ${e.tooth} سليمًا`;
+    if (e.type === 'clear') return tr`تحديد السن ${e.tooth} سليمًا`;
     const c = CONDITION[e.condition];
     const s = e.surfaces?.length ? ` (${surfacesText(e.tooth, e.surfaces)})` : '';
-    return `${e.type === 'add' ? 'إضافة' : 'إزالة'} «${c?.label ?? e.condition}»${s} — سن ${e.tooth}`;
+    return tr`${e.type === 'add' ? 'إضافة' : 'إزالة'} «${c?.label ?? e.condition}»${s} — سن ${e.tooth}`;
   };
   const logMarkup = () => {
     const rows = [...events].sort((a, b) => b.at.localeCompare(a.at)).slice(0, 200);
     return rows.length ? html`<ul class="timeline">${rows.map((e) => html`
       <li class="timeline__item" ${e.voided ? html`data-voided` : ''}>
         <span class="cond-dot" style="background:${CONDITION[e.condition]?.color ?? 'var(--c-border-strong)'}"></span>
-        <span class="timeline__main">${describeEvent(e)}<br><span class="subtle">${formatDateTime(e.at)} · ${e.source === 'treatment' ? `من خطة العلاج${e.note ? `: ${e.note}` : ''}` : 'يدوي'}${e.userName ? ` · ${e.userName}` : ''}${e.voided ? ' · أُلغي' : ''}</span></span>
+        <span class="timeline__main">${describeEvent(e)}<br><span class="subtle">${formatDateTime(e.at)} · ${e.source === 'treatment' ? tr`من خطة العلاج${e.note ? `: ${e.note}` : ''}` : 'يدوي'}${e.userName ? ` · ${e.userName}` : ''}${e.voided ? ' · أُلغي' : ''}</span></span>
         ${canEdit && !e.voided && e.source !== 'treatment' ? html`<button type="button" class="btn btn--ghost btn--sm" data-void="${e.id}">تراجع</button>` : ''}
       </li>`)}</ul>` : html`<p class="muted">لا توجد تغييرات مسجّلة بعد.</p>`;
   };
@@ -275,7 +276,7 @@ export async function renderTab({ body, patient, signal }) {
     const changes = teeth.map((tooth) => ({ tooth, type: 'add', condition: c.key, surfaces: c.surface ? [...ui.surfaces] : [] }));
     try {
       const recorded = await recordToothEvents(p.id, changes);
-      undoToast(`تم تسجيل «${c.label}» على ${teeth.join('، ')}`, recorded);
+      undoToast(tr`تم تسجيل «${c.label}» على ${teeth.join('، ')}`, recorded);
       ui.surfaces.clear();
       ui.selected.clear(); // next tap starts a fresh selection
       await redraw();
@@ -284,9 +285,9 @@ export async function renderTab({ body, patient, signal }) {
 
   on(body, 'click', '[data-clear-teeth]', async () => {
     const teeth = sortTeeth([...ui.selected]);
-    if (!(await confirmDialog({ title: 'تحديد الأسنان كسليمة؟', message: `ستُزال كل الحالات المسجّلة على ${teeth.join('، ')}. يبقى ذلك في سجل التغييرات.`, confirmLabel: 'نعم، سليمة' }))) return;
+    if (!(await confirmDialog({ title: 'تحديد الأسنان كسليمة؟', message: tr`ستُزال كل الحالات المسجّلة على ${teeth.join('، ')}. يبقى ذلك في سجل التغييرات.`, confirmLabel: 'نعم، سليمة' }))) return;
     const recorded = await recordToothEvents(p.id, teeth.map((tooth) => ({ tooth, type: 'clear' })));
-    undoToast(`${teeth.join('، ')}: سليمة`, recorded);
+    undoToast(tr`${teeth.join('، ')}: سليمة`, recorded);
     ui.selected.clear();
     ui.surfaces.clear();
     await redraw();
@@ -303,7 +304,7 @@ export async function renderTab({ body, patient, signal }) {
   on(body, 'click', '[data-remove-cond]', async (_, b) => {
     const tooth = [...ui.selected][0];
     const recorded = await recordToothEvents(p.id, [{ tooth, type: 'remove', condition: b.dataset.removeCond }]);
-    undoToast(`أُزيلت «${CONDITION[b.dataset.removeCond]?.label ?? b.dataset.removeCond}» من سن ${tooth}`, recorded);
+    undoToast(tr`أُزيلت «${CONDITION[b.dataset.removeCond]?.label ?? b.dataset.removeCond}» من سن ${tooth}`, recorded);
     await redraw();
   }, { signal });
 
@@ -319,7 +320,7 @@ export async function renderTab({ body, patient, signal }) {
     try {
       const plan = ui.planId ? plans.find((pl) => pl.id === ui.planId) : (openPlans().find((pl) => pl.status === 'active') ?? await ensureActivePlan(p.id));
       const created = await addItems(plan.id, { procedure: proc, teeth: sortTeeth([...ui.selected]), surfaces: [...ui.surfaces] });
-      toastSuccess(`أُضيف ${created.length > 1 ? `${digits(created.length)} بنود` : 'بند'} إلى «${plan.name}»`, {
+      toastSuccess(tr`أُضيف ${created.length > 1 ? tr`${digits(created.length)} بنود` : 'بند'} إلى «${plan.name}»`, {
         action: { label: 'فتح الخطة', onClick: () => { location.hash = href('/patients/:id', { id: p.id }, { tab: 'plan' }); } },
       });
       ui.procedureId = '';

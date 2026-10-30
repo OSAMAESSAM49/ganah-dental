@@ -90,3 +90,7 @@
 
 /* Setup: "extra device" alternative under the first step */
 .auth__alt { display: flex; flex-direction: column; gap: var(--sp-2); padding-block-start: var(--sp-4); margin-block-start: var(--sp-2); border-block-start: 1px solid var(--c-border); text-align: center; }
+
+.auth__panel { position: relative; }
+.auth__lang { position: absolute; inset-block-start: var(--sp-4); inset-inline-end: var(--sp-4); }
+.auth__lang:lang(en) { font-family: var(--font-sans-en); }

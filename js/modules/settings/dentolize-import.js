@@ -11,6 +11,7 @@ import { openModal } from '../../components/modal.js';
 import { toast, toastSuccess, toastError } from '../../components/toast.js';
 import { listUsers } from '../../services/users.js';
 import { exportBackup } from '../../services/backup.js';
+import { tr, t } from '../../core/i18n.js';
 import {
   readDentolizeFiles, missingParts, mixedExports, planImport, importContext, applyImport, SHEET_LABELS,
 } from '../../services/dentolize-import.js';
@@ -36,10 +37,10 @@ const row = (label, value, note = '') => html`<dt>${label}</dt><dd>${value}${not
 /** @param {File[]} files */
 export async function runDentolizeImport(files) {
   const busy = toast(html`<span data-dz-progress>جارٍ قراءة ${digits(files.length)} ملف…</span>`, { duration: 0 });
-  const progress = (text) => { const el = document.querySelector('[data-dz-progress]'); if (el) el.textContent = text; };
+  const progress = (text) => { const el = document.querySelector('[data-dz-progress]'); if (el) el.textContent = t(text); };
   let read;
   try {
-    read = await readDentolizeFiles(files, (d, t) => progress(`جارٍ قراءة الملفات… ${digits(d)} من ${digits(t)}`));
+    read = await readDentolizeFiles(files, (d, t) => progress(tr`جارٍ قراءة الملفات… ${digits(d)} من ${digits(t)}`));
   } catch (err) { busy(); console.error(err); toastError('تعذّرت قراءة الملفات. تأكد أنها ملفات Excel مصدّرة من Dentolize.'); return false; }
   const { sheets, parts, unknown } = read;
   if (!Object.keys(sheets).length) { busy(); toastError('لم يُتعرف على أي ملف من Dentolize.'); return false; }
@@ -80,18 +81,18 @@ export async function runDentolizeImport(files) {
           ${missing.map((m) => html`<div>${SHEET_LABELS[m.type]}: الصفوف ${digits(m.from)} – ${digits(m.to)}</div>`)}
           يمكنك الاستيراد الآن ثم إضافة الملف الناقص لاحقًا: الاستيراد مرة ثانية لا يكرر شيئًا.</div></div></div>` : ''}
         ${unknown.length ? html`<p class="muted text-sm">ملفات لم يُتعرف عليها وتم تجاهلها: ${unknown.join('، ')}</p>` : ''}
-        ${r.invoices.owed.length ? html`<div class="alert alert--info">${ico('receipt')}<div class="alert__content"><div class="alert__title">${r.invoices.fixed ? `تصحيح ${digits(r.invoices.fixed)} فاتورة مستوردة من قبل` : `${digits(r.invoices.owed.length)} فاتورة إجماليها أقل من بنودها`}</div><div class="alert__body">
+        ${r.invoices.owed.length ? html`<div class="alert alert--info">${ico('receipt')}<div class="alert__content"><div class="alert__title">${r.invoices.fixed ? tr`تصحيح ${digits(r.invoices.fixed)} فاتورة مستوردة من قبل` : tr`${digits(r.invoices.owed.length)} فاتورة إجماليها أقل من بنودها`}</div><div class="alert__body">
           Dentolize خفّض إجمالي هذه الفواتير بدون خصم مسجّل. الفرق (${formatMoney(r.invoices.owed.reduce((n, o) => n + o.amount, 0))}) يُسجّل متبقيًا على المريض، لا خصمًا: ${r.invoices.owed.map((o) => `#${o.dz}`).join('، ')}</div></div></div>` : ''}
 
         <dl class="dl">
           ${row('المرضى', html`<strong>${digits(r.patients.added)}</strong> جديد`, [
-            r.patients.merged ? `${digits(r.patients.merged)} دُمج مع ملف موجود (نفس الموبايل والاسم)` : '',
-            r.patients.nameOnly ? `${digits(r.patients.nameOnly)} بالاسم فقط` : '',
-            r.patients.already ? `${digits(r.patients.already)} موجود من قبل` : '',
+            r.patients.merged ? tr`${digits(r.patients.merged)} دُمج مع ملف موجود (نفس الموبايل والاسم)` : '',
+            r.patients.nameOnly ? tr`${digits(r.patients.nameOnly)} بالاسم فقط` : '',
+            r.patients.already ? tr`${digits(r.patients.already)} موجود من قبل` : '',
           ].filter(Boolean).join(' · '))}
-          ${row('المواعيد', html`<strong>${digits(r.appointments.added)}</strong>`, [r.appointments.upcoming ? `منها ${digits(r.appointments.upcoming)} قادم` : '', r.appointments.already ? `${digits(r.appointments.already)} موجود/مكرر` : ''].filter(Boolean).join(' · '))}
-          ${row('الفواتير', html`<strong>${digits(r.invoices.added)}</strong>`, `${digits(r.invoices.lines)} بند`)}
-          ${row('المدفوعات', html`<strong>${digits(r.payments.added)}</strong>`, r.payments.voided ? `${digits(r.payments.voided)} مسترد (يُسجّل ملغى)` : '')}
+          ${row('المواعيد', html`<strong>${digits(r.appointments.added)}</strong>`, [r.appointments.upcoming ? tr`منها ${digits(r.appointments.upcoming)} قادم` : '', r.appointments.already ? tr`${digits(r.appointments.already)} موجود/مكرر` : ''].filter(Boolean).join(' · '))}
+          ${row('الفواتير', html`<strong>${digits(r.invoices.added)}</strong>`, tr`${digits(r.invoices.lines)} بند`)}
+          ${row('المدفوعات', html`<strong>${digits(r.payments.added)}</strong>`, r.payments.voided ? tr`${digits(r.payments.voided)} مسترد (يُسجّل ملغى)` : '')}
           ${row('سجل العلاج', html`<strong>${digits(r.treatment.items)}</strong> علاج منتهي`, 'في خطة «سجل سابق (Dentolize)» لكل مريض')}
           ${row('المصروفات', html`<strong>${digits(r.expenses.added)}</strong>`, formatMoney(r.expenses.total))}
         </dl>
@@ -100,7 +101,7 @@ export async function runDentolizeImport(files) {
           <span class="field__label">مطابقة الحسابات مع Dentolize</span>
           <dl class="dl">
             ${row('إجمالي الفواتير', formatMoney(r.invoices.total), `Dentolize: ${formatMoney(r.invoices.dentolizeTotal)}`)}
-            ${row('إجمالي المدفوعات', formatMoney(r.payments.total), r.payments.fromBalance ? `منها ${formatMoney(r.payments.fromBalance)} سداد من رصيد المريض` : '')}
+            ${row('إجمالي المدفوعات', formatMoney(r.payments.total), r.payments.fromBalance ? tr`منها ${formatMoney(r.payments.fromBalance)} سداد من رصيد المريض` : '')}
             ${row('المتبقي على المرضى', formatMoney(r.invoices.remaining), `Dentolize: ${formatMoney(r.invoices.dentolizeRemaining)}`)}
           </dl>
           ${mm.length ? html`<p class="muted text-sm">فواتير يختلف متبقيها عن Dentolize (غالبًا دفعة مكررة مسجلة هناك): ${mm.map((m) => `#${m.dz}`).join('، ')}</p>` : html`<p class="text-sm">${ico('check', { size: 14 })} كل الفواتير مطابقة.</p>`}
@@ -137,15 +138,15 @@ export async function runDentolizeImport(files) {
     if (backupFirst) { progress('جارٍ تنزيل نسخة احتياطية…'); await exportBackup(); }
     progress('جارٍ التجهيز…');
     plan = planImport(sheets, await makeCtx()); // with the people chosen above
-    await applyImport(plan, (d, t) => progress(`جارٍ الحفظ… ${digits(Math.round((d / t) * 100))}%`));
+    await applyImport(plan, (d, t) => progress(tr`جارٍ الحفظ… ${digits(Math.round((d / t) * 100))}%`));
     work();
     const rr = plan.report;
-    toastSuccess(`تم الاستيراد: ${digits(rr.patients.added)} مريض، ${digits(rr.appointments.added)} موعد، ${digits(rr.invoices.added)} فاتورة، ${digits(rr.payments.added)} دفعة${rr.invoices.fixed ? `، وتصحيح ${digits(rr.invoices.fixed)} فاتورة` : ''}`, { duration: 10000 });
+    toastSuccess(tr`تم الاستيراد: ${digits(rr.patients.added)} مريض، ${digits(rr.appointments.added)} موعد، ${digits(rr.invoices.added)} فاتورة، ${digits(rr.payments.added)} دفعة${rr.invoices.fixed ? tr`، وتصحيح ${digits(rr.invoices.fixed)} فاتورة` : ''}`, { duration: 10000 });
     return true;
   } catch (err) {
     work();
     console.error(err);
-    toastError(`توقف الاستيراد: ${err.message}. يمكنك إعادة المحاولة: لن يتكرر ما تم حفظه.`);
+    toastError(tr`توقف الاستيراد: ${err.message}. يمكنك إعادة المحاولة: لن يتكرر ما تم حفظه.`);
     return false;
   }
 }

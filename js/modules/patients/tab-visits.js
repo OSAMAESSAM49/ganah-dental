@@ -9,6 +9,7 @@ import { emptyState } from '../../components/states.js';
 import { listForPatient } from '../../services/appointments.js';
 import { openAppointmentForm } from '../appointments/appt-form.js';
 import { openAppointmentDetails } from '../appointments/appt-details.js';
+import { tr } from '../../core/i18n.js';
 
 export async function renderTab({ body, patient, signal }) {
   const p = patient();
@@ -42,7 +43,7 @@ export async function renderTab({ body, patient, signal }) {
         </section>
         <section class="card span-12">
           <div class="card__header"><div class="card__heading"><h2 class="card__title">الزيارات السابقة</h2>
-            <p class="card__subtitle">${digits(counts.done)} زيارة مكتملة${counts.noShow ? ` · ${digits(counts.noShow)} مرة لم يحضر` : ''}</p></div></div>
+            <p class="card__subtitle">${digits(counts.done)} زيارة مكتملة${counts.noShow ? tr` · ${digits(counts.noShow)} مرة لم يحضر` : ''}</p></div></div>
           <div class="card__body">${past.length ? html`<ul class="list">${past.map(row)}</ul>` : emptyState({ icon: 'calendar-days', title: 'لا توجد زيارات سابقة', hint: 'ستظهر هنا كل زيارة مع ملاحظات الطبيب.' })}</div>
         </section>
       </div>`);

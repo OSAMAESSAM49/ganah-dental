@@ -127,6 +127,7 @@
 }
 [dir="ltr"] .select { background-position: right var(--sp-3) center; }
 .input--ltr { direction: ltr; text-align: end; } /* phone numbers, usernames */
+[dir="ltr"] .input--ltr { text-align: start; } /* English: like every other field */
 .input--pill { border-radius: var(--radius-pill); background: var(--c-surface); box-shadow: var(--shadow-sm); }
 
 .input-group { position: relative; display: flex; align-items: center; }

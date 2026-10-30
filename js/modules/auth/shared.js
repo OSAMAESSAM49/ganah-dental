@@ -1,8 +1,11 @@
 /** Pieces shared by the login, recovery and setup screens. */
-import { html, ico } from '../../core/dom.js';
+import { html, ico, keep } from '../../core/dom.js';
 import { brandMark } from '../../components/brand.js';
 import { getSettings } from '../../data/settings.js';
 import { printHTML } from '../../components/print.js';
+import { LANGS } from '../../core/i18n.js';
+import { otherLanguage } from '../../services/language.js';
+import { inArabic } from '../../core/i18n.js';
 
 /** Two-panel full-screen layout: violet brand panel + form panel. */
 export function authLayout(content, { headline } = {}) {
@@ -23,6 +26,7 @@ export function authLayout(content, { headline } = {}) {
         </div>
       </section>
       <section class="auth__panel">
+        <button type="button" class="btn btn--ghost btn--sm auth__lang" data-switch-lang lang="${otherLanguage()}">${ico('globe', { size: 18 })} ${keep(LANGS[otherLanguage()].label)}</button>
         <div class="auth__card">${content}</div>
       </section>
     </div>`;
@@ -33,7 +37,8 @@ export const recoveryCodeBox = (code) => html`
   <div class="code-box" aria-label="رمز الاسترداد ${code}">${code.split('-').map((g) => html`<span>${g}</span>`)}</div>`;
 
 /** Prints the recovery code on its own sheet. */
-export function printRecoveryCode(code) {
+export const printRecoveryCode = (code) => inArabic(() => printRecoveryCodeAr(code));
+function printRecoveryCodeAr(code) {
   printHTML(html`
     <p>هذا هو رمز استرداد حساب مدير النظام. استخدمه فقط إذا نسي المدير كلمة المرور.</p>
     <p style="font: 700 22pt monospace; letter-spacing: 3px; direction: ltr; text-align: center; padding: 8mm; border: 2px dashed #4A0CD3; border-radius: 4mm; margin: 8mm 0">${code}</p>

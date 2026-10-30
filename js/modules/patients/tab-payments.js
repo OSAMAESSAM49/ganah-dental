@@ -10,6 +10,7 @@ import { toastSuccess } from '../../components/toast.js';
 import { patientAccount, applyCreditToOpenInvoices, uninvoicedItems, invoiceInstallments, formatInvoiceNo, formatReceiptNo, lineFromItem } from '../../services/billing.js';
 import { openInvoiceDialog, openPaymentDialog, voidPaymentFlow, voidInvoiceFlow, editInstallmentsDialog } from '../billing/dialogs.js';
 import { printInvoice, printReceipt, choosePrintSize } from '../billing/print.js';
+import { tr } from '../../core/i18n.js';
 
 const INST_STATUS = { paid: ['مدفوع', 'success'], partial: ['جزئي', 'warning'], due: ['لم يحن', ''], overdue: ['متأخر', 'danger'] };
 
@@ -129,7 +130,7 @@ export async function renderTab({ body, patient, signal }) {
   on(body, 'click', '[data-new-invoice]', () => openInvoiceDialog(p.id), { signal });
   on(body, 'click', '[data-apply-credit]', async () => {
     const settled = await applyCreditToOpenInvoices(p.id);
-    if (settled.length) toastSuccess(`تم خصم ${formatMoney(settled.reduce((n, x) => n + x.amount, 0))} من ${settled.map((x) => formatInvoiceNo(x.number)).join('، ')}`);
+    if (settled.length) toastSuccess(tr`تم خصم ${formatMoney(settled.reduce((n, x) => n + x.amount, 0))} من ${settled.map((x) => formatInvoiceNo(x.number)).join('، ')}`);
   }, { signal });
   on(body, 'click', '[data-pay]', () => openPaymentDialog({ patientId: p.id }), { signal });
   on(body, 'click', '[data-pay-inv]', (_, b) => openPaymentDialog({ patientId: p.id, invoiceId: b.dataset.payInv }), { signal });

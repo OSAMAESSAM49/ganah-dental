@@ -15,6 +15,7 @@ import { permissionGrid, readPermissionGrid, enhancePermissionGrid } from '../..
 import { toastSuccess, toastError } from '../../components/toast.js';
 import { listUsers, listRoles, createUser, updateUser, resetPassword, deleteUser, clearPin, USER_COLORS } from '../../services/users.js';
 import { validatePassword, validateUsername, passwordStrength } from '../../services/auth.js';
+import { tr } from '../../core/i18n.js';
 
 const COLOR_LABELS = { violet: 'بنفسجي', lime: 'ليموني', info: 'أزرق', warning: 'برتقالي', success: 'أخضر', danger: 'أحمر' };
 const ROLE_TONES = { admin: 'primary', doctor: 'accent', nurse: 'info', reception: 'warning' };
@@ -102,7 +103,7 @@ export async function renderTab({ body, actions, signal }) {
 async function toggleActive(u) {
   if (u.active) {
     const ok = await confirmDialog({
-      title: `إيقاف حساب ${u.displayName}؟`,
+      title: tr`إيقاف حساب ${u.displayName}؟`,
       message: 'لن يستطيع الدخول إلى البرنامج حتى يُعاد تفعيله. بياناته وسجلاته تبقى كما هي.',
       confirmLabel: 'إيقاف', danger: true,
     });
@@ -116,7 +117,7 @@ async function toggleActive(u) {
 
 async function removeUser(u) {
   const ok = await confirmDialog({
-    title: `حذف ${u.displayName}؟`,
+    title: tr`حذف ${u.displayName}؟`,
     message: 'سيختفي من القوائم ولن يستطيع الدخول. اسمه يبقى ظاهرًا على السجلات التي أنشأها. يُفضّل «إيقاف الحساب» إذا كان مؤقتًا.',
     confirmLabel: 'حذف', danger: true,
   });
@@ -126,7 +127,7 @@ async function removeUser(u) {
 
 async function openResetDialog(u) {
   const res = await openModal({
-    title: `كلمة مرور مؤقتة لـ ${u.displayName}`,
+    title: tr`كلمة مرور مؤقتة لـ ${u.displayName}`,
     icon: 'key-round',
     body: html`
       <form class="form" novalidate>
@@ -184,7 +185,7 @@ async function openUserDialog(user, roles) {
   };
 
   const res = await openModal({
-    title: isNew ? 'مستخدم جديد' : `تعديل ${user.displayName}`,
+    title: isNew ? 'مستخدم جديد' : tr`تعديل ${user.displayName}`,
     dirty: true,
     icon: isNew ? 'user-plus' : 'pencil',
     size: 'lg',

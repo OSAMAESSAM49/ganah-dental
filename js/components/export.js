@@ -9,6 +9,8 @@ import { html } from '../core/dom.js';
 import { formatMoney, formatDate, formatNumber, formatPercent, todayISO } from '../core/format.js';
 import { getSettings } from '../data/settings.js';
 import { printHTML } from './print.js';
+import { tr } from '../core/i18n.js';
+import { inArabic } from '../core/i18n.js';
 
 let excelJsPromise = null;
 /** Loads vendor/exceljs/exceljs.min.js once (≈1 MB, only when exporting). */
@@ -77,7 +79,7 @@ export async function exportExcel({ fileName, title, subtitle = '', sheets }) {
     ws.getCell(1, 1).value = `${clinic.name} — ${title}`;
     ws.getCell(1, 1).font = { bold: true, size: 14, color: { argb: VIOLET } };
     ws.mergeCells(2, 1, 2, Math.max(1, n));
-    ws.getCell(2, 1).value = [subtitle, `تاريخ الاستخراج: ${formatDate(todayISO())}`].filter(Boolean).join(' · ');
+    ws.getCell(2, 1).value = [subtitle, tr`تاريخ الاستخراج: ${formatDate(todayISO())}`].filter(Boolean).join(' · ');
     ws.getCell(2, 1).font = { size: 10, color: { argb: 'FF555555' } };
     const header = ws.getRow(4);
     sh.columns.forEach((c, i) => {
@@ -125,7 +127,8 @@ export const printTable = ({ columns, rows, totals }) => html`
  * Prints a report (A4) — choose "Save as PDF" in the print dialog for a PDF.
  * @param {{ title: string, subtitle?: string, summary?: Array<[string, string]>, sections: Array<{ heading: string, columns: object[], rows: object[], totals?: object }> }} o
  */
-export function printReport({ title, subtitle = '', summary = [], sections }) {
+export const printReport = ({ title, subtitle = '', summary = [], sections }) => inArabic(() => printReportAr({ title, subtitle, summary, sections }));
+function printReportAr({ title, subtitle, summary, sections }) {
   printHTML(html`
     ${subtitle ? html`<p class="print-subtitle">${subtitle}</p>` : ''}
     ${summary.length ? html`<div class="inv-meta">${summary.map(([k, v]) => html`<span>${k}: <strong>${v}</strong></span>`)}</div>` : ''}

@@ -6,6 +6,7 @@ import { openModal, confirmDialog } from '../../components/modal.js';
 import { toastSuccess } from '../../components/toast.js';
 import { regenerateRecoveryCode } from '../../services/auth.js';
 import { recoveryCodeBox, printRecoveryCode } from '../auth/shared.js';
+import { tr } from '../../core/i18n.js';
 
 const IDLE_OPTIONS = [0, 5, 10, 15, 30, 60];
 
@@ -23,7 +24,7 @@ export async function renderTab({ body, actions, signal }) {
               <span class="setting-row__hint">إذا تُرك الجهاز بدون استخدام، يُقفل البرنامج ويطلب الدخول مرة أخرى.</span>
             </div>
             <select class="select" id="idle" style="inline-size: 200px" aria-label="مدة القفل التلقائي">
-              ${IDLE_OPTIONS.map((m) => html`<option value="${m}" ${m === app.idleLogoutMinutes ? 'selected' : ''}>${m === 0 ? 'معطّل' : `بعد ${digits(m)} دقيقة`}</option>`)}
+              ${IDLE_OPTIONS.map((m) => html`<option value="${m}" ${m === app.idleLogoutMinutes ? 'selected' : ''}>${m === 0 ? 'معطّل' : tr`بعد ${digits(m)} دقيقة`}</option>`)}
             </select>
           </div>
           <div class="setting-row">
@@ -48,7 +49,7 @@ export async function renderTab({ body, actions, signal }) {
   body.querySelector('#idle').addEventListener('change', async (e) => {
     const minutes = Number(/** @type {HTMLSelectElement} */ (e.target).value);
     await updateSettings('app', { idleLogoutMinutes: minutes });
-    toastSuccess(minutes ? `سيُقفل البرنامج بعد ${digits(minutes)} دقيقة من عدم النشاط` : 'تم تعطيل القفل التلقائي');
+    toastSuccess(minutes ? tr`سيُقفل البرنامج بعد ${digits(minutes)} دقيقة من عدم النشاط` : 'تم تعطيل القفل التلقائي');
   }, { signal });
 
   on(body, 'click', '[data-regen]', async () => {

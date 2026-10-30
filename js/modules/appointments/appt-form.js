@@ -21,6 +21,7 @@ import { getSchedule, activeChairs, slotsFor, listDoctors, hoursFor } from '../.
 import { listDay, findConflicts, nextFreeSlot, withinHours, createAppointment, updateAppointment } from '../../services/appointments.js';
 import { medicalBanner } from '../patients/medical.js';
 import { patientAvatar } from '../patients/list.js';
+import { tr } from '../../core/i18n.js';
 
 const DURATIONS = [10, 15, 20, 30, 45, 60, 75, 90, 120, 150, 180, 240];
 const REASON_LABEL = { chair: 'نفس الكرسي', doctor: 'نفس الطبيب', patient: 'نفس المريض' };
@@ -156,7 +157,7 @@ export async function openAppointmentForm(preset = {}) {
       </div>
       ${free.length ? html`<div class="stack-sm"><span class="field__label" style="margin:0">أوقات متاحة</span>
         <div class="chips slot-chips">${free.map((m) => html`<button type="button" class="chip" data-use-slot="${m}" aria-pressed="${String(m === st.startMin)}">${formatClock(m)}</button>`)}</div></div>` : ''}
-      <p class="muted text-sm">${dayLabel(st.date, { year: true })} · ${h?.open ? `مواعيد العمل ${formatRange(h.from, h.to - h.from)}` : 'العيادة مغلقة في هذا اليوم'}</p>
+      <p class="muted text-sm">${dayLabel(st.date, { year: true })} · ${h?.open ? tr`مواعيد العمل ${formatRange(h.from, h.to - h.from)}` : 'العيادة مغلقة في هذا اليوم'}</p>
       <div class="form-grid">
         <div class="field">
           <label class="field__label" for="appt-doctor">الطبيب</label>
@@ -320,7 +321,7 @@ export async function openAppointmentForm(preset = {}) {
       if (st.patient.pending) {
         try {
           st.patient = await createPatient({ name: st.patient.name, phone: st.patient.phone });
-          toastSuccess(`تم تسجيل المريض · ملف ${st.patient.fileNo}`);
+          toastSuccess(tr`تم تسجيل المريض · ملف ${st.patient.fileNo}`);
         } catch (err) { toastError(err.message); return false; }
       }
       const linkedItems = st.planItems.filter((i) => st.linked.has(i.id));

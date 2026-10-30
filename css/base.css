@@ -41,6 +41,7 @@ a:hover { text-decoration-thickness: 2px; }
 img, svg { display: block; max-width: 100%; }
 .icon { flex-shrink: 0; display: inline-block; vertical-align: middle; }
 [dir="rtl"] .icon--dir { transform: scaleX(-1); } /* arrows that must follow reading direction */
+[dir="ltr"] .icon--side { transform: scaleX(-1); } /* arrows drawn for Arabic, mirrored in English */
 
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }

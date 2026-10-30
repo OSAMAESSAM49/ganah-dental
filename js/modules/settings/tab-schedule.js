@@ -8,6 +8,7 @@ import { openModal } from '../../components/modal.js';
 import { toastSuccess, toastError } from '../../components/toast.js';
 import { getSchedule, saveSchedule, addChair, DEFAULT_SCHEDULE } from '../../services/schedule.js';
 import { reminderMessage } from '../../services/appointments.js';
+import { tr } from '../../core/i18n.js';
 
 const TIMES = Array.from({ length: 48 }, (_, i) => i * 30);
 const PLACEHOLDERS = ['{الاسم}', '{الاسم_الكامل}', '{العيادة}', '{اليوم}', '{التاريخ}', '{الوقت}', '{الطبيب}', '{هاتف_العيادة}'];
@@ -124,7 +125,7 @@ export async function renderTab({ body, signal }) {
     ta.value = DEFAULT_SCHEDULE.reminderTemplate;
     ta.dispatchEvent(new Event('input', { bubbles: true }));
   }, { signal });
-  on(body, 'click', '[data-add-chair]', async () => { const name = await askName('كرسي جديد', `الكرسي ${getSchedule().chairs.length + 1}`); if (name) { await addChair(name); draw(); } }, { signal });
+  on(body, 'click', '[data-add-chair]', async () => { const name = await askName('كرسي جديد', tr`الكرسي ${getSchedule().chairs.length + 1}`); if (name) { await addChair(name); draw(); } }, { signal });
   on(body, 'click', '[data-rename-chair]', async (_, b) => {
     const s = getSchedule();
     const c = s.chairs.find((x) => x.id === b.dataset.renameChair);

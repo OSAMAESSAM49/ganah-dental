@@ -13,6 +13,7 @@ import { ENTITY_LABELS } from '../../core/labels.js';
 import { exportBackup, readBackupFile, restoreBackup, prepareMerge, applyMerge, backupStatus } from '../../services/backup.js';
 import { logout } from '../../services/auth.js';
 import { demoStatus, createDemoData, removeDemoData } from '../../services/demo.js';
+import { tr } from '../../core/i18n.js';
 
 const DAYS = { one: 'يوم', two: 'يومين', few: 'أيام', many: 'يومًا' };
 const ACCEPT = '.zip,.json,application/zip,application/json';
@@ -31,7 +32,7 @@ export async function renderTab({ body, signal }) {
         <section class="card ${s.due ? 'card--hero' : ''} span-7">
           <div class="card__header"><div class="card__heading">
             <h2 class="card__title">${ico('download', { size: 20 })} تنزيل نسخة احتياطية</h2>
-            <p class="card__subtitle">${s.lastAt ? html`آخر نسخة: ${formatDateTime(s.lastAt)} (${s.days === 0 ? 'اليوم' : `منذ ${arabicCount(s.days, DAYS)}`})` : 'لم تؤخذ أي نسخة احتياطية بعد.'}</p>
+            <p class="card__subtitle">${s.lastAt ? html`آخر نسخة: ${formatDateTime(s.lastAt)} (${s.days === 0 ? 'اليوم' : tr`منذ ${arabicCount(s.days, DAYS)}`})` : 'لم تؤخذ أي نسخة احتياطية بعد.'}</p>
           </div></div>
           <div class="card__body stack">
             <p>ملف مضغوط واحد (.zip) فيه كل بيانات البرنامج: المرضى، والصور والأشعة، والحسابات، والمستخدمين، والإعدادات. احفظه خارج هذا الجهاز (فلاشة، أو Google Drive، أو بريدك).</p>
@@ -143,7 +144,7 @@ export async function renderTab({ body, signal }) {
     btn.setAttribute('aria-busy', 'true');
     try {
       const { filename, size } = await exportBackup();
-      toastSuccess(`تم تنزيل ${filename} (${formatBytes(size)})`);
+      toastSuccess(tr`تم تنزيل ${filename} (${formatBytes(size)})`);
       await draw();
     } catch (err) {
       console.error(err);
@@ -160,7 +161,7 @@ export async function renderTab({ body, signal }) {
       const { exportArchiveExcel, printArchive } = await import('./archive-export.js');
       const n = btn.dataset.arch === 'xlsx' ? await exportArchiveExcel({ includeDeleted }) : await printArchive({ includeDeleted });
       busy();
-      toastSuccess(btn.dataset.arch === 'xlsx' ? `تم تنزيل ملف Excel لـ ${digits(n)} مريض` : `جاهز للطباعة: ${digits(n)} مريض — اختر «حفظ بتنسيق PDF»`);
+      toastSuccess(btn.dataset.arch === 'xlsx' ? tr`تم تنزيل ملف Excel لـ ${digits(n)} مريض` : tr`جاهز للطباعة: ${digits(n)} مريض — اختر «حفظ بتنسيق PDF»`);
     } catch (err) { busy(); console.error(err); toastError(err.message || 'تعذّر التصدير'); }
     finally { btn.removeAttribute('aria-busy'); }
   }, { signal });
@@ -169,7 +170,7 @@ export async function renderTab({ body, signal }) {
     if (!(await confirmDialog({ title: 'إضافة بيانات تجريبية؟', message: 'ستظهر في كل الصفحات والتقارير مع شارة «بيانات تجريبية». احذفها قبل البدء بالعمل الحقيقي.', confirmLabel: 'إضافة' }))) return;
     btn.setAttribute('aria-busy', 'true');
     const busy = toast('جارٍ إنشاء البيانات التجريبية…', { duration: 0 });
-    try { const n = await createDemoData(); toastSuccess(`تمت إضافة ${digits(n)} مريض تجريبي`); } catch (err) { console.error(err); toastError(err.message); }
+    try { const n = await createDemoData(); toastSuccess(tr`تمت إضافة ${digits(n)} مريض تجريبي`); } catch (err) { console.error(err); toastError(err.message); }
     busy();
     await draw();
   }, { signal });

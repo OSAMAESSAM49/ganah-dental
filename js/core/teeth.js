@@ -8,6 +8,7 @@
  * Surfaces are stored with canonical codes M, D, O, B, L. Display labels adapt per tooth:
  * O → I (incisal) and B → F (facial) on anterior teeth; L → P (palatal) on upper teeth.
  */
+import { t as translate } from './i18n.js';
 
 export const SURFACES = /** @type {const} */ (['M', 'O', 'D', 'B', 'L']);
 
@@ -51,7 +52,7 @@ const QUADRANT_NAMES = { 1: 'علوي أيمن', 2: 'علوي أيسر', 3: 'س�
 export function toothName(t) {
   const base = isPrimary(t) ? PRIMARY_NAMES[position(t)] : PERMANENT_NAMES[position(t)];
   const q = QUADRANT_NAMES[((quadrant(t) - 1) % 4) + 1];
-  return `${base} ${q}`;
+  return `${translate(base)} ${translate(q).toLowerCase()}`; // English: «First molar upper right»
 }
 
 const SURFACE_LABELS = {

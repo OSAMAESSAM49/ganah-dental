@@ -69,6 +69,7 @@ function cleanProcedure(input) {
   };
   return {
     name: String(input.name ?? '').trim(),
+    nameEn: String(input.nameEn ?? '').trim(), // shown on English screens
     categoryId: input.categoryId,
     price: Math.max(0, Math.round(Number(input.price) || 0)),
     durationMin: int(input.durationMin, 5, 480, 30),

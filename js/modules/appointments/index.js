@@ -22,6 +22,7 @@ import { dayView, weekView, monthView, PX_PER_MIN } from './views.js';
 import { openAppointmentForm } from './appt-form.js';
 import { openAppointmentDetails, cancelWithReason } from './appt-details.js';
 import { openReminders } from './reminders.js';
+import { tr } from '../../core/i18n.js';
 
 const VIEWS = [['day', 'يوم'], ['week', 'أسبوع'], ['month', 'شهر'], ['list', 'قائمة']];
 const QUICK = { arrived: APPT_ACTIONS.arrived, in_chair: APPT_ACTIONS.in_chair, done: APPT_ACTIONS.done };
@@ -59,7 +60,7 @@ export default {
       if (st.view === 'day') return dayLabel(st.date, { year: true });
       if (st.view === 'week') { const d = weekDays(st.date); return `${formatDate(d[0])} – ${formatDate(d[6])}`; }
       if (st.view === 'month') return monthLabel(st.date);
-      return `من ${formatDate(st.date)}`;
+      return tr`من ${formatDate(st.date)}`;
     };
 
     const syncUrl = () => {

@@ -21,6 +21,7 @@ import {
   listRxTemplates, saveRxTemplate, setRxTemplateActive, formatRxNo,
 } from '../../services/prescriptions.js';
 import { prescriptionDialog, printPrescription, linesMarkup, wireLinesEditor, drugsText } from './dialogs.js';
+import { tr } from '../../core/i18n.js';
 
 const TABS = [['list', 'الروشتات', 'pill'], ['medicines', 'الأدوية', 'list-checks'], ['templates', 'القوالب', 'file-text']];
 const GROUPS = { penicillin: 'بنسلين', nsaid: 'مسكن مضاد للالتهاب (NSAID)', pregnancy: 'حذر في الحمل' };
@@ -158,14 +159,14 @@ export default {
       const m = medicines.find((x) => x.id === b.dataset.toggleMed);
       const on = m.active === false;
       await setMedicineActive(m.id, on);
-      toastSuccess(on ? `عاد «${m.name}» لقائمة الأدوية` : `أُوقف «${m.name}» — لن يظهر عند كتابة روشتة`);
+      toastSuccess(on ? tr`عاد «${m.name}» لقائمة الأدوية` : tr`أُوقف «${m.name}» — لن يظهر عند كتابة روشتة`);
     }, { signal });
     on(el, 'click', '[data-edit-tpl]', (_, b) => templateDialog(templates.find((t) => t.id === b.dataset.editTpl)), { signal });
     on(el, 'click', '[data-toggle-tpl]', async (_, b) => {
       const t = templates.find((x) => x.id === b.dataset.toggleTpl);
       const on = t.active === false;
       await setRxTemplateActive(t.id, on);
-      toastSuccess(on ? `تم تفعيل قالب «${t.name}»` : `أُوقف قالب «${t.name}»`);
+      toastSuccess(on ? tr`تم تفعيل قالب «${t.name}»` : tr`أُوقف قالب «${t.name}»`);
     }, { signal });
     on(el, 'click', '[data-print]', async (_, b) => { const r = rows.find((x) => x.id === b.dataset.print); printPrescription(r, await getPatient(r.patientId)); }, { signal });
     on(el, 'click', '[data-rx-menu]', (_, b) => {
@@ -174,7 +175,7 @@ export default {
         ...(perm.edit ? [{ label: 'تعديل', icon: 'pencil', onSelect: () => prescriptionDialog({ prescription: r }) }] : []),
         ...(perm.create ? [{ label: 'تكرار الروشتة', icon: 'repeat', onSelect: () => prescriptionDialog({ patientId: r.patientId, repeatOf: r }) }] : []),
         ...(perm.del ? ['sep', { label: 'حذف', icon: 'trash-2', danger: true, onSelect: async () => {
-          if (await confirmDialog({ title: `حذف الروشتة ${formatRxNo(r.number)}؟`, message: r.patientName, confirmLabel: 'حذف', danger: true })) { await deletePrescription(r.id); toastSuccess('تم الحذف'); }
+          if (await confirmDialog({ title: tr`حذف الروشتة ${formatRxNo(r.number)}؟`, message: r.patientName, confirmLabel: 'حذف', danger: true })) { await deletePrescription(r.id); toastSuccess('تم الحذف'); }
         } }] : []),
       ] });
     }, { signal });

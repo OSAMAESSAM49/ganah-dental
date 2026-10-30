@@ -26,10 +26,12 @@ import { generateRecurringExpenses } from './services/expenses.js';
 import { startCloudSync } from './services/cloud-sync.js';
 import { pageSkeleton, errorState } from './components/states.js';
 import { toast, toastError } from './components/toast.js';
+import { applyLanguage, loadLanguage, lang, isEnglish, rememberLanguage } from './core/i18n.js';
 import { closeAllModals, dismissTopModal, hasDirtyModal } from './components/modal.js';
 import { closeMenu } from './components/menu.js';
 
 applyTheme();
+applyLanguage();
 
 function hideSplash() {
   const boot = document.getElementById('boot');
@@ -113,11 +115,24 @@ async function boot() {
   // Start tracking + syncing before anything else writes (only on devices linked to the cloud).
   startCloudSync();
   const settings = await loadSettings();
-  setDigitStyle(settings.app.digitStyle);
+  // English always uses 0-9.
+  const digitStyle = (style) => (isEnglish() ? 'western' : style);
   requestPersistentStorage().catch(() => {});
 
   let setupDone = await isSetupDone();
   if (setupDone) await restoreSession(idleMs());
+  // Each user keeps their language; this device remembers the last one for the sign-in page.
+  const userLang = getSession()?.user?.lang;
+  if (userLang && userLang !== lang()) { rememberLanguage(userLang); location.reload(); return; }
+  await loadLanguage();
+  if (isEnglish()) {
+    const { repos } = await import('./data/index.js');
+    const { setDataTranslations } = await import('./core/i18n.js');
+    const loadNames = async () => setDataTranslations('procedures', (await repos.procedures.list()).map((p) => [p.name, p.nameEn]));
+    await loadNames();
+    onEvent('data:changed', ({ store }) => { if (store === 'procedures') loadNames(); });
+  }
+  setDigitStyle(digitStyle(settings.app.digitStyle));
 
   const outlet = mountShell(document.getElementById('app'));
 
@@ -155,11 +170,15 @@ async function boot() {
     if (hasLeaveGuard() || hasDirtyModal()) { e.preventDefault(); e.returnValue = ''; }
   });
 
-  onEvent('settings:changed', ({ key, value }) => { if (key === 'app') setDigitStyle(value.digitStyle); });
+  onEvent('settings:changed', ({ key, value }) => { if (key === 'app') setDigitStyle(digitStyle(value.digitStyle)); });
 
   // Auto-lock after inactivity while someone is signed in.
   const watchIdle = () => startIdleWatch({ minutes: () => getSettings('app').idleLogoutMinutes, onIdle: lockForIdle });
   onEvent('auth:changed', ({ user }) => (user ? watchIdle() : stopIdleWatch()));
+  // Signing in as someone who uses the other language switches to it.
+  onEvent('auth:changed', ({ user }) => {
+    if (user?.lang && user.lang !== lang()) { rememberLanguage(user.lang); location.reload(); }
+  });
   if (getSession()) watchIdle();
 
   // Recurring monthly expenses are created when the app opens (no background jobs on a static site).
@@ -181,6 +200,11 @@ const reportUnexpected = (err) => {
 };
 window.addEventListener('unhandledrejection', (e) => reportUnexpected(e.reason));
 window.addEventListener('error', (e) => { if (e.error) reportUnexpected(e.error); });
+
+// Language switch on pages outside the app shell (sign-in, setup).
+document.addEventListener('click', (e) => {
+  if (/** @type {HTMLElement} */ (e.target).closest('[data-switch-lang]')) import('./services/language.js').then((m) => m.switchLanguage());
+});
 
 // Skip link: focus main content without changing the hash (hash = route).
 document.addEventListener('click', (e) => {

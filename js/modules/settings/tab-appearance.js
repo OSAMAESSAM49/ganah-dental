@@ -8,6 +8,7 @@ import { segmentedField } from '../../components/form.js';
 import { toastSuccess } from '../../components/toast.js';
 import { setPref } from '../../core/prefs.js';
 import { chartStyle, CHART_STYLES } from '../../components/odontogram.js';
+import { tr } from '../../core/i18n.js';
 
 export async function renderTab({ body, signal }) {
   const draw = () => render(body, html`
@@ -41,7 +42,7 @@ export async function renderTab({ body, signal }) {
   body.addEventListener('change', async (e) => {
     const t = /** @type {HTMLInputElement} */ (e.target);
     if (t.name === 'theme') setTheme(/** @type {any} */ (t.value));
-    if (t.name === 'chartStyle') { setPref('chartStyle', t.value); toastSuccess(`خريطة الأسنان: ${CHART_STYLES[t.value]}`); }
+    if (t.name === 'chartStyle') { setPref('chartStyle', t.value); toastSuccess(tr`خريطة الأسنان: ${CHART_STYLES[t.value]}`); }
     if (t.name === 'digits') {
       setDigitStyle(/** @type {any} */ (t.value));
       await updateSettings('app', { digitStyle: t.value });

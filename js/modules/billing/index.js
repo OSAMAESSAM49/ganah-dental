@@ -20,6 +20,7 @@ import {
 import { whatsappLink } from '../../services/appointments.js';
 import { openPaymentDialog, voidPaymentFlow, pickPatient, openInvoiceDialog } from './dialogs.js';
 import { printInvoice, printReceipt, printClosing, choosePrintSize } from './print.js';
+import { tr, inArabic } from '../../core/i18n.js';
 
 const TABS = [
   ['invoices', 'الفواتير', 'receipt'],
@@ -159,7 +160,7 @@ export default {
           { key: 'amount', label: 'المطلوب', num: true, render: (i) => html`<strong>${formatMoney(i.remainingOnInstallment)}</strong>` },
           { key: 'a', label: '', render: (i) => {
             const p = patients.get(i.invoice.patientId);
-            const msg = `مرحبًا ${(p?.name ?? '').split(' ')[0]}، نذكّرك بقسط مستحق بقيمة ${formatMoney(i.remainingOnInstallment)} بتاريخ ${formatDate(i.dueDate)} لدى ${clinic.name}. شكرًا لك.`;
+            const msg = inArabic(() => `مرحبًا ${(p?.name ?? '').split(' ')[0]}، نذكّرك بقسط مستحق بقيمة ${formatMoney(i.remainingOnInstallment)} بتاريخ ${formatDate(i.dueDate)} لدى ${clinic.name}. شكرًا لك.`);
             const link = whatsappLink(p?.phone, msg);
             return html`<div class="table__actions">
               ${link ? html`<a class="btn btn--whatsapp btn--icon btn--sm" href="${link}" target="_blank" rel="noopener" aria-label="تذكير واتساب">${ico('message-circle', { size: 18 })}</a>` : ''}

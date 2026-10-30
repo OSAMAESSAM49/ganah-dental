@@ -8,6 +8,7 @@
 import { html, ico, render } from '../core/dom.js';
 import { digits, parseDateInput, toDate, toISODate, todayISO } from '../core/format.js';
 import { normalizeDigits } from '../core/text.js';
+import { tr, t } from '../core/i18n.js';
 
 export const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
 /** Week starts on Saturday (Egypt). */
@@ -52,7 +53,7 @@ export function dateField(o) {
 
 /** Validator for date fields: '' when valid/empty, Arabic message otherwise. */
 export function dateRule(value, { required = false, label = 'التاريخ' } = {}) {
-  if (!String(value ?? '').trim()) return required ? `${label} مطلوب` : '';
+  if (!String(value ?? '').trim()) return required ? tr`${label} مطلوب` : '';
   return parseDateInput(value) ? '' : 'اكتب التاريخ بالشكل يوم/شهر/سنة، مثال 05/03/2026';
 }
 
@@ -127,7 +128,7 @@ export function enhanceDateFields(root, signal) {
       pop = document.createElement('div');
       pop.className = 'cal';
       pop.setAttribute('role', 'dialog');
-      pop.setAttribute('aria-label', 'التقويم');
+      pop.setAttribute('aria-label', t('التقويم'));
       wrap.append(pop);
       draw();
       btn.setAttribute('aria-expanded', 'true');

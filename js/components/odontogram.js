@@ -12,6 +12,7 @@ import { ROWS, DENTITIONS, isUpper, isScreenLeft, position, isPrimary, toothName
 import { CONDITION, toothConditions } from '../core/chart-conditions.js';
 import { getPref } from '../core/prefs.js';
 import { artOdontogram } from './odontogram-art.js';
+import { tr } from '../core/i18n.js';
 
 /** «صور» (pictures) or «مربعات» (squares), per device. */
 export const CHART_STYLES = { art: 'صور الأسنان', boxes: 'مربعات' };
@@ -112,9 +113,9 @@ function drawTooth(t, cx, y, { state, planned, selected, selectedSurfaces, reado
   if (isSel) marks.push(`<rect class="odo-select" x="-6" y="-6" width="${BOX + 12}" height="${BOX + 12}" rx="15"/>`);
 
   const label = [
-    `سن ${t}، ${toothName(t)}`,
+    tr`سن ${t}، ${toothName(t)}`,
     ...toothConditions(state, t).map((c) => (c.surface && c.surfaces.length ? `${c.label} ${surfacesText(t, c.surfaces)}` : c.label)),
-    plan.length ? `مخطط: ${plan.map((p) => p.procedureName).join('، ')}` : '',
+    plan.length ? tr`مخطط: ${plan.map((p) => p.procedureName).join('، ')}` : '',
   ].filter(Boolean).join('، ');
 
   return raw(`
@@ -122,7 +123,7 @@ function drawTooth(t, cx, y, { state, planned, selected, selectedSurfaces, reado
       <title>${label.replace(/</g, '&lt;')}</title>
       <rect class="odo-hit" x="${cx}" y="${y}" width="${CELL}" height="${ROW_H}" />
       <text class="odo-num" x="${cx + CELL / 2}" y="${labelY}" text-anchor="middle">${t}</text>
-      ${plan.length ? `<circle class="odo-planned" cx="${cx + CELL / 2 + 13}" cy="${labelY - 4}" r="4.5"><title>${plan.length} إجراء مخطط</title></circle>` : ''}
+      ${plan.length ? tr`<circle class="odo-planned" cx="${cx + CELL / 2 + 13}" cy="${labelY - 4}" r="4.5"><title>${plan.length} إجراء مخطط</title></circle>` : ''}
       <g class="odo-roots">${roots}</g>
       <g transform="translate(${bx},${boxY})">
         <g clip-path="url(#odo-clip)">${polys}${center}</g>

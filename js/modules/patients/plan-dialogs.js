@@ -10,6 +10,8 @@ import { textField, textareaField } from '../../components/form.js';
 import { printHTML } from '../../components/print.js';
 import { addItems, updateItem, itemMath, describeDone, planTotals } from '../../services/treatment.js';
 import { stockPreview, unitLabel } from '../../services/inventory.js';
+import { tr } from '../../core/i18n.js';
+import { inArabic } from '../../core/i18n.js';
 
 const SURFACE_RE = /^[MODBLIFP]*$/i;
 
@@ -23,7 +25,7 @@ export function parseSurfaces(text) {
 export async function addItemDialog(plan, catalog) {
   const all = catalog.flatMap((c) => c.procedures);
   const res = await openModal({
-    title: `إضافة إجراء إلى «${plan.name}»`,
+    title: tr`إضافة إجراء إلى «${plan.name}»`,
     dirty: true,
     icon: 'plus',
     body: html`
@@ -67,7 +69,7 @@ export async function addItemDialog(plan, catalog) {
 export async function editItemDialog(item) {
   const editingLocked = !!item.invoiceId;
   const res = await openModal({
-    title: `تعديل «${item.procedureName}»`,
+    title: tr`تعديل «${item.procedureName}»`,
     dirty: true,
     icon: 'pencil',
     body: html`
@@ -162,7 +164,7 @@ export async function confirmDone(item) {
   const lines = await stockPreview(item);
   let consumption = lines.map((l) => ({ itemId: l.itemId, qty: l.qty }));
   const res = await openModal({
-    title: `تم «${item.procedureName}»؟`,
+    title: tr`تم «${item.procedureName}»؟`,
     dirty: true,
     icon: 'circle-check',
     body: html`
@@ -219,7 +221,8 @@ const totalsBlock = (items) => {
  * Prints a quote for one or several plans (several = comparison of options).
  * @param {object} patient @param {Array<{ plan: object, items: object[] }>} plans
  */
-export function printQuote(patient, plans) {
+export const printQuote = (patient, plans) => inArabic(() => printQuoteAr(patient, plans));
+function printQuoteAr(patient, plans) {
   const live = plans.map(({ plan, items }) => ({ plan, items: items.filter((i) => i.status !== 'cancelled') }));
   printHTML(html`
     <p><strong>المريض:</strong> ${patient.name} &nbsp; · &nbsp; <strong>رقم الملف:</strong> <span class="ltr">${patient.fileNo}</span> &nbsp; · &nbsp; <strong>التاريخ:</strong> ${formatDate(new Date())}</p>

@@ -23,6 +23,7 @@ import {
 } from '../../services/treatment.js';
 import { addItemDialog, editItemDialog, confirmDone, printQuote } from './plan-dialogs.js';
 import { offerInstructions } from '../followups/shared.js';
+import { tr } from '../../core/i18n.js';
 
 const COLUMNS = [
   { key: 'planned', label: 'مخطط', color: 'var(--c-primary)' },
@@ -216,8 +217,8 @@ export async function renderTab({ body, patient, query, signal }) {
     try {
       const { item, complete } = await addSession(b.dataset.session);
       await refresh();
-      if (complete && await confirmDialog({ title: 'اكتملت كل الجلسات', message: `هل تريد تسجيل «${item.procedureName}» كمنتهٍ الآن؟`, confirmLabel: 'نعم، تم' })) await changeStatus(item.id, 'done');
-      else toastSuccess(`الجلسة ${digits(item.sessionsDone)} من ${digits(item.sessionsPlanned)}`);
+      if (complete && await confirmDialog({ title: 'اكتملت كل الجلسات', message: tr`هل تريد تسجيل «${item.procedureName}» كمنتهٍ الآن؟`, confirmLabel: 'نعم، تم' })) await changeStatus(item.id, 'done');
+      else toastSuccess(tr`الجلسة ${digits(item.sessionsDone)} من ${digits(item.sessionsPlanned)}`);
     } catch (err) { toastError(err.message); }
   }, { signal });
   on(body, 'click', '[data-to-lab]', async (_, b) => {
@@ -229,8 +230,8 @@ export async function renderTab({ body, patient, query, signal }) {
   on(body, 'click', '[data-print]', () => printQuote(p, [{ plan: plan(), items: planItems() }]), { signal });
   on(body, 'click', '[data-choose]', async () => {
     const others = plans.filter((x) => x.id !== planId && (x.status === 'proposal' || x.status === 'active'));
-    const ok = await confirmDialog({ title: `اعتماد «${plan().name}»؟`, message: others.length ? 'ستصبح هذه هي الخطة المعتمدة. الخطط الأخرى التي لم يبدأ تنفيذها تُعلَّم بأنها «لم تُختر» (وتبقى محفوظة للرجوع إليها).' : 'ستصبح هذه الخطة المعتمدة ويمكن بدء العلاج.', confirmLabel: 'اعتماد' });
-    if (ok) guard(async () => { const r = await choosePlan(planId); if (r.length) toastSuccess(`لم تُختر: ${r.join('، ')}`); }, 'تم اعتماد الخطة');
+    const ok = await confirmDialog({ title: tr`اعتماد «${plan().name}»؟`, message: others.length ? 'ستصبح هذه هي الخطة المعتمدة. الخطط الأخرى التي لم يبدأ تنفيذها تُعلَّم بأنها «لم تُختر» (وتبقى محفوظة للرجوع إليها).' : 'ستصبح هذه الخطة المعتمدة ويمكن بدء العلاج.', confirmLabel: 'اعتماد' });
+    if (ok) guard(async () => { const r = await choosePlan(planId); if (r.length) toastSuccess(tr`لم تُختر: ${r.join('، ')}`); }, 'تم اعتماد الخطة');
   }, { signal });
 
   on(body, 'click', '[data-item-menu]', (_, b) => {
@@ -294,7 +295,7 @@ export async function renderTab({ body, patient, query, signal }) {
       ...(pl.status === 'proposal' ? [{ label: 'تعليم أنها «لم تُختر»', icon: 'circle-x', onSelect: () => guard(() => setPlanStatus(pl.id, 'rejected')) }] : []),
       ...(pl.status === 'rejected' ? [{ label: 'إرجاعها كخطة بديلة', icon: 'refresh-cw', onSelect: () => guard(() => setPlanStatus(pl.id, 'proposal')) }] : []),
       ...(perm.del ? ['sep', { label: 'حذف الخطة', icon: 'trash-2', danger: true, onSelect: async () => {
-        if (await confirmDialog({ title: `حذف «${pl.name}»؟`, message: 'ستُحذف الخطة وكل بنودها المخططة. لا يمكن حذف خطة بدأ تنفيذها.', confirmLabel: 'حذف', danger: true })) {
+        if (await confirmDialog({ title: tr`حذف «${pl.name}»؟`, message: 'ستُحذف الخطة وكل بنودها المخططة. لا يمكن حذف خطة بدأ تنفيذها.', confirmLabel: 'حذف', danger: true })) {
           await guard(() => deletePlan(pl.id), 'تم حذف الخطة');
         }
       } }] : []),

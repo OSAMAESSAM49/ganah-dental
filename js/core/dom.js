@@ -1,8 +1,10 @@
 /**
  * Minimal, safe DOM templating. Every interpolated value is HTML-escaped unless it is a
  * SafeHTML (produced by `html` or `raw`). Patient-entered text can never inject markup.
+ * In English, the Arabic text of templates and of plain strings is translated here (core/i18n.js).
  */
 import { icon } from './icons.js';
+import { isEnglish, translateTemplate, translateText, inDataAttribute } from './i18n.js';
 
 export class SafeHTML {
   /** @param {string} value */
@@ -17,12 +19,21 @@ export function escapeHTML(value) {
   return String(value).replace(/[&<>"'`]/g, (ch) => ESCAPES[ch]);
 }
 
-/** @param {unknown} v @returns {string} */
-function toHTML(v) {
+/** Text shown exactly as given, never translated (e.g. a WhatsApp message preview). */
+export class KeepText {
+  /** @param {string} value */
+  constructor(value) { this.value = value; }
+  toString() { return this.value; }
+}
+export const keep = (text) => new KeepText(String(text ?? ''));
+
+/** @param {unknown} v @param {boolean} [translate] @returns {string} */
+function toHTML(v, translate = false) {
   if (v == null || v === false || v === true) return '';
   if (v instanceof SafeHTML) return v.value;
-  if (Array.isArray(v)) return v.map(toHTML).join('');
-  return escapeHTML(v);
+  if (v instanceof KeepText) return escapeHTML(v.value);
+  if (Array.isArray(v)) return v.map((x) => toHTML(x, translate)).join('');
+  return escapeHTML(translate && typeof v === 'string' ? translateText(v) : v);
 }
 
 /**
@@ -31,8 +42,16 @@ function toHTML(v) {
  * @returns {SafeHTML}
  */
 export function html(strings, ...values) {
-  let out = strings[0];
-  for (let i = 0; i < values.length; i++) out += toHTML(values[i]) + strings[i + 1];
+  if (!isEnglish()) {
+    let out = strings[0];
+    for (let i = 0; i < values.length; i++) out += toHTML(values[i]) + strings[i + 1];
+    return new SafeHTML(out);
+  }
+  // English: the template's own text is translated once; string values (labels, messages)
+  // too, except inside data attributes (value="…", data-…="…").
+  const { parts, order } = translateTemplate(strings);
+  let out = parts[0];
+  for (let i = 0; i < order.length; i++) out += toHTML(values[order[i]], !inDataAttribute(out)) + parts[i + 1];
   return new SafeHTML(out);
 }
 
@@ -47,7 +66,7 @@ export const ico = (name, opts) => raw(icon(name, opts));
  * @param {Element} el @param {SafeHTML|string} tpl
  */
 export function render(el, tpl) {
-  el.innerHTML = tpl instanceof SafeHTML ? tpl.value : escapeHTML(tpl ?? '');
+  el.innerHTML = tpl instanceof SafeHTML ? tpl.value : escapeHTML(tpl instanceof KeepText ? tpl.value : translateText(tpl ?? ''));
 }
 
 /** Parses a template into a single element (first element child). @returns {HTMLElement} */

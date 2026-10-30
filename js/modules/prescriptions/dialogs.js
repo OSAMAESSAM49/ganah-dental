@@ -14,6 +14,8 @@ import { printHTML } from '../../components/print.js';
 import { toastSuccess, toastError } from '../../components/toast.js';
 import { getPatient } from '../../services/patients.js';
 import { listDoctors } from '../../services/schedule.js';
+import { tr } from '../../core/i18n.js';
+import { inArabic } from '../../core/i18n.js';
 import {
   listMedicines, listRxTemplates, lineFromMedicine, rxWarnings, createPrescription, updatePrescription,
   formatRxNo, doctorLabel,
@@ -126,7 +128,7 @@ export async function prescriptionDialog(preset = {}) {
   };
 
   const res = await openModal({
-    title: editing ? `تعديل الروشتة ${formatRxNo(editing.number)}` : 'روشتة جديدة',
+    title: editing ? tr`تعديل الروشتة ${formatRxNo(editing.number)}` : 'روشتة جديدة',
     dirty: true,
     icon: 'pill', size: 'lg',
     body: html`<form class="form" novalidate>
@@ -176,14 +178,15 @@ export async function prescriptionDialog(preset = {}) {
     },
   });
   if (!saved) return null;
-  toastSuccess(editing ? 'تم حفظ الروشتة' : `تم حفظ الروشتة ${formatRxNo(saved.number)}`);
+  toastSuccess(editing ? 'تم حفظ الروشتة' : tr`تم حفظ الروشتة ${formatRxNo(saved.number)}`);
   if (res === 'print') printPrescription(saved, st.patient);
   return saved;
 }
 
 /* ---------- Print (A5) ---------- */
 
-export function printPrescription(rx, patient) {
+export const printPrescription = (rx, patient) => inArabic(() => printPrescriptionAr(rx, patient));
+function printPrescriptionAr(rx, patient) {
   printHTML(html`
     <div class="rx-print">
       ${rx.doctorName ? html`<div class="rx-print__doctor">${rx.doctorName}</div>` : ''}

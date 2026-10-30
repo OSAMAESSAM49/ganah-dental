@@ -17,6 +17,7 @@ import { emptyState } from '../../components/states.js';
 import { confirmDialog } from '../../components/modal.js';
 import { toastSuccess, toastError } from '../../components/toast.js';
 import { allPatients, searchPatients, restorePatient, ageYears } from '../../services/patients.js';
+import { tr, t } from '../../core/i18n.js';
 
 const PAGE = 100;
 const PATIENT_COUNT = { one: 'مريض واحد', two: 'مريضان', few: 'مرضى', many: 'مريضًا' };
@@ -36,7 +37,7 @@ export async function copyPhone(phone) {
     document.execCommand('copy');
     ta.remove();
   }
-  toastSuccess(`تم نسخ الرقم ${digits(phone)}`);
+  toastSuccess(tr`تم نسخ الرقم ${digits(phone)}`);
 }
 
 const phoneCall = (p) => html`<a class="phone-copy phone-call ltr num" href="tel:${p.phone}" aria-label="اتصال بـ ${p.name}">${ico('phone', { size: 16 })} ${digits(p.phone)}</a>`;
@@ -185,7 +186,7 @@ export default {
       current = rows;
       drawRows();
       el.querySelector('#pmore').hidden = rows.length <= state.shown;
-      el.querySelector('#pcount').textContent = rows.length ? arabicCount(rows.length, PATIENT_COUNT) : 'لا يوجد مرضى';
+      el.querySelector('#pcount').textContent = t(rows.length ? arabicCount(rows.length, PATIENT_COUNT) : 'لا يوجد مرضى');
       syncUrl();
     };
 

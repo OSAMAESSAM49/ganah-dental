@@ -14,6 +14,7 @@ import { openMenu } from '../../components/menu.js';
 import { textField, selectField, textareaField } from '../../components/form.js';
 import { toastSuccess, toastError } from '../../components/toast.js';
 import { emptyState } from '../../components/states.js';
+import { tr } from '../../core/i18n.js';
 import {
   loadCatalog, createCategory, updateCategory, deleteCategory,
   createProcedure, updateProcedure, deleteProcedure, move,
@@ -141,7 +142,7 @@ export default {
       openMenu(b, { items: [
         ...(perm.edit ? [{ label: p.active ? 'إيقاف (إخفاؤه من الاختيارات)' : 'تفعيل', icon: p.active ? 'eye-off' : 'eye', onSelect: () => run(() => updateProcedure(p.id, { active: !p.active }), p.active ? 'تم إيقاف الإجراء' : 'تم تفعيل الإجراء') }] : []),
         ...(perm.del ? ['sep', { label: 'حذف الإجراء', icon: 'trash-2', danger: true, onSelect: async () => {
-          if (await confirmDialog({ title: `حذف «${p.name}»؟`, message: 'إذا كان مستخدمًا في خطط علاج لن يُحذف، ويمكنك إيقافه بدلًا من ذلك.', confirmLabel: 'حذف', danger: true })) run(() => deleteProcedure(p.id), 'تم حذف الإجراء');
+          if (await confirmDialog({ title: tr`حذف «${p.name}»؟`, message: 'إذا كان مستخدمًا في خطط علاج لن يُحذف، ويمكنك إيقافه بدلًا من ذلك.', confirmLabel: 'حذف', danger: true })) run(() => deleteProcedure(p.id), 'تم حذف الإجراء');
         } }] : []),
       ] });
     }, { signal });
@@ -154,7 +155,7 @@ export default {
           { label: c.active ? 'إيقاف التصنيف' : 'تفعيل التصنيف', icon: c.active ? 'eye-off' : 'eye', onSelect: () => run(() => updateCategory(c.id, { active: !c.active })) },
         ] : []),
         ...(perm.del ? ['sep', { label: 'حذف التصنيف', icon: 'trash-2', danger: true, onSelect: async () => {
-          if (await confirmDialog({ title: `حذف تصنيف «${c.name}»؟`, message: 'يجب أن يكون التصنيف فارغًا.', confirmLabel: 'حذف', danger: true })) run(() => deleteCategory(c.id), 'تم حذف التصنيف');
+          if (await confirmDialog({ title: tr`حذف تصنيف «${c.name}»؟`, message: 'يجب أن يكون التصنيف فارغًا.', confirmLabel: 'حذف', danger: true })) run(() => deleteCategory(c.id), 'تم حذف التصنيف');
         } }] : []),
       ] });
     }, { signal });
@@ -217,12 +218,13 @@ async function procedureDialog(proc, catalog, items = []) {
       ${items.length ? '' : html`<p class="subtle text-sm">أضف أصناف المخزون أولًا لربطها بالإجراء.</p>`}
     </div>`;
   const res = await openModal({
-    title: isNew ? 'إجراء جديد' : `تعديل «${proc.name}»`,
+    title: isNew ? 'إجراء جديد' : tr`تعديل «${proc.name}»`,
     dirty: true,
     icon: isNew ? 'plus' : 'pencil',
     body: html`
       <form class="form" novalidate>
         ${textField({ name: 'name', label: 'اسم الإجراء', value: proc?.name ?? '', required: true })}
+        ${textField({ name: 'nameEn', label: 'الاسم بالإنجليزية (اختياري)', value: proc?.nameEn ?? '', ltr: true, hint: 'يظهر بدل الاسم العربي عند استخدام البرنامج بالإنجليزية' })}
         <div class="form-grid">
           ${selectField({ name: 'categoryId', label: 'التصنيف', value: proc?.categoryId ?? catalog[0]?.id, required: true, options: catalog.map((c) => ({ value: c.id, label: c.name })) })}
           ${textField({ name: 'price', label: 'السعر الافتراضي (ج.م)', value: proc?.price ? piastersToInput(proc.price) : '', ltr: true, inputmode: 'decimal', placeholder: '0' })}
@@ -238,7 +240,7 @@ async function procedureDialog(proc, catalog, items = []) {
         ${selectField({ name: 'chartEffect', label: 'أثره على خريطة الأسنان عند الانتهاء', value: proc?.chartEffect ?? '', placeholder: 'لا يغيّر الخريطة', hint: 'مثال: الحشو يُسجّل «حشو» على السن والأسطح المختارة', options: CONDITIONS.filter((c) => !['caries', 'fractured', 'extract'].includes(c.key)).map((c) => ({ value: c.key, label: c.label })) })}
         ${textareaField({ name: 'notes', label: 'ملاحظات', value: proc?.notes ?? '', rows: 2 })}
         ${items.length || recipe.length ? html`<div id="recipe-box">${recipeMarkup()}</div>` : ''}
-        ${selectField({ name: 'instructionTemplateId', label: 'تعليمات ما بعد الإجراء', value: proc?.instructionTemplateId ?? '', placeholder: 'بدون تعليمات', hint: 'يُعرض إرسالها للمريض على واتساب بعد «تم». تُعدّل من المتابعات ← التعليمات والرسائل', options: templates.map((t) => ({ value: t.id, label: t.active === false ? `${t.name} (موقوف)` : t.name })) })}
+        ${selectField({ name: 'instructionTemplateId', label: 'تعليمات ما بعد الإجراء', value: proc?.instructionTemplateId ?? '', placeholder: 'بدون تعليمات', hint: 'يُعرض إرسالها للمريض على واتساب بعد «تم». تُعدّل من المتابعات ← التعليمات والرسائل', options: templates.map((t) => ({ value: t.id, label: t.active === false ? tr`${t.name} (موقوف)` : t.name })) })}
         <div id="schedule-box">${scheduleMarkup()}</div>
       </form>`,
     actions: [{ label: isNew ? 'إضافة' : 'حفظ', value: 'save', variant: 'primary' }, { label: 'إغلاق', value: null }],
@@ -278,7 +280,7 @@ async function procedureDialog(proc, catalog, items = []) {
       const data = formData(f);
       const intIn = (x, min, max, label) => {
         const n = Number(normalizeDigits(x));
-        return Number.isInteger(n) && n >= min && n <= max ? '' : `${label} من ${digits(min)} إلى ${digits(max)}`;
+        return Number.isInteger(n) && n >= min && n <= max ? '' : tr`${label} من ${digits(min)} إلى ${digits(max)}`;
       };
       const errors = validate(data, {
         name: (x) => required(x, 'اسم الإجراء'),

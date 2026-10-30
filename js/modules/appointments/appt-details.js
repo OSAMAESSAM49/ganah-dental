@@ -20,6 +20,7 @@ import { patientAvatar } from '../patients/list.js';
 import { confirmDone } from '../patients/plan-dialogs.js';
 import { offerInstructions } from '../followups/shared.js';
 import { openAppointmentForm } from './appt-form.js';
+import { tr } from '../../core/i18n.js';
 
 const STEP_UI = {
   arrived: { label: APPT_ACTIONS.arrived, icon: 'user-round', variant: 'accent' },
@@ -158,7 +159,7 @@ export async function openAppointmentDetails(appt) {
           if (step) {
             const s = step.dataset.step;
             if (s === 'cancelled') { if (!(await cancelWithReason(a))) return; }
-            else if (s === 'no_show') { if (!(await confirmDialog({ title: 'تسجيل عدم الحضور؟', message: `${a.patientName} لم يحضر موعده.`, confirmLabel: 'لم يحضر', danger: true }))) return; await setAppointmentStatus(a.id, s); }
+            else if (s === 'no_show') { if (!(await confirmDialog({ title: 'تسجيل عدم الحضور؟', message: tr`${a.patientName} لم يحضر موعده.`, confirmLabel: 'لم يحضر', danger: true }))) return; await setAppointmentStatus(a.id, s); }
             else await setAppointmentStatus(a.id, s);
             changed = true;
             toastSuccess(`${a.patientName}: ${APPT_STATUS[s].label}`);
@@ -183,7 +184,7 @@ export async function openAppointmentDetails(appt) {
             const item = await repos.treatmentItems.get(done.dataset.itemDone);
             const res = await confirmDone(item);
             if (res) {
-              await setItemStatus(item.id, 'done', res); changed = true; toastSuccess(`تم: ${item.procedureName}`); await refresh(); await offerInstructions(item);
+              await setItemStatus(item.id, 'done', res); changed = true; toastSuccess(tr`تم: ${item.procedureName}`); await refresh(); await offerInstructions(item);
               (await import('../billing/dialogs.js')).offerInvoice(item.patientId);
             }
             return;

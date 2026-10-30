@@ -34,6 +34,7 @@ import { formatClock, MONTHS, addDays, dayLabel } from '../../core/time.js';
 import { href, navigate } from '../../core/router.js';
 import { onEvent } from '../../core/bus.js';
 import { toastSuccess, toastError } from '../../components/toast.js';
+import { tr } from '../../core/i18n.js';
 
 const QUICK = { arrived: APPT_ACTIONS.arrived, in_chair: APPT_ACTIONS.in_chair, done: APPT_ACTIONS.done };
 const INV_STATUS = Object.fromEntries(Object.entries(INVOICE_STATUS).map(([k, v]) => [k, [v.label, v.tone]]));
@@ -193,12 +194,12 @@ export default {
           </li>`)}
           ${b.invoices.map((i) => html`<li class="inv-row">
             <span class="inv-row__main"><a href="${href('/patients/:id', { id: i.invoice.patientId }, { tab: 'payments' })}" class="bold">${i.invoice.patientName}</a>
-              <span class="muted text-sm"><span class="ltr">${formatInvoiceNo(i.invoice.number)}</span> · ${formatMoney(i.total)}${i.invoice.date !== day ? ` · فاتورة ${formatDate(i.invoice.date)}` : ''}</span></span>
+              <span class="muted text-sm"><span class="ltr">${formatInvoiceNo(i.invoice.number)}</span> · ${formatMoney(i.total)}${i.invoice.date !== day ? tr` · فاتورة ${formatDate(i.invoice.date)}` : ''}</span></span>
             <span class="inv-row__end">
               <span class="badge badge--dot badge--${INV_STATUS[i.status]?.[1] ?? ''}">${INV_STATUS[i.status]?.[0] ?? i.status}</span>
               ${i.remaining > 0 && canCollect ? html`<button type="button" class="btn btn--soft btn--sm" data-collect="${i.invoice.id}" data-patient="${i.invoice.patientId}">تحصيل ${formatMoney(i.remaining)}</button>` : ''}</span>
           </li>`)}
-        </ul>` : emptyState({ icon: 'receipt', title: `لا توجد فواتير ${word}`, hint: 'عند انتهاء علاج يظهر هنا حساب المريض حتى تُصدر فاتورته ويُحصَّل.' })}</div>
+        </ul>` : emptyState({ icon: 'receipt', title: tr`لا توجد فواتير ${word}`, hint: 'عند انتهاء علاج يظهر هنا حساب المريض حتى تُصدر فاتورته ويُحصَّل.' })}</div>
       </section>`;
     };
 
@@ -236,12 +237,12 @@ export default {
                 <a class="round-btn round-btn--on-hero" href="${href('/appointments', {}, { view: 'day', date: day })}" aria-label="فتح المواعيد">${ico('arrow-up-left', { size: 18 })}</a>
               </div>
               <div class="kpi__value">${digits(d.appts.length)}</div>
-              <div class="kpi__foot">${d.appts.some((a) => a.status === 'arrived') ? html`<span class="delta delta--up">${digits(d.appts.filter((a) => a.status === 'arrived').length)} في الانتظار</span>` : ''}<span class="kpi__meta">${d.appts.filter((a) => a.status === 'done').length ? `انتهى ${digits(d.appts.filter((a) => a.status === 'done').length)}` : 'اضغط للتقويم'}</span></div>
+              <div class="kpi__foot">${d.appts.some((a) => a.status === 'arrived') ? html`<span class="delta delta--up">${digits(d.appts.filter((a) => a.status === 'arrived').length)} في الانتظار</span>` : ''}<span class="kpi__meta">${d.appts.filter((a) => a.status === 'done').length ? tr`انتهى ${digits(d.appts.filter((a) => a.status === 'done').length)}` : 'اضغط للتقويم'}</span></div>
             </div>
           </article>` : ''}
-          ${show('collections') ? kpi({ key: 'collections', icon: 'banknote', tone: 'lime', label: `مدفوعات ${word}`, value: money(d.collections), meta: html`${deltaPill(d.collectionsPrev, d.collections)}<span class="kpi__meta">${digits(d.paymentsCount)} عملية دفع · <a href="#/billing?tab=closing">إقفال اليومية</a></span>` }) : ''}
-          ${show('net') ? kpi({ key: 'net', icon: 'trending-up', tone: 'success', label: `صافي ${word}`, value: money(d.net), meta: html`${deltaPill(d.netPrev, d.net)}<span class="kpi__meta">مصروفات ${formatMoney(d.expenses)} · <a href="#/reports">تقارير الشهر</a></span>` }) : ''}
-          ${show('newPatients') ? kpi({ key: 'newPatients', icon: 'user-round', tone: 'info', label: `مرضى جدد ${word}`, value: digits(d.newPatients), meta: html`${deltaPill(d.newPrev, d.newPatients)}<span class="kpi__meta"><a href="#/patients">عرض المرضى</a></span>` }) : ''}
+          ${show('collections') ? kpi({ key: 'collections', icon: 'banknote', tone: 'lime', label: tr`مدفوعات ${word}`, value: money(d.collections), meta: html`${deltaPill(d.collectionsPrev, d.collections)}<span class="kpi__meta">${digits(d.paymentsCount)} عملية دفع · <a href="#/billing?tab=closing">إقفال اليومية</a></span>` }) : ''}
+          ${show('net') ? kpi({ key: 'net', icon: 'trending-up', tone: 'success', label: tr`صافي ${word}`, value: money(d.net), meta: html`${deltaPill(d.netPrev, d.net)}<span class="kpi__meta">مصروفات ${formatMoney(d.expenses)} · <a href="#/reports">تقارير الشهر</a></span>` }) : ''}
+          ${show('newPatients') ? kpi({ key: 'newPatients', icon: 'user-round', tone: 'info', label: tr`مرضى جدد ${word}`, value: digits(d.newPatients), meta: html`${deltaPill(d.newPrev, d.newPatients)}<span class="kpi__meta"><a href="#/patients">عرض المرضى</a></span>` }) : ''}
 
           ${show('patientsList') ? html`<section class="card ${show('invoices') ? 'span-8' : 'span-12'}" aria-labelledby="today-title" data-dash="patientsList">
             <div class="card__header">
@@ -256,7 +257,7 @@ export default {
 
           ${show('alerts') ? html`<section class="card span-4" aria-labelledby="alerts-title">
             <div class="card__header"><div class="card__heading"><h2 class="card__title" id="alerts-title">يحتاج انتباهك</h2>
-              <p class="card__subtitle">${d.alerts.length ? `${digits(d.alerts.length)} تنبيه الآن` : 'لا شيء عاجل'}</p></div></div>
+              <p class="card__subtitle">${d.alerts.length ? tr`${digits(d.alerts.length)} تنبيه الآن` : 'لا شيء عاجل'}</p></div></div>
             <div class="card__body">${d.alerts.length ? html`<div class="stack-sm">${d.alerts.map(alertItem)}</div>` : emptyState({ icon: 'circle-check', title: 'كل شيء تمام', hint: 'لا متابعات متأخرة ولا أقساط ولا نواقص في المخزون.' })}</div>
           </section>` : ''}
 
@@ -276,7 +277,7 @@ export default {
                 <li class="list__item">${ico('database', { size: 20 })}<div class="list__main"><span class="list__title">قاعدة البيانات</span><span class="list__meta muted">إصدار المخطط ${digits(d.system.dbVersion)}</span></div><span class="badge badge--success">تعمل</span></li>
                 <li class="list__item">${ico('lock', { size: 20 })}<div class="list__main"><span class="list__title">تخزين دائم</span><span class="list__meta muted">${d.system.persisted ? 'المتصفح لن يحذف البيانات تلقائيًا' : 'ثبّت التطبيق لضمان عدم حذف البيانات'}</span></div><span class="badge ${d.system.persisted ? 'badge--success' : 'badge--warning'}">${d.system.persisted ? 'مفعّل' : 'غير مضمون'}</span></li>
                 <li class="list__item">${ico('download', { size: 20 })}<div class="list__main"><span class="list__title">العمل بدون إنترنت</span><span class="list__meta muted">${d.system.offline ? 'كل ملفات التطبيق محفوظة على الجهاز' : 'سيكون جاهزًا بعد إعادة التحميل'}</span></div><span class="badge ${d.system.offline ? 'badge--success' : 'badge--info'}">${d.system.offline ? 'جاهز' : 'يُجهَّز'}</span></li>
-                <li class="list__item">${ico('save', { size: 20 })}<div class="list__main"><span class="list__title">مساحة هذا الجهاز</span><span class="list__meta muted">بيانات البرنامج في متصفح هذا الجهاز${d.system.quota ? ` · المتاح ${formatBytes(d.system.quota)}` : ''}</span></div><span class="bold">${formatBytes(d.system.usage)}</span></li>
+                <li class="list__item">${ico('save', { size: 20 })}<div class="list__main"><span class="list__title">مساحة هذا الجهاز</span><span class="list__meta muted">بيانات البرنامج في متصفح هذا الجهاز${d.system.quota ? tr` · المتاح ${formatBytes(d.system.quota)}` : ''}</span></div><span class="bold">${formatBytes(d.system.usage)}</span></li>
                 ${cloudEnabled() ? usageItem({ usage: cachedUsage(), stale: false }) : ''}
               </ul>
             </div>
@@ -321,7 +322,7 @@ export default {
             <button type="button" class="btn btn--ghost btn--icon btn--sm" data-appt="${a.id}" aria-label="تفاصيل">${ico('eye', { size: 18 })}</button>
           </span>
         </li>`;
-      })}</ul>` : emptyState({ icon: 'calendar-days', title: filter === 'all' ? `لا توجد مواعيد ${word}` : 'لا أحد في هذه الحالة الآن', hint: filter === 'all' ? 'احجز موعدًا من زر «موعد جديد» أو من صفحة المواعيد.' : '' }));
+      })}</ul>` : emptyState({ icon: 'calendar-days', title: filter === 'all' ? tr`لا توجد مواعيد ${word}` : 'لا أحد في هذه الحالة الآن', hint: filter === 'all' ? 'احجز موعدًا من زر «موعد جديد» أو من صفحة المواعيد.' : '' }));
     };
 
     let data = await load();

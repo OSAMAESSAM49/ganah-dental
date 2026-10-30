@@ -2,7 +2,7 @@
  * Follow-up rows and dialogs shared by the follow-ups page and the patient file tab,
  * plus the "send post-op instructions" dialog used after completing a treatment item.
  */
-import { html, ico, render, on, formData, showFieldErrors } from '../../core/dom.js';
+import { html, ico, render, on, formData, showFieldErrors, keep } from '../../core/dom.js';
 import { digits, todayISO, formatDate, formatDateTime, parseDateInput } from '../../core/format.js';
 import { addDays, daysBetween, dayLabel } from '../../core/time.js';
 import { FOLLOWUP_TYPES, FOLLOWUP_STATUS } from '../../core/labels.js';
@@ -20,6 +20,7 @@ import {
   skipFollowUp, snoozeFollowUp, createFollowUp,
 } from '../../services/followups.js';
 import { repos } from '../../data/index.js';
+import { tr, inArabic } from '../../core/i18n.js';
 
 /** "اليوم" · "غدًا" · "متأخر 3 أيام" · "الخميس 22 أكتوبر" */
 export function dueText(due, today = todayISO()) {
@@ -27,7 +28,7 @@ export function dueText(due, today = todayISO()) {
   if (d === 0) return 'اليوم';
   if (d === 1) return 'غدًا';
   if (d === -1) return 'متأخر يومًا';
-  if (d < 0) return `متأخر ${digits(-d)} ${-d <= 10 ? 'أيام' : 'يومًا'}`;
+  if (d < 0) return tr`متأخر ${digits(-d)} ${-d <= 10 ? 'أيام' : 'يومًا'}`;
   return dayLabel(due, { year: due.slice(0, 4) !== today.slice(0, 4) });
 }
 
@@ -94,7 +95,7 @@ export async function sendFollowUpWhatsApp(f) {
 async function completeDialog(f) {
   let outcome = null;
   await openModal({
-    title: `تمت ${FOLLOWUP_TYPES[f.type]?.short ?? 'المتابعة'} — ${f.patientName}`,
+    title: tr`تمت ${FOLLOWUP_TYPES[f.type]?.short ?? 'المتابعة'} — ${f.patientName}`,
     dirty: true,
     icon: 'circle-check',
     body: html`<form class="form" novalidate>
@@ -178,7 +179,7 @@ export function wireFollowUpRows(root, find, signal) {
     try { await change(); } catch (err) { toastError(err.message); return; }
     toast(message, { type: 'success', action: { label: 'تراجع', onClick: () => repos.followUps.update(f.id, before) } });
   };
-  const snooze = (f, days, label) => withUndo(f, () => snoozeFollowUp(f.id, days), `${f.patientName}: تأجيل ${label}`);
+  const snooze = (f, days, label) => withUndo(f, () => snoozeFollowUp(f.id, days), tr`${f.patientName}: تأجيل ${label}`);
   on(root, 'click', '[data-fu-wa]', (e, a) => {
     const f = rec(a);
     if ('noPhone' in a.dataset) { e.preventDefault(); toastError('لا يوجد رقم موبايل صالح لهذا المريض'); return; }
@@ -201,8 +202,8 @@ export function wireFollowUpRows(root, find, signal) {
       { label: 'نسخ نص الرسالة', icon: 'file-text', onSelect: async () => {
         try { await navigator.clipboard.writeText((await followUpMessage(f)).text); toastSuccess('تم نسخ الرسالة'); } catch { toastError('تعذّر النسخ'); }
       } },
-      ...(edit && pending ? [{ label: 'إلغاء المتابعة', icon: 'circle-x', onSelect: () => withUndo(f, () => skipFollowUp(f.id), `ألغيت متابعة ${f.patientName}`) }] : []),
-      ...(edit && !pending ? [{ label: 'إعادة فتح', icon: 'refresh-cw', onSelect: () => withUndo(f, () => reopenFollowUp(f.id), `أُعيد فتح متابعة ${f.patientName}`) }] : []),
+      ...(edit && pending ? [{ label: 'إلغاء المتابعة', icon: 'circle-x', onSelect: () => withUndo(f, () => skipFollowUp(f.id), tr`ألغيت متابعة ${f.patientName}`) }] : []),
+      ...(edit && !pending ? [{ label: 'إعادة فتح', icon: 'refresh-cw', onSelect: () => withUndo(f, () => reopenFollowUp(f.id), tr`أُعيد فتح متابعة ${f.patientName}`) }] : []),
       ...(can('followups', 'delete') ? ['sep', { label: 'حذف', icon: 'trash-2', danger: true, onSelect: async () => {
         if (await confirmDialog({ title: 'حذف المتابعة؟', message: `${f.patientName} — ${FOLLOWUP_TYPES[f.type]?.label}`, confirmLabel: 'حذف', danger: true })) { await repos.followUps.remove(f.id); toastSuccess('تم الحذف'); }
       } }] : []),
@@ -222,7 +223,7 @@ export async function offerInstructions(item) {
     icon: 'message-circle',
     body: html`<div class="stack">
       <p>«${msg.template.name}» إلى <strong>${msg.patient?.name}</strong>${msg.patient?.phone ? html` (<span class="ltr">${digits(msg.patient.phone)}</span>)` : ''}</p>
-      <div class="msg-preview">${msg.text}</div>
+      <div class="msg-preview">${keep(msg.text)}</div>
       ${msg.link ? '' : html`<p class="badge badge--warning">لا يوجد رقم موبايل صالح — يمكنك نسخ الرسالة أو طباعتها</p>`}
     </div>`,
     actions: [
@@ -237,7 +238,7 @@ export async function offerInstructions(item) {
   }
   if (res === 'print') {
     const { printHTML } = await import('../../components/print.js');
-    printHTML(html`<p><strong>${msg.patient?.name ?? ''}</strong> · ${formatDate(todayISO())}</p><div class="print-instructions">${msg.template.body}</div>`, { size: 'a4', title: `تعليمات ${msg.template.name}` });
+    inArabic(() => printHTML(html`<p><strong>${msg.patient?.name ?? ''}</strong> · ${formatDate(todayISO())}</p><div class="print-instructions">${msg.template.body}</div>`, { size: 'a4', title: tr`تعليمات ${msg.template.name}` }));
   }
 }
 
