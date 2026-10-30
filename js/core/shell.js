@@ -22,10 +22,9 @@ import { attachPatientSearch } from '../components/patient-search.js';
 import { backupStatus } from '../services/backup.js';
 import { collectAlerts } from '../services/alerts.js';
 import { syncStatus, syncNow } from '../services/cloud-sync.js';
-import { LANGS, t } from './i18n.js';
+import { LANGS, t, tr } from './i18n.js';
 import { otherLanguage, switchLanguage } from '../services/language.js';
 import { digits, formatDateTime } from './format.js';
-import { tr } from './i18n.js';
 
 /** @type {HTMLElement} */
 let app;

@@ -205,10 +205,10 @@ export default {
     let rafId = 0;
     window.addEventListener('scroll', () => { cancelAnimationFrame(rafId); rafId = requestAnimationFrame(remember); }, { passive: true, signal });
 
-    let t;
+    let searchTimer;
     el.querySelector('#psearch').addEventListener('input', (e) => {
-      clearTimeout(t);
-      t = setTimeout(() => { state.q = /** @type {HTMLInputElement} */ (e.target).value; state.shown = PAGE; refresh(); }, 120);
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => { state.q = /** @type {HTMLInputElement} */ (e.target).value; state.shown = PAGE; refresh(); }, 120);
     }, { signal });
     el.querySelector('#psource').addEventListener('change', (e) => { state.source = /** @type {HTMLSelectElement} */ (e.target).value; refresh(); }, { signal });
     el.querySelector('#psort').addEventListener('change', (e) => { state.sort = /** @type {HTMLSelectElement} */ (e.target).value; refresh(); }, { signal });

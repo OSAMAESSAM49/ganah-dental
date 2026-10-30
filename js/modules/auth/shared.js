@@ -3,9 +3,8 @@ import { html, ico, keep } from '../../core/dom.js';
 import { brandMark } from '../../components/brand.js';
 import { getSettings } from '../../data/settings.js';
 import { printHTML } from '../../components/print.js';
-import { LANGS } from '../../core/i18n.js';
+import { LANGS, inArabic } from '../../core/i18n.js';
 import { otherLanguage } from '../../services/language.js';
-import { inArabic } from '../../core/i18n.js';
 
 /** Two-panel full-screen layout: violet brand panel + form panel. */
 export function authLayout(content, { headline } = {}) {

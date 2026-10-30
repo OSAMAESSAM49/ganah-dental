@@ -16,8 +16,7 @@ import { toastSuccess } from '../../components/toast.js';
 import { printHTML } from '../../components/print.js';
 import { listItems, movementsBetween, inventoryAlerts, shoppingList, updateItem, deleteItem, unitLabel, batchesFor } from '../../services/inventory.js';
 import { itemDialog, receiveDialog, adjustDialog, itemDetails, qtyText } from './dialogs.js';
-import { tr } from '../../core/i18n.js';
-import { inArabic } from '../../core/i18n.js';
+import { tr, inArabic } from '../../core/i18n.js';
 
 const TABS = [['items', 'الأصناف', 'package'], ['movements', 'الحركات', 'arrow-up-down'], ['alerts', 'التنبيهات', 'triangle-alert'], ['shopping', 'قائمة المشتريات', 'clipboard-list']];
 const STATUS = { ok: ['متوفر', 'success'], low: ['قارب على النفاد', 'warning'], out: ['نفد', 'danger'], negative: ['رصيد سالب', 'danger'] };
@@ -175,7 +174,7 @@ export default {
     on(body, 'click', '[data-print-shopping]', () => inArabic(() => printHTML(html`
       <table class="print-table"><thead><tr><th>#</th><th>الصنف</th><th>المتوفر</th><th>الكمية المطلوبة</th><th>المورد</th><th>ملاحظات</th></tr></thead>
       <tbody>${shopping.map((i, n) => html`<tr><td>${digits(n + 1)}</td><td>${i.name}</td><td>${qtyText(i.qty, i.unit)}</td><td><strong>${qtyText(i.suggested, i.unit)}</strong></td><td>${i.supplier || ''}</td><td></td></tr>`)}</tbody></table>`,
-    { title: 'قائمة المشتريات' }), { signal });
+    { title: 'قائمة المشتريات' })), { signal });
 
     // one consumption writes many records: refresh once they settle
     const off = onEvent('data:changed', ({ store }) => {

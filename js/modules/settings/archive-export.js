@@ -16,8 +16,7 @@ import { printHTML } from '../../components/print.js';
 import { formatInvoiceNo, formatReceiptNo } from '../../services/billing.js';
 import { formatRxNo } from '../../services/prescriptions.js';
 import { collectArchive, logArchiveExport } from '../../services/patient-archive.js';
-import { tr } from '../../core/i18n.js';
-import { inArabicAsync } from '../../core/i18n.js';
+import { tr, inArabicAsync } from '../../core/i18n.js';
 
 const who = [{ header: 'رقم الملف', key: 'fileNo', width: 12 }, { header: 'المريض', key: 'patientName', width: 24 }];
 const lbl = (map) => (k) => map[k]?.label ?? map[k] ?? k ?? '';

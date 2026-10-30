@@ -14,8 +14,7 @@ import { printHTML } from '../../components/print.js';
 import { toastSuccess, toastError } from '../../components/toast.js';
 import { getPatient } from '../../services/patients.js';
 import { listDoctors } from '../../services/schedule.js';
-import { tr } from '../../core/i18n.js';
-import { inArabic } from '../../core/i18n.js';
+import { tr, inArabic } from '../../core/i18n.js';
 import {
   listMedicines, listRxTemplates, lineFromMedicine, rxWarnings, createPrescription, updatePrescription,
   formatRxNo, doctorLabel,

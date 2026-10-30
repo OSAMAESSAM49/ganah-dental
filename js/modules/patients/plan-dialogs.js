@@ -10,8 +10,7 @@ import { textField, textareaField } from '../../components/form.js';
 import { printHTML } from '../../components/print.js';
 import { addItems, updateItem, itemMath, describeDone, planTotals } from '../../services/treatment.js';
 import { stockPreview, unitLabel } from '../../services/inventory.js';
-import { tr } from '../../core/i18n.js';
-import { inArabic } from '../../core/i18n.js';
+import { tr, inArabic } from '../../core/i18n.js';
 
 const SURFACE_RE = /^[MODBLIFP]*$/i;
 

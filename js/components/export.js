@@ -9,8 +9,7 @@ import { html } from '../core/dom.js';
 import { formatMoney, formatDate, formatNumber, formatPercent, todayISO } from '../core/format.js';
 import { getSettings } from '../data/settings.js';
 import { printHTML } from './print.js';
-import { tr } from '../core/i18n.js';
-import { inArabic } from '../core/i18n.js';
+import { tr, inArabic } from '../core/i18n.js';
 
 let excelJsPromise = null;
 /** Loads vendor/exceljs/exceljs.min.js once (≈1 MB, only when exporting). */
